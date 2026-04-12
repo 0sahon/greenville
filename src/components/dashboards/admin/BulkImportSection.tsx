@@ -114,21 +114,28 @@ export default function BulkImportSection({ profile }: Props) {
         }
 
         // Create auth user
+        const email = row.email.trim().toLowerCase();
         const { data: userId, error: rpcErr } = await supabase.rpc('admin_create_user', {
-          user_email: row.email.trim().toLowerCase(),
+          user_email: email,
           user_password: row.password,
           user_first_name: row.first_name.trim(),
           user_last_name: row.last_name.trim(),
+          profile_role: importType === 'students' ? 'student' : 'teacher',
         });
         if (rpcErr) { res.push({ row: i + 2, name, status: 'error', message: rpcErr.message }); continue; }
 
-        // Get or wait for profile trigger
-        await new Promise(r => setTimeout(r, 600));
-        const { data: profileData } = await supabase.from('profiles').select('id').eq('user_id', userId).single();
-        if (!profileData) { res.push({ row: i + 2, name, status: 'error', message: 'Profile not created' }); continue; }
-
-        // Update profile role + phone
-        await supabase.from('profiles').update({ role: importType === 'students' ? 'student' : 'teacher', phone: row.phone || null }).eq('id', profileData.id);
+        const { data: profileData, error: profErr } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', userId)
+          .single();
+        if (profErr || !profileData) {
+          res.push({ row: i + 2, name, status: 'error', message: profErr?.message || 'Profile not created' });
+          continue;
+        }
+        if (row.phone) {
+          await supabase.from('profiles').update({ phone: row.phone }).eq('id', profileData.id);
+        }
 
         if (importType === 'students') {
           const classId = row.class_name ? classMap[row.class_name.toLowerCase().trim()] ?? null : null;

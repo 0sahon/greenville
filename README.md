@@ -128,6 +128,15 @@ npm run seed:min
 
 That creates the four demo auth users, their `profiles` rows, and a **minimal** school graph (one class **Demo Class A**, demo student in that class, `teachers` / `parents` rows, and a parent–student link) so student/parent/teacher screens have data to load.
 
+**Richer demo (extra teachers, class Basic 3A, five students, grades, result sheets, attendance, fees, etc.):** run migrations on your Supabase project (`supabase db push` or SQL Editor), then:
+
+```bash
+npm run seed:min
+npm run seed:full
+```
+
+`seed:full` runs `seed-demo-data.mjs` then `seed-full-demo.mjs` (loads `.env` automatically). If you already ran `seed:full` once, re-running may skip or error on duplicate emails—that is normal. New migrations under `supabase/migrations/` fix `admin_create_user` (pgcrypto) and `classes` / `teachers` RLS so admin seeding works.
+
 **Manual alternative:** create the same accounts in the Supabase dashboard under **Authentication → Users**:
 
 | Email | Password | Role |

@@ -47,7 +47,7 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, isRetry = false) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -56,6 +56,12 @@ export function useAuth() {
         .single();
 
       if (error) {
+        // Right after first login, handle_new_user may commit a tick later — retry once for "no rows".
+        if (!isRetry && error.code === 'PGRST116') {
+          await new Promise((r) => setTimeout(r, 700));
+          await fetchProfile(userId, true);
+          return;
+        }
         console.error('Error fetching profile:', error);
       } else {
         setProfile(data);

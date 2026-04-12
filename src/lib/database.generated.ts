@@ -1639,6 +1639,7 @@ export type Database = {
           user_first_name: string
           user_last_name: string
           user_password: string
+          profile_role?: 'admin' | 'teacher' | 'parent' | 'student'
         }
         Returns: string
       }

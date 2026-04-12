@@ -1,9 +1,10 @@
 /**
  * Full demo seed: attendance, timetable, announcements, fees, health records, transport, messages
- * Run with: bun run scripts/seed-full-demo.mjs
+ * Run after seed-demo-data.mjs, or: npm run seed:full
  *
- * Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or publishable) in the environment.
+ * Loads repo `.env` via load-root-env.
  */
+import './load-root-env.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -42,33 +43,37 @@ log('Signed in');
 // ── Fetch existing demo data ───────────────────────────────────────────────────
 console.log('\n📥 Loading existing demo data...');
 
-const { data: students } = await supabase
-  .from('students')
-  .select('id, student_id, profiles:profile_id(id, first_name, last_name)')
-  .like('student_id', 'QFS-2026-%')
-  .order('student_id');
+const { data: classRows } = await supabase
+  .from('classes')
+  .select('id, name')
+  .eq('name', 'Basic 3A')
+  .eq('academic_year', YEAR)
+  .order('created_at', { ascending: true })
+  .limit(1);
 
-const { data: classRow } = await supabase
-  .from('classes').select('id, name').eq('name', 'Basic 3A').single();
+const classRow = classRows?.[0] ?? null;
 
-const { data: teacherRows } = await supabase
-  .from('teachers')
-  .select('id, profile_id, employee_id, profiles:profile_id(first_name, last_name, id)')
-  .in('employee_id', ['TCH-2026-615', 'TCH-2026-689'])
-  .order('employee_id');
+const { data: students } = classRow
+  ? await supabase
+      .from('students')
+      .select('id, student_id, profiles:profile_id(id, first_name, last_name)')
+      .eq('class_id', classRow.id)
+      .order('student_id')
+  : { data: null };
 
-// Fallback: fetch all demo teachers by email pattern
 const { data: allDemoTeachers } = await supabase
   .from('profiles')
   .select('id, first_name, last_name')
   .like('email', 'teacher.%@greenvillemontessorischools.ng');
 
-// Get teacher table rows using profile IDs
-let teachers = teacherRows || [];
-if (teachers.length === 0 && allDemoTeachers?.length) {
-  const profileIds = allDemoTeachers.map(p => p.id);
-  const { data: t } = await supabase.from('teachers').select('id, profile_id, profiles:profile_id(first_name, last_name, id)').in('profile_id', profileIds);
-  teachers = t || [];
+let teachers = [];
+if (allDemoTeachers?.length) {
+  const profileIds = allDemoTeachers.map((p) => p.id);
+  const { data: t } = await supabase
+    .from('teachers')
+    .select('id, profile_id, employee_id, profiles:profile_id(first_name, last_name, id)')
+    .in('profile_id', profileIds);
+  teachers = (t || []).sort((a, b) => (a.employee_id || '').localeCompare(b.employee_id || ''));
 }
 
 if (!students?.length || !classRow) {
@@ -76,11 +81,53 @@ if (!students?.length || !classRow) {
   process.exit(1);
 }
 
+if (students.length < 5) {
+  fail(
+    `Need at least 5 students in ${classRow.name}; found ${students.length}. Re-run: npm run seed:full (seed-demo-data will repair rows).`,
+  );
+  process.exit(1);
+}
+
 log(`Found ${students.length} students in ${classRow.name}`);
 log(`Found ${teachers.length} teachers`);
 
-const t1 = teachers[0]; // Adaeze
-const t2 = teachers[1] || teachers[0]; // Emeka
+const t1 = teachers[0];
+const t2 = teachers[1] || teachers[0];
+const teacher1ProfileId = t1?.profiles?.id ?? t1?.profile_id ?? null;
+
+// Re-seed safe: remove rows this script inserted last time (same titles / class students).
+console.log('\n🧹 Clearing prior full-demo rows for this class...');
+const studentIdList = students.map((s) => s.id);
+await supabase
+  .from('fees')
+  .delete()
+  .in('student_id', studentIdList)
+  .eq('term', TERM)
+  .eq('academic_year', YEAR);
+await supabase.from('health_records').delete().in('student_id', studentIdList);
+await supabase.from('transport').delete().in('student_id', studentIdList);
+
+const demoAnnouncementTitles = [
+  'First Term Examination Schedule — 2025/2026',
+  'End-of-Term Prize Giving Day — 7th March 2026',
+  'School Fees Reminder — Second Term',
+  'Mid-Term Break — 10th to 14th February 2026',
+  'Staff Meeting — Friday 27th February',
+  'Interhouse Sports — 21st February 2026',
+];
+await supabase.from('announcements').delete().in('title', demoAnnouncementTitles).eq('published_by', adminId);
+
+const adminDemoMessageSubjects = [
+  'Welcome to the First Term 2025/2026',
+  'Staff Briefing — First Term Academic Calendar',
+  'Basic 3A Class Performance — Mid Term Review',
+];
+await supabase.from('messages').delete().in('subject', adminDemoMessageSubjects).eq('sender_id', adminId);
+const teacherReplySubjects = ['Re: Basic 3A Class Performance — Mid Term Review'];
+if (teacher1ProfileId) {
+  await supabase.from('messages').delete().in('subject', teacherReplySubjects).eq('sender_id', teacher1ProfileId);
+}
+log('Cleanup done');
 
 // ── 1. ATTENDANCE — last 4 weeks (Mon–Fri) ────────────────────────────────────
 console.log('\n📅 Seeding attendance (4 weeks)...');
@@ -360,10 +407,6 @@ else log(`${transportRows.length} transport records created`);
 
 // ── 7. MESSAGES ───────────────────────────────────────────────────────────────
 console.log('\n💬 Seeding messages...');
-
-// Fetch teacher profiles
-const teacher1ProfileId = t1?.profiles?.id ?? t1?.profile_id ?? null;
-const teacher2ProfileId = t2?.profiles?.id ?? t2?.profile_id ?? null;
 
 const messageRows = [];
 

@@ -109,17 +109,19 @@ export default function TeachersSection({ profile }: Props) {
         user_password: tempPassword,
         user_first_name: form.first_name,
         user_last_name: form.last_name,
+        profile_role: 'teacher',
       });
       if (fnError) throw fnError;
-      const { data: prof, error: pErr } = await supabase.from('profiles').insert({
-        user_id: userId,
-        email: form.email,
-        first_name: form.first_name,
-        last_name: form.last_name,
-        phone: form.phone || null,
-        role: 'teacher',
-      }).select().single();
+      const { data: prof, error: pErr } = await supabase
+        .from('profiles')
+        .select()
+        .eq('user_id', userId)
+        .single();
       if (pErr) throw pErr;
+      if (form.phone) {
+        const { error: phErr } = await supabase.from('profiles').update({ phone: form.phone }).eq('id', prof.id);
+        if (phErr) throw phErr;
+      }
       const { error: tErr } = await supabase.from('teachers').insert({
         profile_id: prof.id,
         employee_id: generateEmployeeId(),

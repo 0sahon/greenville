@@ -127,17 +127,19 @@ export default function StudentsSection({ profile: _profile }: Props) {
         user_password: tempPassword,
         user_first_name: form.first_name,
         user_last_name: form.last_name,
+        profile_role: 'student',
       });
       if (fnError) throw fnError;
-      const { data: profile, error: pErr } = await supabase.from('profiles').insert({
-        user_id: userId,
-        email: form.email,
-        first_name: form.first_name,
-        last_name: form.last_name,
-        phone: form.phone || null,
-        role: 'student',
-      }).select().single();
+      const { data: profile, error: pErr } = await supabase
+        .from('profiles')
+        .select()
+        .eq('user_id', userId)
+        .single();
       if (pErr) throw pErr;
+      if (form.phone) {
+        const { error: phErr } = await supabase.from('profiles').update({ phone: form.phone }).eq('id', profile.id);
+        if (phErr) throw phErr;
+      }
       const { error: sErr } = await supabase.from('students').insert({
         profile_id: profile.id,
         student_id: generateStudentId(),

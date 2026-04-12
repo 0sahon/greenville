@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "gen:db-types": "node scripts/gen-db-types.mjs",
     "gen:db-types:local": "node scripts/gen-db-types.mjs --local",
-    "seed:min": "node scripts/seed-minimal.mjs"
+    "seed:min": "node scripts/seed-minimal.mjs",
+    "seed:full": "node scripts/seed-full.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",

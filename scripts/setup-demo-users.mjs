@@ -67,7 +67,7 @@ const headers = {
   'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
 };
 
-async function createAuthUser(email, password) {
+async function createAuthUser(email, password, profile) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
     method: 'POST',
     headers,
@@ -75,6 +75,11 @@ async function createAuthUser(email, password) {
       email,
       password,
       email_confirm: true,  // skip email verification
+      user_metadata: {
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        app_role: profile.role,
+      },
     }),
   });
 
@@ -158,7 +163,7 @@ async function main() {
   for (const user of DEMO_USERS) {
     process.stdout.write(`Creating ${user.profile.role}: ${user.email} ... `);
     try {
-      const authUser = await createAuthUser(user.email, user.password);
+      const authUser = await createAuthUser(user.email, user.password, user.profile);
       await upsertProfile(authUser.id, user.email, user.profile);
       console.log('✅');
     } catch (err) {

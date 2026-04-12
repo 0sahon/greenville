@@ -1,9 +1,10 @@
 /**
  * Seed demo data: 2 teachers, 1 class, 5 students, subjects, grades, result sheets
- * Run with: bun run scripts/seed-demo-data.mjs
+ * Run: node scripts/seed-demo-data.mjs   (loads repo `.env` via load-root-env)
  *
- * Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY) in the environment.
+ * Requires admin user (npm run seed:min). Uses anon key + admin session + admin_create_user RPC.
  */
+import './load-root-env.mjs';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -33,15 +34,63 @@ function err(msg) { console.error(`  ✗ ${msg}`); }
 
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-async function createUser(email, firstName, lastName) {
+function isAuthEmailTakenError(msg) {
+  const m = (msg || '').toLowerCase();
+  return m.includes('already exists') || m.includes('already registered');
+}
+
+/** Returns profiles row (id = profile uuid). Creates auth user + profile when missing. */
+async function ensureProfile(email, firstName, lastName, role, extraProfileFields = {}) {
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('id, user_id, email, first_name, last_name')
+    .eq('email', email)
+    .maybeSingle();
+  if (existing) return existing;
+
+  const pwd = email.includes('teacher.') ? TEACHER_PASSWORD : STUDENT_PASSWORD;
   const { data: userId, error } = await supabase.rpc('admin_create_user', {
     user_email: email,
-    user_password: email.startsWith('teacher') ? TEACHER_PASSWORD : STUDENT_PASSWORD,
+    user_password: pwd,
     user_first_name: firstName,
     user_last_name: lastName,
+    profile_role: role,
   });
-  if (error) throw new Error(`admin_create_user(${email}): ${error.message}`);
-  return userId;
+
+  if (error) {
+    if (isAuthEmailTakenError(error.message)) {
+      const { data: again } = await supabase
+        .from('profiles')
+        .select('id, user_id, email, first_name, last_name')
+        .eq('email', email)
+        .maybeSingle();
+      if (again) return again;
+      throw new Error(
+        `Auth user exists for ${email} but no profile row — add a profiles row or remove the orphan auth user.`,
+      );
+    }
+    throw new Error(`admin_create_user(${email}): ${error.message}`);
+  }
+
+  const { data: prof, error: pErr } = await supabase
+    .from('profiles')
+    .select('id, user_id, email, first_name, last_name')
+    .eq('user_id', userId)
+    .single();
+  if (pErr) throw pErr;
+
+  const extras = { ...extraProfileFields };
+  if (Object.keys(extras).length) {
+    const { data: upd, error: uErr } = await supabase
+      .from('profiles')
+      .update(extras)
+      .eq('id', prof.id)
+      .select('id, user_id, email, first_name, last_name')
+      .single();
+    if (uErr) throw uErr;
+    return upd;
+  }
+  return prof;
 }
 
 // ── Step 1: Sign in as admin ──────────────────────────────────────────────────
@@ -59,31 +108,47 @@ const teachers = [
 ];
 
 const createdTeachers = [];
-for (const t of teachers) {
+for (let ti = 0; ti < teachers.length; ti++) {
+  const t = teachers[ti];
   try {
-    const userId = await createUser(t.email, t.firstName, t.lastName);
+    const prof = await ensureProfile(t.email, t.firstName, t.lastName, 'teacher', {
+      phone: t.phone,
+    });
 
-    // Insert profile with role=teacher
-    const { data: prof, error: pErr } = await supabase.from('profiles').insert({
-      user_id: userId, email: t.email,
-      first_name: t.firstName, last_name: t.lastName,
-      phone: t.phone, role: 'teacher',
-    }).select().single();
-    if (pErr) throw pErr;
+    const empId = `TCH-2026-${String(ti + 1).padStart(3, '0')}`;
+    let tRow = null;
+    const { data: existingT } = await supabase
+      .from('teachers')
+      .select('*')
+      .eq('profile_id', prof.id)
+      .maybeSingle();
+    if (existingT) {
+      tRow = existingT;
+      log(`Teacher (existing): ${t.firstName} ${t.lastName} (${tRow.employee_id})`);
+    } else {
+      const { data: ins, error: tErr } = await supabase
+        .from('teachers')
+        .insert({
+          profile_id: prof.id,
+          employee_id: empId,
+          qualification: t.qualification,
+          specialization: t.specialization,
+          hire_date: '2024-09-01',
+        })
+        .select()
+        .single();
+      if (tErr) throw tErr;
+      tRow = ins;
+      log(`Teacher: ${t.firstName} ${t.lastName} (${empId}) — ${t.email} / ${TEACHER_PASSWORD}`);
+    }
 
-    // Insert teacher record
-    const empId = `TCH-${new Date().getFullYear()}-${randInt(100, 999)}`;
-    const { data: tRow, error: tErr } = await supabase.from('teachers').insert({
-      profile_id: prof.id,
-      employee_id: empId,
-      qualification: t.qualification,
-      specialization: t.specialization,
-      hire_date: '2024-09-01',
-    }).select().single();
-    if (tErr) throw tErr;
-
-    createdTeachers.push({ ...tRow, profileId: prof.id, profileUuid: prof.id, email: t.email, fullName: `${t.firstName} ${t.lastName}` });
-    log(`Teacher: ${t.firstName} ${t.lastName} (${empId}) — ${t.email} / ${TEACHER_PASSWORD}`);
+    createdTeachers.push({
+      ...tRow,
+      profileId: prof.id,
+      profileUuid: prof.id,
+      email: t.email,
+      fullName: `${t.firstName} ${t.lastName}`,
+    });
   } catch (e) {
     err(`Teacher ${t.firstName}: ${e.message}`);
   }
@@ -95,23 +160,45 @@ console.log('\n🏫 Creating class...');
 // Assign first teacher as class teacher
 const classTeacherProfileId = createdTeachers[0]?.profileId ?? null;
 
-const { data: cls, error: clsErr } = await supabase.from('classes').insert({
-  name: 'Basic 3A',
-  level: 'basic3',
-  academic_year: ACADEMIC_YEAR,
-  teacher_id: classTeacherProfileId,
-  capacity: 25,
-}).select().single();
+const { data: existingClasses } = await supabase
+  .from('classes')
+  .select('*')
+  .eq('name', 'Basic 3A')
+  .eq('academic_year', ACADEMIC_YEAR)
+  .order('created_at', { ascending: true })
+  .limit(1);
 
-if (clsErr) {
-  // Might already exist — try to fetch it
-  const { data: existing } = await supabase.from('classes').select().eq('name', 'Basic 3A').single();
-  if (!existing) { err('Could not create or find class: ' + clsErr.message); process.exit(1); }
-  log(`Class already exists: Basic 3A (${existing.id})`);
-  var classRow = existing;
+let classRow = existingClasses?.[0] ?? null;
+
+if (classRow) {
+  log(`Class already exists: Basic 3A (${classRow.id})`);
+  if (!classRow.teacher_id && classTeacherProfileId) {
+    const { error: upErr } = await supabase
+      .from('classes')
+      .update({ teacher_id: classTeacherProfileId })
+      .eq('id', classRow.id);
+    if (upErr) err(`Could not set class teacher: ${upErr.message}`);
+    else classRow = { ...classRow, teacher_id: classTeacherProfileId };
+  }
 } else {
+  const { data: cls, error: clsErr } = await supabase
+    .from('classes')
+    .insert({
+      name: 'Basic 3A',
+      level: 'basic3',
+      academic_year: ACADEMIC_YEAR,
+      teacher_id: classTeacherProfileId,
+      capacity: 25,
+    })
+    .select()
+    .single();
+
+  if (clsErr) {
+    err('Could not create class: ' + clsErr.message);
+    process.exit(1);
+  }
   log(`Class created: Basic 3A (${cls.id})`);
-  var classRow = cls;
+  classRow = cls;
 }
 
 // ── Step 4: Create students ───────────────────────────────────────────────────
@@ -126,31 +213,60 @@ const studentDefs = [
 ];
 
 const createdStudents = [];
-let studentSeq = 1;
 
-for (const s of studentDefs) {
+for (let si = 0; si < studentDefs.length; si++) {
+  const s = studentDefs[si];
   try {
-    const userId = await createUser(s.email, s.firstName, s.lastName);
+    const prof = await ensureProfile(s.email, s.firstName, s.lastName, 'student', {});
+    const studentId = `QFS-2026-${String(si + 1).padStart(3, '0')}`;
 
-    const { data: prof, error: pErr } = await supabase.from('profiles').insert({
-      user_id: userId, email: s.email,
-      first_name: s.firstName, last_name: s.lastName,
-      role: 'student',
-    }).select().single();
-    if (pErr) throw pErr;
+    const { data: existingSt } = await supabase
+      .from('students')
+      .select('*')
+      .eq('profile_id', prof.id)
+      .maybeSingle();
 
-    const studentId = `QFS-2026-${String(studentSeq++).padStart(3, '0')}`;
-    const { data: stRow, error: stErr } = await supabase.from('students').insert({
-      profile_id: prof.id,
-      student_id: studentId,
-      class_id: classRow.id,
-      gender: s.gender,
-      date_of_birth: s.dob,
-    }).select().single();
-    if (stErr) throw stErr;
+    let stRow = existingSt;
+    if (existingSt) {
+      if (existingSt.class_id !== classRow.id || existingSt.student_id !== studentId) {
+        const { data: upd, error: uErr } = await supabase
+          .from('students')
+          .update({
+            class_id: classRow.id,
+            student_id: studentId,
+            gender: s.gender,
+            date_of_birth: s.dob,
+          })
+          .eq('id', existingSt.id)
+          .select()
+          .single();
+        if (uErr) throw uErr;
+        stRow = upd;
+      }
+      log(`Student (existing): ${s.firstName} ${s.lastName} (${studentId})`);
+    } else {
+      const { data: ins, error: stErr } = await supabase
+        .from('students')
+        .insert({
+          profile_id: prof.id,
+          student_id: studentId,
+          class_id: classRow.id,
+          gender: s.gender,
+          date_of_birth: s.dob,
+        })
+        .select()
+        .single();
+      if (stErr) throw stErr;
+      stRow = ins;
+      log(`Student: ${s.firstName} ${s.lastName} (${studentId}) — ${s.email} / ${STUDENT_PASSWORD}`);
+    }
 
-    createdStudents.push({ ...stRow, profileId: prof.id, fullName: `${s.firstName} ${s.lastName}`, email: s.email });
-    log(`Student: ${s.firstName} ${s.lastName} (${studentId}) — ${s.email} / ${STUDENT_PASSWORD}`);
+    createdStudents.push({
+      ...stRow,
+      profileId: prof.id,
+      fullName: `${s.firstName} ${s.lastName}`,
+      email: s.email,
+    });
   } catch (e) {
     err(`Student ${s.firstName}: ${e.message}`);
   }
@@ -176,14 +292,19 @@ const subjectDefs = [
 const createdSubjects = [];
 for (const sub of subjectDefs) {
   const teacherProfileId = createdTeachers[sub.teacherIdx]?.profileId ?? null;
-  const { data: subRow, error: subErr } = await supabase.from('subjects').insert({
+  const row = {
     name: sub.name,
     code: sub.code,
     class_id: classRow.id,
     teacher_id: teacherProfileId,
     term: TERM,
     academic_year: ACADEMIC_YEAR,
-  }).select().single();
+  };
+  const { data: subRow, error: subErr } = await supabase
+    .from('subjects')
+    .upsert(row, { onConflict: 'name,class_id,term,academic_year' })
+    .select()
+    .single();
 
   if (subErr) {
     err(`Subject ${sub.name}: ${subErr.message}`);
@@ -204,6 +325,16 @@ const studentProfiles = [
   { ca1: [15, 19], ca2: [14, 18], exam: [46, 56] }, // Fatima — good
   { ca1: [10, 14], ca2: [9, 13],  exam: [32, 44] }, // Emmanuel — below avg
 ];
+
+const studentIdsForGrades = createdStudents.map((s) => s.id);
+if (studentIdsForGrades.length && createdSubjects.length) {
+  await supabase
+    .from('grades')
+    .delete()
+    .in('student_id', studentIdsForGrades)
+    .eq('term', TERM)
+    .eq('academic_year', ACADEMIC_YEAR);
+}
 
 const gradeInserts = [];
 for (let si = 0; si < createdStudents.length; si++) {
@@ -255,7 +386,7 @@ const behaviorByRank = [
 for (let si = 0; si < createdStudents.length; si++) {
   const student = createdStudents[si];
   const absent = randInt(0, si * 2);
-  const { error: rsErr } = await supabase.from('result_sheets').insert({
+  const payload = {
     student_id: student.id,
     term: TERM,
     academic_year: ACADEMIC_YEAR,
@@ -274,13 +405,24 @@ for (let si = 0; si < createdStudents.length; si++) {
     // Published so parent/teacher can see it
     is_published: true,
     created_by: adminId,
-  });
+  };
+  const { error: rsErr } = await supabase
+    .from('result_sheets')
+    .upsert(payload, { onConflict: 'student_id,term,academic_year' });
 
   if (rsErr) {
     err(`Result sheet for ${student.fullName}: ${rsErr.message}`);
   } else {
-    log(`Result sheet created for ${student.fullName} (published)`);
+    log(`Result sheet saved for ${student.fullName} (published)`);
   }
+}
+
+// ── Validate (full seed depends on this) ─────────────────────────────────────
+if (!classRow || createdTeachers.length < 2 || createdStudents.length < 5) {
+  err(
+    `Demo seed incomplete: ${createdTeachers.length}/2 teachers, ${createdStudents.length}/5 students, class=${!!classRow}.`,
+  );
+  process.exit(1);
 }
 
 // ── Summary ───────────────────────────────────────────────────────────────────

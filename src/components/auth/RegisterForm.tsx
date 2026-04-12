@@ -36,6 +36,13 @@ export default function RegisterForm({ onSuccess, onToggleMode }: RegisterFormPr
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
+        options: {
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            app_role: formData.role,
+          },
+        },
       });
 
       if (signUpError) {
@@ -44,27 +51,41 @@ export default function RegisterForm({ onSuccess, onToggleMode }: RegisterFormPr
         return;
       }
 
-      if (data.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: data.user.id,
-            email: formData.email,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            phone: formData.phone,
-            role: formData.role,
-          });
-
-        if (profileError) {
-          setError('Failed to create profile');
-          setLoading(false);
-          return;
-        }
-
-        onSuccess();
+      if (!data.user) {
+        setError('Could not create your account. Please try again.');
+        setLoading(false);
+        return;
       }
+
+      // With "Confirm email" disabled in Supabase, sign-up returns a session so we can finish the profile here.
+      if (!data.session) {
+        setError(
+          'No session after sign-up. In Supabase: Authentication → Providers → Email → turn off "Confirm email", then try again (or confirm the link in your inbox first).',
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Profile row comes from DB trigger `handle_new_user` (app_role from signUp metadata).
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', data.user.id)
+        .single();
+
+      if (profileError) {
+        setError(
+          'Account was created but your profile is missing. Please contact the school — the database trigger may need to be applied.',
+        );
+        setLoading(false);
+        return;
+      }
+
+      if (formData.phone) {
+        await supabase.from('profiles').update({ phone: formData.phone }).eq('user_id', data.user.id);
+      }
+
+      onSuccess();
     } catch (err) {
       setError('An unexpected error occurred');
     } finally {

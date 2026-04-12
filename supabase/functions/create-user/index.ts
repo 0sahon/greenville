@@ -28,11 +28,23 @@ Deno.serve(async (req) => {
 
     if (callerProfile?.role !== 'admin') throw new Error('Only admins can create users');
 
-    // Parse request body
-    const { email, password, first_name, last_name } = await req.json();
+    // Parse request body (profile_role drives public.profiles.role via handle_new_user trigger)
+    const { email, password, first_name, last_name, profile_role } = await req.json() as {
+      email: string;
+      password: string;
+      first_name: string;
+      last_name: string;
+      profile_role?: string;
+    };
     if (!email || !password || !first_name || !last_name) {
       throw new Error('email, password, first_name and last_name are required');
     }
+
+    const allowed = ['admin', 'teacher', 'parent', 'student'] as const;
+    const role =
+      profile_role && (allowed as readonly string[]).includes(profile_role)
+        ? profile_role
+        : 'parent';
 
     // Use service role key — this does NOT affect the caller's session
     const supabaseAdmin = createClient(
@@ -44,7 +56,7 @@ Deno.serve(async (req) => {
       email,
       password,
       email_confirm: true, // skip email confirmation for admin-created accounts
-      user_metadata: { first_name, last_name },
+      user_metadata: { first_name, last_name, app_role: role },
     });
 
     if (createError) throw createError;
