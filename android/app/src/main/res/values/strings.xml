@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Greenville Montessori</string>
+    <string name="title_activity_main">Greenville Montessori</string>
+    <string name="package_name">ng.greenvillemontessorischools.portal</string>
+    <string name="custom_url_scheme">ng.greenvillemontessorischools.portal</string>
+</resources>
