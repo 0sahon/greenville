@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Search, ChevronDown, Eye, CheckCircle, Clock, X, Save,
-  Trash2, AlertTriangle,
+  Trash2, AlertTriangle, MessageCircle, Download, EyeOff,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
-import ResultCard, { getNigerianGrade, printResultCard, PRE_KG_SKILLS, PRE_KG_COMMENTS } from '../admin/ResultCard';
-import type { ResultCardData, SubjectResult } from '../admin/ResultCard';
+import ResultCard, {
+  getNigerianGrade, printResultCard, PRE_KG_SKILLS, PRE_KG_COMMENTS,
+  NURSERY_SUBJECTS, buildNurserySubjects, NURSERY_CA_MAX, NURSERY_EXAM_MAX,
+  BASIC_SUBJECTS, buildBasicSubjects, BASIC_CA_MAX, BASIC_EXAM_MAX,
+} from '../admin/ResultCard';
+import type { ResultCardData, SubjectResult, NurseryScores, BasicScores } from '../admin/ResultCard';
 import type { ProfileRow, GradeRow } from '../../../lib/supabase';
 import PerformanceChart from '../shared/PerformanceChart';
 import {
@@ -105,8 +109,12 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [preKgRatings, setPreKgRatings] = useState<Partial<Record<string, number>>>({});
+  const [nurseryScores, setNurseryScores] = useState<NurseryScores>({});
+  const [basicScores, setBasicScores] = useState<BasicScores>({});
 
   const isToddlerStudent = activeStudent?.classes?.level === 'toddler';
+  const isNurseryStudent = activeStudent?.classes?.level === 'creche';
+  const isBasicStudent   = ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(activeStudent?.classes?.level ?? '');
 
   useEffect(() => {
     supabase.from('classes').select('id, name').eq('teacher_id', profile.id).order('name').then(({ data }) => {
@@ -151,6 +159,19 @@ export default function TeacherResultsSection({ profile }: Props) {
 
   useEffect(() => { loadStudents(); }, [loadStudents]);
 
+  const [subjectVisibility, setSubjectVisibility] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    supabase.from('subject_settings').select('level_group, subject, is_visible').then(({ data }) => {
+      if (!data) return;
+      const vis: Record<string, boolean> = {};
+      (data as { level_group: string; subject: string; is_visible: boolean }[]).forEach(r => {
+        vis[`${r.level_group}:${r.subject}`] = r.is_visible;
+      });
+      setSubjectVisibility(vis);
+    });
+  }, []);
+
   const buildPreKgSubjects = (ratings: Partial<Record<string, number>>): SubjectResult[] =>
     PRE_KG_SKILLS
       .filter(s => (ratings[s.name] ?? 0) > 0)
@@ -160,6 +181,56 @@ export default function TeacherResultsSection({ profile }: Props) {
         return { subject: s.name, ca1, ca2: 0, exam: 0, total: ca1, grade: '', remark: '' };
       });
 
+  const updateNurseryScore = (subject: string, field: 'ca1' | 'ca2' | 'exam', value: number) => {
+    const updated: NurseryScores = {
+      ...nurseryScores,
+      [subject]: { ...(nurseryScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 }), [field]: value },
+    };
+    setNurseryScores(updated);
+    const newSubs = buildNurserySubjects(updated);
+    setSubjects(newSubs);
+    setCardData(prev => prev ? { ...prev, subjects: newSubs } : null);
+  };
+
+  const updateBasicScore = (subject: string, field: 'ca1' | 'ca2' | 'exam', value: number) => {
+    const updated: BasicScores = {
+      ...basicScores,
+      [subject]: { ...(basicScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 }), [field]: value },
+    };
+    setBasicScores(updated);
+    const newSubs = buildBasicSubjects(updated);
+    setSubjects(newSubs);
+    setCardData(prev => prev ? { ...prev, subjects: newSubs } : null);
+  };
+
+  const getVisibleSubjects = (levelGroup: 'basic' | 'nursery', allSubjects: readonly string[]): string[] | undefined => {
+    const hasSettings = Object.keys(subjectVisibility).some(k => k.startsWith(`${levelGroup}:`));
+    if (!hasSettings) return undefined;
+    return (allSubjects as string[]).filter(s => subjectVisibility[`${levelGroup}:${s}`] !== false);
+  };
+
+  const shareViaWhatsApp = () => {
+    if (!cardData) return;
+    const { student, term: t, academicYear: yr, subjects: subs, classStats } = cardData;
+    const scored = subs.filter(s => s.total > 0);
+    const avg = scored.length > 0 ? Math.round(scored.reduce((a, s) => a + s.total, 0) / scored.length) : 0;
+    const { grade, remark } = getNigerianGrade(avg);
+    const lines = [
+      `🏫 *${SCHOOL_NAME}*`,
+      `📋 *${student.name} — Result Card*`,
+      `📚 ${student.className} | ${t} ${yr}`,
+      ``,
+      `📊 Average: *${avg}%* (${grade} — ${remark})`,
+      `🏆 Position: *${classStats.position}/${classStats.totalStudents}*`,
+      ``,
+      `*Subject Results:*`,
+      ...scored.map(s => `• ${s.subject}: ${s.total}% (${s.grade})`),
+      ``,
+      `— ${SCHOOL_NAME}`,
+    ].join('\n');
+    window.open(`https://wa.me/?text=${encodeURIComponent(lines)}`, '_blank', 'noopener,noreferrer');
+  };
+
   const openCard = async (student: StudentInfo) => {
     setActiveStudent(student);
     setModalTab('preview');
@@ -167,6 +238,7 @@ export default function TeacherResultsSection({ profile }: Props) {
     setLoadingCard(true);
 
     const isToddler = student.classes?.level === 'toddler';
+    const isNursery = student.classes?.level === 'creche';
 
     const [{ data: sheet }, { data: gradeRows }, { data: classGrades }] = await Promise.all([
       supabase.from('result_sheets').select('*').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear).maybeSingle(),
@@ -177,7 +249,6 @@ export default function TeacherResultsSection({ profile }: Props) {
     const rs = sheet as ResultSheetMeta | null;
     const allGradeRows = (gradeRows || []) as GradeRow[];
 
-    // For toddler: separate pre_kg grades from academic grades
     let subs: SubjectResult[];
     let ratings: Record<string, number> = {};
     if (isToddler) {
@@ -185,8 +256,28 @@ export default function TeacherResultsSection({ profile }: Props) {
       pkGrades.forEach(g => { ratings[g.subject] = g.score; });
       setPreKgRatings(ratings);
       subs = buildPreKgSubjects(ratings);
+    } else if (isNursery) {
+      const scores: NurseryScores = {};
+      for (const g of allGradeRows) {
+        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0 };
+        const t = g.assessment_type.toLowerCase().trim();
+        if (t === '1st ca' || t === 'first ca') scores[g.subject]!.ca1 = g.score;
+        else if (t === '2nd ca' || t === 'second ca') scores[g.subject]!.ca2 = g.score;
+        else if (t === 'exam' || t === 'examination' || t === 'final exam') scores[g.subject]!.exam = g.score;
+      }
+      setNurseryScores(scores);
+      subs = buildNurserySubjects(scores);
     } else {
-      subs = computeSubjects(allGradeRows);
+      const scores: BasicScores = {};
+      for (const g of allGradeRows) {
+        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0 };
+        const t = g.assessment_type.toLowerCase().trim();
+        if (t === '1st ca' || t === 'first ca') scores[g.subject]!.ca1 = g.score;
+        else if (t === '2nd ca' || t === 'second ca') scores[g.subject]!.ca2 = g.score;
+        else if (t === 'exam' || t === 'examination' || t === 'final exam') scores[g.subject]!.exam = g.score;
+      }
+      setBasicScores(scores);
+      subs = buildBasicSubjects(scores);
     }
     setSubjects(subs);
 
@@ -206,12 +297,20 @@ export default function TeacherResultsSection({ profile }: Props) {
     const meta = rs || defaultMeta;
     setMetaForm({ ...defaultMeta, ...meta });
 
+    const level = student.classes?.level ?? '';
+    const isBasicLvl = ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(level);
+    const visibleSubjects = isBasicLvl
+      ? getVisibleSubjects('basic', BASIC_SUBJECTS)
+      : level === 'creche'
+      ? getVisibleSubjects('nursery', NURSERY_SUBJECTS)
+      : undefined;
+
     setCardData({
       student: {
         name: `${student.profiles?.first_name} ${student.profiles?.last_name}`,
         studentId: student.student_id,
         className: student.classes?.name || '—',
-        classLevel: student.classes?.level,
+        classLevel: level,
         gender: student.gender || '',
         dob: student.date_of_birth || '',
       },
@@ -232,6 +331,7 @@ export default function TeacherResultsSection({ profile }: Props) {
       nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees },
       schoolName: SCHOOL_NAME,
       schoolAddress: `${SCHOOL_ADDRESS_SINGLE} · TEL: ${SCHOOL_PHONE_DISPLAY}`,
+      visibleSubjects,
     });
     setLoadingCard(false);
   };
@@ -290,6 +390,48 @@ export default function TeacherResultsSection({ profile }: Props) {
       };
       const { error } = await supabase.from('result_sheets').upsert(payload, { onConflict: 'student_id,term,academic_year' });
       if (error) throw error;
+
+      // Save basic subject grades
+      if (isBasicStudent) {
+        await supabase.from('grades')
+          .delete()
+          .eq('student_id', activeStudent.id)
+          .eq('term', selectedTerm)
+          .eq('academic_year', academicYear);
+        const bRows: { student_id: string; subject: string; assessment_type: string; score: number; max_score: number; term: string; academic_year: string; graded_by: string; }[] = [];
+        for (const subject of BASIC_SUBJECTS) {
+          const s = basicScores[subject];
+          if (!s) continue;
+          if (s.ca1  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca2  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.exam > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: BASIC_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        }
+        if (bRows.length > 0) {
+          const { error: gErr } = await supabase.from('grades').insert(bRows);
+          if (gErr) throw gErr;
+        }
+      }
+
+      // Save nursery subject grades (creche only)
+      if (isNurseryStudent) {
+        await supabase.from('grades')
+          .delete()
+          .eq('student_id', activeStudent.id)
+          .eq('term', selectedTerm)
+          .eq('academic_year', academicYear);
+        const nRows: { student_id: string; subject: string; assessment_type: string; score: number; max_score: number; term: string; academic_year: string; graded_by: string; }[] = [];
+        for (const subject of NURSERY_SUBJECTS) {
+          const s = nurseryScores[subject];
+          if (!s) continue;
+          if (s.ca1  > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca2  > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.exam > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: NURSERY_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        }
+        if (nRows.length > 0) {
+          const { error: gErr } = await supabase.from('grades').insert(nRows);
+          if (gErr) throw gErr;
+        }
+      }
 
       // Save pre-KG skill ratings as grades (delete then insert)
       if (activeStudent.classes?.level === 'toddler') {
@@ -511,7 +653,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                     Edit
                   </button>
                 </div>
-                <button onClick={() => { setActiveStudent(null); setCardData(null); setDeleteConfirm(false); }} className="p-1.5 hover:bg-gray-100 rounded-lg flex-shrink-0">
+                <button onClick={() => { setActiveStudent(null); setCardData(null); setDeleteConfirm(false); setPreKgRatings({}); setNurseryScores({}); setBasicScores({}); }} className="p-1.5 hover:bg-gray-100 rounded-lg flex-shrink-0">
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
@@ -540,8 +682,34 @@ export default function TeacherResultsSection({ profile }: Props) {
                         <>
                           <ResultCard
                             data={cardData}
-                            onPrint={() => printResultCard(`${activeStudent.profiles?.first_name} ${activeStudent.profiles?.last_name}`)}
+                            onPrint={() => {
+                              const lvl = activeStudent?.classes?.level;
+                              const landscape = lvl === 'creche' || lvl === 'toddler';
+                              printResultCard(`${activeStudent.profiles?.first_name} ${activeStudent.profiles?.last_name}`, landscape);
+                            }}
                           />
+                          {/* Share / Export actions */}
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => {
+                                const lvl = activeStudent?.classes?.level;
+                                const landscape = lvl === 'creche' || lvl === 'toddler';
+                                printResultCard(`${activeStudent.profiles?.first_name} ${activeStudent.profiles?.last_name}`, landscape);
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700">
+                              <Download className="w-3.5 h-3.5" /> Export as PDF
+                            </button>
+                            {metaForm.is_published ? (
+                              <button onClick={shareViaWhatsApp}
+                                className="flex items-center gap-1.5 px-3 py-2 bg-green-500 text-white rounded-xl text-xs font-semibold hover:bg-green-600">
+                                <MessageCircle className="w-3.5 h-3.5" /> Share via WhatsApp
+                              </button>
+                            ) : (
+                              <span className="flex items-center gap-1 px-3 py-2 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
+                                <EyeOff className="w-3.5 h-3.5" /> Publish to enable WhatsApp sharing
+                              </span>
+                            )}
+                          </div>
                           {subjects.length > 0 && (
                             <PerformanceChart subjects={subjects} title={`${activeStudent.profiles?.first_name} — ${selectedTerm} Performance`} />
                           )}
@@ -553,6 +721,120 @@ export default function TeacherResultsSection({ profile }: Props) {
                   {/* ── Edit Tab ── */}
                   {modalTab === 'edit' && (
                     <div className="space-y-6">
+
+                      {/* ── Basic Subject Scores (basic1-6 only) ── */}
+                      {isBasicStudent && (
+                        <div>
+                          <h4 className="font-semibold text-gray-800 text-sm mb-1">
+                            Subject Scores — {activeStudent?.classes?.name}
+                          </h4>
+                          <p className="text-xs text-gray-400 mb-3">
+                            1st &amp; 2nd CA out of {BASIC_CA_MAX}, Exam out of {BASIC_EXAM_MAX}.
+                          </p>
+                          <div className="overflow-x-auto rounded-xl border border-gray-200">
+                            <table className="w-full text-sm min-w-[480px]">
+                              <thead>
+                                <tr className="bg-gray-50 border-b border-gray-200">
+                                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-2/5">Subject</th>
+                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
+                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
+                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{BASIC_EXAM_MAX}</span></th>
+                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {BASIC_SUBJECTS.map((subject, i) => {
+                                  const s = basicScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 };
+                                  const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / BASIC_CA_MAX)   * 20) : 0;
+                                  const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / BASIC_CA_MAX)   * 20) : 0;
+                                  const exam = s.exam > 0 ? Math.round((s.exam / BASIC_EXAM_MAX) * 60) : 0;
+                                  const total = ca1 + ca2 + exam;
+                                  const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
+                                  const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                                  return (
+                                    <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                                      <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
+                                      {(['ca1', 'ca2', 'exam'] as const).map(field => (
+                                        <td key={field} className="py-1 px-2 text-center">
+                                          <input
+                                            type="number" min={0}
+                                            max={field === 'exam' ? BASIC_EXAM_MAX : BASIC_CA_MAX}
+                                            value={s[field] || ''}
+                                            onChange={e => updateBasicScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? BASIC_EXAM_MAX : BASIC_CA_MAX))}
+                                            className="w-14 border border-gray-200 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                          />
+                                        </td>
+                                      ))}
+                                      <td className="py-2 px-2 text-center">
+                                        <span className={`font-bold text-xs ${gc}`}>
+                                          {total > 0 ? `${total} (${grade})` : '—'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── Nursery Subject Scores (creche level only) ── */}
+                      {isNurseryStudent && (
+                        <div>
+                          <h4 className="font-semibold text-gray-800 text-sm mb-1">
+                            Subject Scores — {activeStudent?.classes?.name}
+                          </h4>
+                          <p className="text-xs text-gray-400 mb-3">
+                            1st & 2nd CA out of {NURSERY_CA_MAX}, Exam out of {NURSERY_EXAM_MAX}.
+                          </p>
+                          <div className="overflow-x-auto rounded-xl border border-gray-200">
+                            <table className="w-full text-sm min-w-[480px]">
+                              <thead>
+                                <tr className="bg-gray-50 border-b border-gray-200">
+                                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-1/3">Subject</th>
+                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
+                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
+                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{NURSERY_EXAM_MAX}</span></th>
+                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {NURSERY_SUBJECTS.map((subject, i) => {
+                                  const s = nurseryScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 };
+                                  const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / NURSERY_CA_MAX)   * 20) : 0;
+                                  const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / NURSERY_CA_MAX)   * 20) : 0;
+                                  const exam = s.exam > 0 ? Math.round((s.exam / NURSERY_EXAM_MAX) * 60) : 0;
+                                  const total = ca1 + ca2 + exam;
+                                  const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
+                                  const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                                  return (
+                                    <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                                      <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
+                                      {(['ca1', 'ca2', 'exam'] as const).map(field => (
+                                        <td key={field} className="py-1 px-2 text-center">
+                                          <input
+                                            type="number" min={0}
+                                            max={field === 'exam' ? NURSERY_EXAM_MAX : NURSERY_CA_MAX}
+                                            value={s[field] || ''}
+                                            onChange={e => updateNurseryScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? NURSERY_EXAM_MAX : NURSERY_CA_MAX))}
+                                            className="w-14 border border-gray-200 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                          />
+                                        </td>
+                                      ))}
+                                      <td className="py-2 px-2 text-center">
+                                        <span className={`font-bold text-xs ${gc}`}>
+                                          {total > 0 ? `${total} (${grade})` : '—'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
 
                       {/* ── Pre-KG Skill Ratings (toddler class only) ── */}
                       {isToddlerStudent && (

@@ -98,6 +98,7 @@ export interface ResultCardData {
   nextTerm: { begins: string; fees: string };
   schoolName: string;
   schoolAddress: string;
+  visibleSubjects?: string[];
 }
 
 /* ─── Print helper ──────────────────────────────────────────── */
@@ -125,20 +126,24 @@ export function printResultCard(studentName: string, landscape = false) {
 
 /* ─── PRIMARY / BASIC Result Card — matches physical "LOWER AND MIDDLE BASIC REPORT SHEET" ── */
 function PrimaryResultCard({ data }: { data: ResultCardData }) {
-  const { student, term, academicYear, subjects, behavior, attendance, comments, nextTerm, schoolName } = data;
+  const { student, term, academicYear, subjects, behavior, attendance, comments, nextTerm, schoolName, visibleSubjects } = data;
+  const displayedBasicSubjects = visibleSubjects
+    ? (BASIC_SUBJECTS as readonly string[]).filter(n => visibleSubjects.includes(n))
+    : BASIC_SUBJECTS as readonly string[];
   const displaySchool = (schoolName || '').trim() || SCHOOL_NAME;
 
-  const avgScore = subjects.length > 0
-    ? Math.round(subjects.reduce((s, r) => s + r.total, 0) / subjects.length)
+  const scoredSubjects = subjects.filter(s => s.total > 0);
+  const avgScore = scoredSubjects.length > 0
+    ? Math.round(scoredSubjects.reduce((s, r) => s + r.total, 0) / scoredSubjects.length)
     : 0;
-  const grandTotal = subjects.reduce((s, r) => s + r.total, 0);
+  const grandTotal = scoredSubjects.reduce((s, r) => s + r.total, 0);
 
   const ageYears = student.dob
     ? new Date().getFullYear() - new Date(student.dob).getFullYear()
     : null;
 
-  const MIN_ROWS = 14;
-  const emptyRows = Math.max(0, MIN_ROWS - subjects.length);
+  const getSubject = (name: string) =>
+    subjects.find(s => s.subject.toLowerCase().trim() === name.toLowerCase().trim());
 
   const BORDER = '1px solid #555';
   const TH: React.CSSProperties = {
@@ -256,37 +261,28 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
           </tr>
         </thead>
         <tbody>
-          {subjects.map((s, i) => {
-            const { grade, remark } = getNigerianGrade(s.total);
-            const gc = gradeColor(grade);
+          {displayedBasicSubjects.map((name, i) => {
+            const s = getSubject(name);
+            const { grade, remark } = s && s.total > 0 ? getNigerianGrade(s.total) : { grade: '', remark: '' };
+            const gc = grade ? gradeColor(grade) : {};
             return (
-              <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+              <tr key={name} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                 <td style={{ ...TD, textAlign: 'left', fontWeight: 'bold', fontSize: '8pt', padding: '3px 6px', textTransform: 'uppercase' }}>
-                  {s.subject}
+                  {name}
                 </td>
-                <td style={TD}>{s.ca1 > 0 ? s.ca1 : ''}</td>
-                <td style={TD}>{s.ca2 > 0 ? s.ca2 : ''}</td>
-                <td style={TD}>{/* Project — not yet in DB */}</td>
-                <td style={TD}>{s.homework !== undefined ? s.homework : ''}</td>
-                <td style={TD}>{s.exam > 0 ? s.exam : ''}</td>
-                <td style={{ ...TD, fontWeight: 'bold', background: s.total > 0 ? '#f0f0f0' : '#fff' }}>
-                  {s.total > 0 ? s.total : ''}
+                <td style={TD}>{s && s.ca1 > 0 ? s.ca1 : ''}</td>
+                <td style={TD}>{s && s.ca2 > 0 ? s.ca2 : ''}</td>
+                <td style={TD}>{/* Project */}</td>
+                <td style={TD}>{s?.homework !== undefined ? s.homework : ''}</td>
+                <td style={TD}>{s && s.exam > 0 ? s.exam : ''}</td>
+                <td style={{ ...TD, fontWeight: 'bold', background: s && s.total > 0 ? '#f0f0f0' : '#fff' }}>
+                  {s && s.total > 0 ? s.total : ''}
                 </td>
-                <td style={{ ...TD, ...gc, padding: '3px 2px' }}>
-                  {s.total > 0 ? grade : ''}
-                </td>
-                <td style={{ ...TD, textAlign: 'left', fontSize: '7.5pt', padding: '3px 5px' }}>
-                  {s.total > 0 ? remark : ''}
-                </td>
+                <td style={{ ...TD, ...gc, padding: '3px 2px' }}>{grade}</td>
+                <td style={{ ...TD, textAlign: 'left', fontSize: '7.5pt', padding: '3px 5px' }}>{remark}</td>
               </tr>
             );
           })}
-          {Array.from({ length: emptyRows }).map((_, i) => (
-            <tr key={`e${i}`} style={{ background: (subjects.length + i) % 2 === 0 ? '#fff' : '#fafafa' }}>
-              <td style={{ ...TD, textAlign: 'left', height: '20px' }}>&nbsp;</td>
-              {Array(8).fill(0).map((__, j) => <td key={j} style={TD}>&nbsp;</td>)}
-            </tr>
-          ))}
         </tbody>
       </table>
 
@@ -399,136 +395,273 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
   );
 }
 
-/* ─── NURSERY / CRECHE Result Card ──────────────────────────── */
+/* ─── KG class colour names — shown on nursery & toddler cards ── */
+const KG_CLASS_COLORS: Record<string, string> = {
+  'KG 1':   'Blue Class',
+  'KG 2':   'Pink Class',
+  'KG 3':   'Peach Class',
+  'Pre-KG': 'Yellow Class',
+};
+function kgColorName(className: string): string | null {
+  return KG_CLASS_COLORS[className.trim()] ?? null;
+}
+
+/* ─── Nursery subject list — exported for grade-entry forms ─────── */
+export const NURSERY_SUBJECTS = [
+  'Numeracy Skills',
+  'Literacy Development',
+  'Phonic Skills',
+  'Writing Skills',
+  'Social Habit',
+  'Music',
+  'Cultural Subject',
+  'Bible Knowledge',
+  'Practice Life Exercise',
+  'Sensorial',
+  'General Science',
+  'French',
+  'Coding',
+] as const;
+
+/* ─── Basic subject list — fixed order matching physical report card ── */
+export const BASIC_SUBJECTS = [
+  'English Language/Verbal Reasoning',
+  'Mathematics/Quantitative',
+  'Basic Science',
+  'Religion & National Values',
+  'Agricultural Science',
+  'Phonics',
+  'Home Economics',
+  'Cultural Subject',
+  'Entrepreneurship Development',
+  'Computer Science',
+  'Handwriting',
+  'French',
+  'Music',
+  'Physical and Health Education',
+  'Coding',
+] as const;
+
+export const BASIC_CA_MAX   = 15;
+export const BASIC_EXAM_MAX = 50;
+
+export type BasicScores = Partial<Record<string, { ca1: number; ca2: number; exam: number }>>;
+
+export function buildBasicSubjects(scores: BasicScores): SubjectResult[] {
+  return (BASIC_SUBJECTS as readonly string[])
+    .filter(name => { const s = scores[name]; return s && (s.ca1 > 0 || s.ca2 > 0 || s.exam > 0); })
+    .map(name => {
+      const s = scores[name]!;
+      const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / BASIC_CA_MAX)   * 20) : 0;
+      const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / BASIC_CA_MAX)   * 20) : 0;
+      const exam = s.exam > 0 ? Math.round((s.exam / BASIC_EXAM_MAX) * 60) : 0;
+      const total = ca1 + ca2 + exam;
+      return { subject: name, ca1, ca2, exam, total, ...getNigerianGrade(total) };
+    });
+}
+
+/* ─── Nursery grade helpers — exported for grade-entry forms ─────── */
+export const NURSERY_CA_MAX   = 15;
+export const NURSERY_EXAM_MAX = 50;
+
+export type NurseryScores = Partial<Record<string, { ca1: number; ca2: number; exam: number }>>;
+
+export function buildNurserySubjects(scores: NurseryScores): SubjectResult[] {
+  return (NURSERY_SUBJECTS as readonly string[])
+    .filter(name => { const s = scores[name]; return s && (s.ca1 > 0 || s.ca2 > 0 || s.exam > 0); })
+    .map(name => {
+      const s = scores[name]!;
+      const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / NURSERY_CA_MAX)   * 20) : 0;
+      const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / NURSERY_CA_MAX)   * 20) : 0;
+      const exam = s.exam > 0 ? Math.round((s.exam / NURSERY_EXAM_MAX) * 60) : 0;
+      const total = ca1 + ca2 + exam;
+      return { subject: name, ca1, ca2, exam, total, ...getNigerianGrade(total) };
+    });
+}
+
+/* ─── NURSERY / CRECHE Result Card — "Individual Students Assessment Sheet" ── */
 function NurseryResultCard({ data }: { data: ResultCardData }) {
-  const { student, term, academicYear, behavior, comments, attendance, schoolName, schoolAddress } = data;
+  const { student, term, academicYear, subjects, comments, attendance, nextTerm, schoolName, visibleSubjects } = data;
   const displaySchool = (schoolName || '').trim() || SCHOOL_NAME;
-  const displayAddr =
-    (schoolAddress || '').trim() || `${SCHOOL_ADDRESS_SINGLE} · TEL: ${SCHOOL_PHONE_DISPLAY}`;
 
-  const SKILL_COMMENT: Record<number, string> = {
-    5: 'Excellent', 4: 'Very Good', 3: 'Good', 2: 'Fair', 1: 'Needs Improvement',
-  };
+  const displayedNurserySubjects = visibleSubjects
+    ? (NURSERY_SUBJECTS as readonly string[]).filter(n => visibleSubjects.includes(n))
+    : NURSERY_SUBJECTS as readonly string[];
 
-  const attendancePct = attendance.totalDays > 0
-    ? Math.round((attendance.daysPresent / attendance.totalDays) * 100)
+  const ageYears = student.dob
+    ? new Date().getFullYear() - new Date(student.dob).getFullYear()
     : null;
 
-  const nurserySkills = [
-    'NUMERACY', 'LITERACY', 'SOCIAL SKILLS', 'SCIENCE',
-    'SENSORIAL', 'PRACTICAL LIFE', 'CREATIVE ART', 'C.R.S',
-  ];
+  const avgScore = subjects.length > 0
+    ? Math.round(subjects.reduce((s, r) => s + r.total, 0) / subjects.length)
+    : 0;
 
-  const personalityTraits = [
-    { trait: 'Friendly and courteous',                  value: behavior.politeness },
-    { trait: 'Punctual',                                value: behavior.punctuality },
-    { trait: 'Says "Please", "Thank you", "Sorry"',     value: behavior.honesty },
-    { trait: 'Shares and takes turns',                  value: behavior.cooperation },
-    { trait: 'Cooperates with others in the classroom', value: behavior.attentiveness },
-    { trait: 'Interacts with a smile, wave, a nod',     value: behavior.neatness },
-  ];
+  const BORDER = '1px solid #555';
+  const TH: React.CSSProperties = {
+    border: BORDER, padding: '4px 3px', textAlign: 'center',
+    fontWeight: 'bold', fontSize: '7.5pt', background: '#e8e8e8', lineHeight: 1.3,
+  };
+  const TD: React.CSSProperties = {
+    border: BORDER, padding: '3px 3px', textAlign: 'center', fontSize: '8pt',
+  };
 
-  const NAVY  = '#1a237e';
-  const GOLD  = '#f59e0b';
-  const LGOLD = '#fffde7';
+  const getSubject = (name: string) =>
+    subjects.find(s => s.subject.toLowerCase().trim() === name.toLowerCase().trim());
+
+  const MIN_ROWS = 14;
+  const emptyRows = Math.max(0, MIN_ROWS - displayedNurserySubjects.length);
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '10pt', color: '#000', background: '#fff' }}>
+    <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '9pt', color: '#000', background: '#fff', border: '2px solid #333' }}>
 
-      {/* Header */}
-      <div style={{ border: `2px solid ${NAVY}`, background: LGOLD, marginBottom: '10px', padding: '6px 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src={SCHOOL_LOGO_PATH} alt={displaySchool} style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0 }} />
-          <div style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: '18pt', fontWeight: 'bold', color: NAVY, letterSpacing: '1px' }}>{displaySchool.toUpperCase()}</div>
-            <div style={{ fontSize: '9pt', color: '#c62828', fontWeight: 'bold', marginTop: '2px' }}>RESULT SHEET</div>
-            <div style={{ fontSize: '8.5pt', color: '#555', marginTop: '2px' }}>{displayAddr}</div>
+      {/* ── HEADER — same style as basic card ── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 12px 6px', borderBottom: '2px solid #333' }}>
+        <img src={SCHOOL_LOGO_PATH} alt={displaySchool}
+          style={{ width: 68, height: 68, objectFit: 'contain', flexShrink: 0, marginTop: '2px' }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: '18pt', fontWeight: 'bold', color: '#000', lineHeight: 1.1, letterSpacing: '0.3px' }}>
+            {displaySchool.toUpperCase()}
+          </div>
+          <div style={{ fontSize: '9pt', fontWeight: 'bold', color: '#333', marginTop: '2px' }}>
+            &#9679;DAY CARE &#9679;PRE-SCHOOL &#9679;NURSERY &#9679;PRIMARY
+          </div>
+          <div style={{ fontSize: '7.5pt', color: '#555', marginTop: '3px' }}>
+            Email: greenvillemontessoriesschools@yahoo.com
           </div>
         </div>
-        {/* Gold stripe */}
-        <div style={{ height: '4px', background: GOLD, marginTop: '6px', borderRadius: '2px' }} />
+        <div style={{ textAlign: 'right', fontSize: '7.5pt', color: '#333', lineHeight: 1.5, flexShrink: 0, maxWidth: '160px' }}>
+          <div>{SCHOOL_ADDRESS_LINE1},</div>
+          <div>{SCHOOL_ADDRESS_LINE2}</div>
+          <div>Tel: {SCHOOL_PHONE_DISPLAY}</div>
+        </div>
       </div>
 
-      {/* Student info */}
-      <div style={{ marginBottom: '12px', padding: '0 4px' }}>
-        {([
-          ['NAME OF STUDENT', student.name],
-          ['CLASS', student.className],
-          ['SESSION', academicYear],
-          ['TERM', term],
-          ...(attendancePct !== null ? [['ATTENDANCE', `${attendance.daysPresent}/${attendance.totalDays} days (${attendancePct}%)`]] : []),
-        ] as [string, string][]).map(([label, value]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'baseline', marginBottom: '6px', gap: '6px' }}>
-            <span style={{ fontWeight: 'bold', minWidth: '160px', fontSize: '9.5pt', flexShrink: 0, color: NAVY }}>{label}:</span>
-            <span style={{ flex: 1, borderBottom: `1px solid ${NAVY}`, minHeight: '16px', paddingLeft: '4px' }}>{value}</span>
-          </div>
-        ))}
+      {/* ── TITLE STRIP ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 12px', borderBottom: '1px solid #333', background: '#f5f5f5' }}>
+        <div style={{ fontSize: '11pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          Individual Students Assessment Sheet
+        </div>
+        <div style={{ fontSize: '10pt', fontWeight: 'bold' }}>
+          No.&nbsp;{student.studentId || ''}
+        </div>
       </div>
 
-      {/* Skills & Abilities */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '14px' }}>
+      {/* ── STUDENT INFO ── */}
+      <div style={{ padding: '5px 12px 4px', borderBottom: '1px solid #999', fontSize: '8.5pt' }}>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', alignItems: 'baseline' }}>
+          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name:</span>
+          <span style={{ flex: 2, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{student.name}</span>
+          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Age:</span>
+          <span style={{ width: '40px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{ageYears !== null ? `${ageYears}` : ''}</span>
+          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Class:</span>
+          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>
+            {student.className}{kgColorName(student.className) ? ` · ${kgColorName(student.className)}` : ''}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', alignItems: 'baseline' }}>
+          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>No. of Times School Opened:</span>
+          <span style={{ width: '40px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{attendance.totalDays || ''}</span>
+          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>No. of Times Present:</span>
+          <span style={{ width: '40px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{attendance.daysPresent || ''}</span>
+          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Average Percentage:</span>
+          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{subjects.length > 0 ? `${avgScore}%` : ''}</span>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'baseline' }}>
+          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Admission No.:</span>
+          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{student.studentId}</span>
+          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Academic Session:</span>
+          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{academicYear}</span>
+          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Resumption Date:</span>
+          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{nextTerm.begins ? fmtDate(nextTerm.begins) : ''}</span>
+        </div>
+      </div>
+
+      {/* ── SUBJECTS TABLE ── subjects as vertical rows, same column structure as basic card ── */}
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            <th style={{ background: NAVY, color: '#fff', border: `1px solid ${NAVY}`, padding: '6px 8px', textAlign: 'left', width: '60%' }}>
-              SKILLS &amp; ABILITIES
-            </th>
-            <th style={{ background: GOLD, color: NAVY, border: `1px solid ${NAVY}`, padding: '6px 8px', fontWeight: 'bold' }}>
-              COMMENTS
-            </th>
+            <th style={{ ...TH, textAlign: 'left', width: '27%', padding: '5px 6px', fontSize: '9pt' }}>SUBJECTS</th>
+            <th style={{ ...TH, width: '8%' }}>1st<br />CAT<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
+            <th style={{ ...TH, width: '8%' }}>2nd<br />CAT<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
+            <th style={{ ...TH, width: '8%' }}>Project<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>10%</span></th>
+            <th style={{ ...TH, width: '10%' }}>HW/<br />Assignment<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>10%</span></th>
+            <th style={{ ...TH, width: '8%' }}>Exam<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>50%</span></th>
+            <th style={{ ...TH, width: '8%', background: '#d0d0d0' }}>Total<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>100%</span></th>
+            <th style={{ ...TH, width: '7%', background: '#d0d0d0' }}>Grade</th>
+            <th style={{ ...TH, textAlign: 'left', padding: '5px 5px' }}>Remarks</th>
           </tr>
         </thead>
         <tbody>
-          {nurserySkills.map((skill, i) => {
-            const match = data.subjects.find(s =>
-              s.subject.toUpperCase().replace(/\s/g, '') === skill.replace(/\s/g, '') ||
-              s.subject.toUpperCase().includes(skill.split(' ')[0])
-            );
-            const comment = match ? getNigerianGrade(match.total).remark : '';
+          {displayedNurserySubjects.map((name, i) => {
+            const s = getSubject(name);
+            const { grade, remark } = s && s.total > 0 ? getNigerianGrade(s.total) : { grade: '', remark: '' };
+            const gc = grade ? gradeColor(grade) : {};
             return (
-              <tr key={skill} style={{ background: i % 2 === 0 ? '#fff' : LGOLD }}>
-                <td style={{ border: '1px solid #ccc', padding: '7px 8px', fontWeight: 600 }}>{skill}</td>
-                <td style={{ border: '1px solid #ccc', padding: '7px 8px' }}>{comment}</td>
+              <tr key={name} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                <td style={{ ...TD, textAlign: 'left', fontWeight: 'bold', fontSize: '8.5pt', padding: '4px 6px', textTransform: 'uppercase' }}>
+                  {name}
+                </td>
+                <td style={TD}>{s && s.ca1 > 0 ? s.ca1 : ''}</td>
+                <td style={TD}>{s && s.ca2 > 0 ? s.ca2 : ''}</td>
+                <td style={TD}>{/* Project — not stored */}</td>
+                <td style={TD}>{s?.homework !== undefined ? s.homework : ''}</td>
+                <td style={TD}>{s && s.exam > 0 ? s.exam : ''}</td>
+                <td style={{ ...TD, fontWeight: 'bold', background: s && s.total > 0 ? '#f0f0f0' : '#fff' }}>
+                  {s && s.total > 0 ? s.total : ''}
+                </td>
+                <td style={{ ...TD, ...gc, padding: '3px 2px' }}>{grade}</td>
+                <td style={{ ...TD, textAlign: 'left', fontSize: '7.5pt', padding: '3px 5px' }}>{remark}</td>
               </tr>
             );
           })}
-        </tbody>
-      </table>
-
-      {/* Personality & Character */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '14px' }}>
-        <thead>
-          <tr>
-            <th style={{ background: NAVY, color: '#fff', border: `1px solid ${NAVY}`, padding: '6px 8px', textAlign: 'left', width: '65%' }}>
-              PERSONALITY AND CHARACTER
-            </th>
-            <th style={{ background: GOLD, color: NAVY, border: `1px solid ${NAVY}`, padding: '6px 8px', fontWeight: 'bold' }}>
-              COMMENTS
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {personalityTraits.map(({ trait, value }, i) => (
-            <tr key={trait} style={{ background: i % 2 === 0 ? '#fff' : LGOLD }}>
-              <td style={{ border: '1px solid #ccc', padding: '7px 8px' }}>{trait}</td>
-              <td style={{ border: '1px solid #ccc', padding: '7px 8px' }}>{value ? SKILL_COMMENT[value] || '' : ''}</td>
+          {Array.from({ length: emptyRows }).map((_, i) => (
+            <tr key={`e${i}`} style={{ background: (NURSERY_SUBJECTS.length + i) % 2 === 0 ? '#fff' : '#fafafa' }}>
+              <td style={{ ...TD, textAlign: 'left', height: '20px' }}>&nbsp;</td>
+              {Array(8).fill(0).map((__, j) => <td key={j} style={TD}>&nbsp;</td>)}
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Remarks */}
-      <div style={{ fontSize: '10pt', marginBottom: '10px', padding: '0 4px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '10px' }}>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', color: NAVY, minWidth: '160px' }}>Class teachers remark:</span>
-          <span style={{ flex: 1, borderBottom: '1px dotted #555', minHeight: '16px', paddingLeft: '4px', fontStyle: 'italic' }}>
-            {comments.teacher}
-          </span>
+      {/* ── FOOTER — teacher remarks left | grading key right ── */}
+      <div style={{ display: 'flex', borderTop: '1px solid #555' }}>
+        <div style={{ flex: 1, padding: '8px 12px', fontSize: '8.5pt', borderRight: '1px solid #555' }}>
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Class Teacher&apos;s Remarks:</div>
+            <div style={{ borderBottom: '1px solid #555', minHeight: '18px', fontStyle: 'italic', paddingLeft: '4px' }}>{comments.teacher}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <div style={{ borderTop: '1px solid #333', paddingTop: '2px', fontSize: '7.5pt' }}>— Class Teacher&apos;s Signature —</div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Proprietress Remarks:</div>
+            <div style={{ borderBottom: '1px solid #555', minHeight: '18px', fontStyle: 'italic', paddingLeft: '4px' }}>{comments.principal}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <div style={{ borderTop: '1px solid #333', paddingTop: '2px', fontSize: '7.5pt' }}>— Proprietress Signature —</div>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', color: NAVY, minWidth: '160px' }}>Proprietress Remark:</span>
-          <span style={{ flex: 1, borderBottom: '1px dotted #555', minHeight: '16px', paddingLeft: '4px', fontStyle: 'italic' }}>
-            {comments.principal}
-          </span>
+        <div style={{ width: '170px', flexShrink: 0, padding: '8px 10px', fontSize: '8pt' }}>
+          <div style={{ fontWeight: 'bold', textAlign: 'center', fontSize: '8.5pt', marginBottom: '6px', lineHeight: 1.3, textTransform: 'uppercase' }}>
+            Interpreting of<br />Grading System
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+              {GRADING_KEY.map(({ grade, range, remark }) => (
+                <tr key={grade}>
+                  <td style={{ border: BORDER, padding: '2px 5px', fontWeight: 'bold', textAlign: 'center', width: '24px', ...gradeColor(grade) }}>
+                    {grade}
+                  </td>
+                  <td style={{ border: BORDER, padding: '2px 5px', fontSize: '7.5pt' }}>
+                    {range} : {remark}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ marginTop: '8px', fontSize: '6.5pt', color: '#777', fontStyle: 'italic', textAlign: 'center' }}>
+            Computer-generated · {SCHOOL_CITY_TAGLINE}
+          </div>
         </div>
       </div>
     </div>
@@ -575,7 +708,7 @@ export function preKgTotalToRating(total: number): number {
   return 0;
 }
 
-/* ─── TODDLER PRE-KG Result Card — A4 Landscape, vibrant balloon design ── */
+/* ─── TODDLER PRE-KG Result Card — A4 Landscape, soft balloon design matching Yellow Class physical card ── */
 function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
   const { student, term, academicYear, comments, attendance, schoolName, schoolAddress } = data;
   const displaySchool = (schoolName || '').trim() || SCHOOL_NAME;
@@ -599,20 +732,20 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
     ? new Date().getFullYear() - new Date(student.dob).getFullYear()
     : null;
 
-  // 12 vivid balloon colors: [highlight, mid, dark]
+  // Soft pastel balloon colors — matching the physical Yellow Class card [highlight, mid, dark]
   const BALLOON_COLORS: [string, string, string][] = [
-    ['#ffb3d9', '#ff1493', '#8b0057'],  // 0 Hot Pink        — Literacy
-    ['#80c8ff', '#1565c0', '#003c8f'],  // 1 Royal Blue      — Understanding
-    ['#ffb380', '#e64a00', '#9f2c00'],  // 2 Tangerine       — Obedience
-    ['#80ffbc', '#00c853', '#007a29'],  // 3 Vivid Green     — Care of Self
-    ['#d4b0ff', '#7b1fa2', '#4a0072'],  // 4 Deep Purple     — Individual Behaviour
-    ['#ffe57a', '#f9a825', '#a06000'],  // 5 Sunny Yellow    — Punctuality
-    ['#80e5ff', '#00838f', '#005662'],  // 6 Ocean Teal      — Numeracy
-    ['#ff8080', '#d32f2f', '#8b0000'],  // 7 Ruby Red        — Bible Studies
-    ['#a0f0a0', '#388e3c', '#1b5e20'],  // 8 Emerald         — Creative Play
-    ['#ffb3e0', '#c2185b', '#880e4f'],  // 9 Rose            — Phonics
-    ['#9fb3ff', '#3949ab', '#1a237e'],  // 10 Indigo         — Scribbling
-    ['#ffc880', '#f57c00', '#bf360c'],  // 11 Warm Orange    — Social Habit
+    ['#FFD0E5', '#FF80B3', '#CC1166'],  // 0 Rose Pink      — Literacy
+    ['#C8E4FF', '#5B9BD5', '#1A4488'],  // 1 Sky Blue       — Understanding
+    ['#FFD5C5', '#FF8866', '#CC3300'],  // 2 Soft Coral     — Obedience
+    ['#C0EAFF', '#44BBEE', '#0055AA'],  // 3 Light Blue     — Care of Self
+    ['#FFF5C0', '#FFCC44', '#AA8800'],  // 4 Pale Yellow    — Individual Behaviour
+    ['#FFDDEF', '#FF99CC', '#CC3377'],  // 5 Blush Pink     — Punctuality
+    ['#D5E0FF', '#7788CC', '#2233AA'],  // 6 Periwinkle     — Numeracy
+    ['#FFD0DC', '#FF9999', '#CC2244'],  // 7 Soft Rose      — Bible Studies
+    ['#FFE8C8', '#FFBB66', '#BB6600'],  // 8 Soft Peach     — Creative Play
+    ['#FFCCEC', '#FF88CC', '#BB0077'],  // 9 Soft Magenta   — Phonics
+    ['#BCEAEA', '#44AAAA', '#006677'],  // 10 Soft Teal     — Scribbling
+    ['#FFD8E8', '#FF99BB', '#BB2255'],  // 11 Soft Pink     — Social Habit
   ];
 
   const Balloon = ({ skillName, colorIdx }: { skillName: string; colorIdx: number }) => {
@@ -627,7 +760,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
           height: '104px',
           borderRadius: '50% 50% 45% 45% / 55% 55% 48% 48%',
           background: `radial-gradient(ellipse at 36% 26%, ${hi} 0%, ${mid} 50%, ${dark} 100%)`,
-          boxShadow: `3px 6px 16px rgba(0,0,0,0.30), inset -4px -5px 10px rgba(0,0,0,0.14)`,
+          boxShadow: `2px 5px 12px rgba(0,0,0,0.18), inset -3px -4px 8px rgba(0,0,0,0.09)`,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -687,17 +820,9 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
     );
   };
 
-  // 4 columns of 3 balloons each — landscape layout
-  // Uses PRE_KG_SKILLS indices: Literacy=0, Understanding=1, Obedience=2, Care of Self=3,
-  // Individual Behaviour=4, Punctuality=5, Numeracy=6, Bible Studies=7, Creative Play=8,
-  // Phonics=9, Scribbling=10, Social Habit=11
-  const col1 = [PRE_KG_SKILLS[0], PRE_KG_SKILLS[5], PRE_KG_SKILLS[9]];   // Literacy, Punctuality, Phonics
-  const col2 = [PRE_KG_SKILLS[1], PRE_KG_SKILLS[2], PRE_KG_SKILLS[6]];   // Understanding, Obedience, Numeracy
-  const col3 = [PRE_KG_SKILLS[3], PRE_KG_SKILLS[4], PRE_KG_SKILLS[7]];   // Care of Self, Individual Behaviour, Bible Studies
-  const col4 = [PRE_KG_SKILLS[8], PRE_KG_SKILLS[10], PRE_KG_SKILLS[11]]; // Creative Play, Scribbling, Social Habit
-  const skillIdx = (name: string) => PRE_KG_SKILLS.findIndex(s => s.name === name);
-
-  const RAINBOW = ['#ff1a8c', '#ff6b35', '#ffd700', '#00c853', '#2979ff', '#7c4dff'];
+  // 3-row layout matching physical card: 5 top | 2+child+2 middle | 1+2 bottom
+  // Soft pastel rainbow
+  const RAINBOW = ['#ffaad4', '#ffbb88', '#ffee88', '#aaddaa', '#99bbee', '#cc99ee'];
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '10pt', color: '#000', background: '#fff', border: `2px solid ${NAVY}` }}>
@@ -754,7 +879,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr 1fr', gap: '4px 14px', marginBottom: '4px' }}>
           {([
             ['TERM',            term],
-            ['CLASS',           student.className],
+            ['CLASS',           `${student.className}${kgColorName(student.className) ? ` · ${kgColorName(student.className)}` : ''}`],
             ['RESUMPTION DATE', ''],
             ['ADMISSION NO.',   student.studentId],
           ] as [string, string][]).map(([label, val]) => (
@@ -778,68 +903,68 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
         </div>
       </div>
 
-      {/* Balloon Section — 4 columns + decorative centre, landscape spread */}
-      <div style={{
-        background: 'linear-gradient(135deg, #fff0fb 0%, #f0f4ff 28%, #f0fff8 56%, #fffde0 100%)',
-        padding: '8px 12px 2px',
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: '4px',
-      }}>
-        {/* Column 1: Literacy, Punctuality, Phonics */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-          {col1.map(s => <Balloon key={s.name} skillName={s.name} colorIdx={skillIdx(s.name)} />)}
+      {/* ── Balloon Section — 3 rows matching physical Yellow Class card ── */}
+      <div style={{ background: 'linear-gradient(160deg, #FFF0F5 0%, #FFE8F2 50%, #FEF5F8 100%)', padding: '6px 14px 4px' }}>
+
+        {/* Row 1 — 5 balloons across the top: Literacy, Understanding, Obedience, Care of Self, Individual Behaviour */}
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '2px' }}>
+          <Balloon skillName={PRE_KG_SKILLS[0].name} colorIdx={0} />
+          <Balloon skillName={PRE_KG_SKILLS[1].name} colorIdx={1} />
+          <Balloon skillName={PRE_KG_SKILLS[2].name} colorIdx={2} />
+          <Balloon skillName={PRE_KG_SKILLS[3].name} colorIdx={3} />
+          <Balloon skillName={PRE_KG_SKILLS[4].name} colorIdx={4} />
         </div>
 
-        {/* Decorative separator */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', padding: '0 2px' }}>
-          <div style={{ fontSize: '15pt' }}>&#127882;</div>
-        </div>
+        {/* Row 2 — Punctuality, Numeracy | child figure | Bible Studies, Creative Play */}
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '2px' }}>
+          <Balloon skillName={PRE_KG_SKILLS[5].name} colorIdx={5} />
+          <Balloon skillName={PRE_KG_SKILLS[6].name} colorIdx={6} />
 
-        {/* Column 2: Understanding, Obedience, Numeracy */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-          {col2.map(s => <Balloon key={s.name} skillName={s.name} colorIdx={skillIdx(s.name)} />)}
-        </div>
-
-        {/* Centre — child character + school tagline */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', textAlign: 'center', padding: '4px 8px', minWidth: '80px' }}>
-          <div style={{ fontSize: '30pt', lineHeight: 1 }}>&#129333;&#127995;</div>
-          <div style={{ fontSize: '6pt', color: '#7c4dff', fontWeight: 'bold', marginTop: '4px', fontStyle: 'italic', lineHeight: 1.3 }}>
-            {SCHOOL_CITY_TAGLINE}
+          {/* SVG stick figure child holding balloon strings */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '4px' }}>
+            <svg width="50" height="66" viewBox="0 0 50 66" style={{ display: 'block' }}>
+              {/* Head */}
+              <circle cx="25" cy="9.5" r="8.5" fill={NAVY} />
+              {/* Body */}
+              <line x1="25" y1="18" x2="25" y2="42" stroke={NAVY} strokeWidth="3" strokeLinecap="round" />
+              {/* Arms raised — holding balloon strings */}
+              <line x1="25" y1="26" x2="4"  y2="14" stroke={NAVY} strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="25" y1="26" x2="46" y2="14" stroke={NAVY} strokeWidth="2.5" strokeLinecap="round" />
+              <circle cx="4"  cy="14" r="2.5" fill={NAVY} />
+              <circle cx="46" cy="14" r="2.5" fill={NAVY} />
+              {/* Legs */}
+              <line x1="25" y1="42" x2="12" y2="60" stroke={NAVY} strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="25" y1="42" x2="38" y2="60" stroke={NAVY} strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+            <div style={{ fontSize: '5.5pt', color: NAVY, fontWeight: 'bold', textAlign: 'center', marginTop: '1px', lineHeight: 1.2 }}>
+              {SCHOOL_CITY_TAGLINE}
+            </div>
           </div>
-          <div style={{ fontSize: '14pt', lineHeight: 1, marginTop: '4px', letterSpacing: '2px' }}>&#11088;&#127775;&#11088;</div>
+
+          <Balloon skillName={PRE_KG_SKILLS[7].name} colorIdx={7} />
+          <Balloon skillName={PRE_KG_SKILLS[8].name} colorIdx={8} />
         </div>
 
-        {/* Column 3: Care of Self, Individual Behaviour, Bible Studies */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-          {col3.map(s => <Balloon key={s.name} skillName={s.name} colorIdx={skillIdx(s.name)} />)}
-        </div>
-
-        {/* Decorative separator */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', padding: '0 2px' }}>
-          <div style={{ fontSize: '15pt' }}>&#127881;</div>
-        </div>
-
-        {/* Column 4: Creative Play, Scribbling, Social Habit */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-          {col4.map(s => <Balloon key={s.name} skillName={s.name} colorIdx={skillIdx(s.name)} />)}
+        {/* Row 3 — Phonics (left) | space | Scribbling + Social Habit (right) */}
+        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <Balloon skillName={PRE_KG_SKILLS[9].name} colorIdx={9} />
+          <div style={{ flex: 1 }} />
+          <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end' }}>
+            <Balloon skillName={PRE_KG_SKILLS[10].name} colorIdx={10} />
+            <Balloon skillName={PRE_KG_SKILLS[11].name} colorIdx={11} />
+          </div>
         </div>
       </div>
 
       {/* Rating Key */}
-      <div style={{
-        background: '#f5f5f5', padding: '3px 14px',
-        borderTop: `1px solid #ddd`, borderBottom: `2px solid ${NAVY}`,
-        display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '6.5pt', alignItems: 'center',
-      }}>
+      <div style={{ background: '#fdf0f7', padding: '3px 14px', borderTop: `1px solid #e8d0e0`, borderBottom: `2px solid ${NAVY}`, display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '6.5pt', alignItems: 'center' }}>
         <strong style={{ color: NAVY }}>RATING KEY:</strong>
         {([
-          ['5 — Excellent',         '#ff1493', '#fff'],
-          ['4 — Very Good',         '#1565c0', '#fff'],
-          ['3 — Good',              '#00838f', '#fff'],
-          ['2 — Fair',              '#f9a825', '#000'],
-          ['1 — Needs Improvement', '#d32f2f', '#fff'],
+          ['5 — Excellent',         '#FF80B3', '#fff'],
+          ['4 — Very Good',         '#5B9BD5', '#fff'],
+          ['3 — Good',              '#44AAAA', '#fff'],
+          ['2 — Fair',              '#FFCC44', '#222'],
+          ['1 — Needs Improvement', '#FF8866', '#fff'],
         ] as [string, string, string][]).map(([label, bg, color]) => (
           <span key={label} style={{ background: bg, color, padding: '1px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
             {label}
@@ -847,7 +972,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
         ))}
       </div>
 
-      {/* Footer */}
+      {/* Footer — matches physical card: Teacher | Attendance | Proprietress | Total/Average */}
       <div style={{ padding: '7px 14px 8px', background: '#fff' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 1fr', gap: '14px', alignItems: 'start' }}>
 
@@ -862,16 +987,16 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
             </div>
           </div>
 
-          {/* Attendance */}
+          {/* Attendance — labels matching physical card exactly */}
           <div style={{ fontSize: '7.5pt' }}>
             <div style={{ marginBottom: '6px' }}>
-              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>School days opened:</div>
+              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>No. of times school opened:</div>
               <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '8.5pt', paddingLeft: '4px' }}>
                 {attendance.totalDays || ''}
               </div>
             </div>
             <div>
-              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Times absent:</div>
+              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>No. of times absent:</div>
               <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '8.5pt', paddingLeft: '4px' }}>
                 {attendance.daysAbsent || ''}
               </div>
@@ -892,14 +1017,14 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
             </div>
           </div>
 
-          {/* Stats */}
+          {/* Total / Average — matches physical card right column */}
           <div style={{ fontSize: '7.5pt' }}>
             <div style={{ marginBottom: '6px' }}>
-              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>No. of Skills Assessed:</div>
-              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '8.5pt', paddingLeft: '4px' }}>12</div>
+              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Total</div>
+              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '8.5pt', paddingLeft: '4px' }}></div>
             </div>
             <div>
-              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Next Term Begins:</div>
+              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Average</div>
               <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '8.5pt', paddingLeft: '4px' }}></div>
             </div>
           </div>
@@ -910,7 +1035,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
       <div style={{ display: 'flex', height: '4px' }}>
         {RAINBOW.map(c => <div key={c} style={{ flex: 1, background: c }} />)}
       </div>
-      <div style={{ background: '#f1f5f9', padding: '2px 14px', fontSize: '6.5pt', color: '#888', textAlign: 'right', fontStyle: 'italic' }}>
+      <div style={{ background: '#fdf0f7', padding: '2px 14px', fontSize: '6.5pt', color: '#888', textAlign: 'right', fontStyle: 'italic' }}>
         Computer-generated — {displaySchool}, {SCHOOL_CITY_TAGLINE}
       </div>
     </div>
@@ -920,10 +1045,9 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
 /* ─── Bare card body — used for bulk printing (no preview wrapper) ── */
 export function CardPrintContent({ data }: { data: ResultCardData }) {
   const level = data.student.classLevel ?? '';
-  const isToddler = level === 'toddler';
-  const isNursery = level === 'creche' || level === 'nursery1' || level === 'nursery2';
-  if (isToddler) return <ToddlerPreKGResultCard data={data} />;
-  return isNursery ? <NurseryResultCard data={data} /> : <PrimaryResultCard data={data} />;
+  if (level === 'toddler') return <ToddlerPreKGResultCard data={data} />;
+  if (level === 'creche')  return <NurseryResultCard data={data} />;
+  return <PrimaryResultCard data={data} />;
 }
 
 /* ─── Main Export ────────────────────────────────────────────── */
@@ -935,10 +1059,10 @@ interface Props {
 export default function ResultCard({ data, onPrint }: Props) {
   const level = data.student.classLevel ?? '';
   const isToddler = level === 'toddler';
-  const isNursery = level === 'creche' || level === 'nursery1' || level === 'nursery2';
+  const isNursery = level === 'creche';
 
   const handlePrint = () => {
-    if (isToddler) {
+    if (isToddler || isNursery) {
       printResultCard(data.student.name, true);
     } else {
       onPrint();
@@ -967,9 +1091,9 @@ export default function ResultCard({ data, onPrint }: Props) {
         <div
           id={RESULT_CARD_PRINT_DOM_ID}
           style={{
-            width: isToddler ? '297mm' : '100%',
-            maxWidth: isToddler ? '297mm' : '210mm',
-            minHeight: isToddler ? '210mm' : '297mm',
+            width: (isToddler || isNursery) ? '297mm' : '100%',
+            maxWidth: (isToddler || isNursery) ? '297mm' : '210mm',
+            minHeight: (isToddler || isNursery) ? '210mm' : '297mm',
             background: '#fff',
             margin: '0 auto',
             boxShadow: '0 4px 24px rgba(0,0,0,0.18)',

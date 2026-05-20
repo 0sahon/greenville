@@ -1,13 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FileText, Search, ChevronDown, Save, X, Eye, CheckCircle, Clock,
-  Trash2, AlertTriangle, BarChart3, GraduationCap, Printer,
+  Trash2, AlertTriangle, BarChart3, GraduationCap, Printer, MessageCircle,
+  Download, Settings, EyeOff,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import { useSchoolSettings } from '../../../hooks/useSchoolSettings';
-import ResultCard, { getNigerianGrade, printResultCard, CardPrintContent, PRE_KG_SKILLS, PRE_KG_COMMENTS } from './ResultCard';
-import type { ResultCardData, SubjectResult } from './ResultCard';
+import ResultCard, {
+  getNigerianGrade, printResultCard, CardPrintContent,
+  PRE_KG_SKILLS, PRE_KG_COMMENTS,
+  NURSERY_SUBJECTS, buildNurserySubjects, NURSERY_CA_MAX, NURSERY_EXAM_MAX,
+  BASIC_SUBJECTS, buildBasicSubjects, BASIC_CA_MAX, BASIC_EXAM_MAX,
+} from './ResultCard';
+import type { ResultCardData, SubjectResult, NurseryScores, BasicScores } from './ResultCard';
 import type { ProfileRow, ClassRow, GradeRow } from '../../../lib/supabase';
 import PerformanceChart from '../shared/PerformanceChart';
 
@@ -124,8 +130,12 @@ export default function ResultsSection({ profile }: Props) {
   const [modalTab, setModalTab] = useState<'preview' | 'edit'>('preview');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [preKgRatings, setPreKgRatings] = useState<Partial<Record<string, number>>>({});
+  const [nurseryScores, setNurseryScores] = useState<NurseryScores>({});
+  const [basicScores, setBasicScores] = useState<BasicScores>({});
 
   const isToddlerStudent = activeStudent?.classes?.level === 'toddler';
+  const isNurseryStudent = activeStudent?.classes?.level === 'creche';
+  const isBasicStudent   = ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(activeStudent?.classes?.level ?? '');
 
   const buildPreKgSubjects = (ratings: Partial<Record<string, number>>): SubjectResult[] =>
     PRE_KG_SKILLS
@@ -139,8 +149,25 @@ export default function ResultsSection({ profile }: Props) {
   const updatePreKgRating = (skillName: string, rating: number) => {
     const updated: Partial<Record<string, number>> = { ...preKgRatings, [skillName]: rating === 0 ? undefined : rating };
     setPreKgRatings(updated);
-    const newSubs = buildPreKgSubjects(updated);
-    setActiveSubjects(newSubs);
+    setActiveSubjects(buildPreKgSubjects(updated));
+  };
+
+  const updateNurseryScore = (subject: string, field: 'ca1' | 'ca2' | 'exam', value: number) => {
+    const updated: NurseryScores = {
+      ...nurseryScores,
+      [subject]: { ...(nurseryScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 }), [field]: value },
+    };
+    setNurseryScores(updated);
+    setActiveSubjects(buildNurserySubjects(updated));
+  };
+
+  const updateBasicScore = (subject: string, field: 'ca1' | 'ca2' | 'exam', value: number) => {
+    const updated: BasicScores = {
+      ...basicScores,
+      [subject]: { ...(basicScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 }), [field]: value },
+    };
+    setBasicScores(updated);
+    setActiveSubjects(buildBasicSubjects(updated));
   };
 
   // School Overview
@@ -154,6 +181,10 @@ export default function ResultsSection({ profile }: Props) {
   const [bulkCards, setBulkCards] = useState<ResultCardData[]>([]);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
   const bulkRef = useRef<HTMLDivElement>(null);
+
+  // Subject visibility settings
+  const [subjectVisibility, setSubjectVisibility] = useState<Record<string, boolean>>({});
+  const [subjectSettingsOpen, setSubjectSettingsOpen] = useState(false);
 
   // Load classes
   useEffect(() => {
@@ -208,6 +239,33 @@ export default function ResultsSection({ profile }: Props) {
   }, [selectedClass, selectedTerm, academicYear]);
 
   useEffect(() => { loadClassData(); }, [loadClassData]);
+
+  const loadSubjectSettings = useCallback(async () => {
+    const { data } = await supabase.from('subject_settings').select('level_group, subject, is_visible');
+    if (!data) return;
+    const vis: Record<string, boolean> = {};
+    (data as { level_group: string; subject: string; is_visible: boolean }[]).forEach(r => {
+      vis[`${r.level_group}:${r.subject}`] = r.is_visible;
+    });
+    setSubjectVisibility(vis);
+  }, []);
+
+  useEffect(() => { loadSubjectSettings(); }, [loadSubjectSettings]);
+
+  const toggleSubjectVisibility = async (levelGroup: string, subject: string, visible: boolean) => {
+    const key = `${levelGroup}:${subject}`;
+    setSubjectVisibility(prev => ({ ...prev, [key]: visible }));
+    await supabase.from('subject_settings').upsert(
+      { level_group: levelGroup, subject, is_visible: visible },
+      { onConflict: 'level_group,subject' }
+    );
+  };
+
+  const getVisibleSubjects = (levelGroup: 'basic' | 'nursery', allSubjects: readonly string[]): string[] | undefined => {
+    const hasSettings = Object.keys(subjectVisibility).some(k => k.startsWith(`${levelGroup}:`));
+    if (!hasSettings) return undefined;
+    return (allSubjects as string[]).filter(s => subjectVisibility[`${levelGroup}:${s}`] !== false);
+  };
 
   // Load school overview
   const loadOverall = useCallback(async () => {
@@ -269,6 +327,7 @@ export default function ResultsSection({ profile }: Props) {
     setDeleteConfirm(false);
 
     const isToddler = student.classes?.level === 'toddler';
+    const isNursery = student.classes?.level === 'creche';
     const dateRange = getTermDateRange(selectedTerm, academicYear);
     const [{ data: myGrades }, { data: classGrades }, { data: attData }] = await Promise.all([
       supabase.from('grades').select('*').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear),
@@ -285,8 +344,28 @@ export default function ResultsSection({ profile }: Props) {
       pkGrades.forEach(g => { ratings[g.subject] = g.score; });
       setPreKgRatings(ratings);
       mySubjects = buildPreKgSubjects(ratings);
+    } else if (isNursery) {
+      const scores: NurseryScores = {};
+      for (const g of myGradeRows) {
+        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0 };
+        const t = g.assessment_type.toLowerCase().trim();
+        if (t === '1st ca' || t === 'first ca') scores[g.subject]!.ca1 = g.score;
+        else if (t === '2nd ca' || t === 'second ca') scores[g.subject]!.ca2 = g.score;
+        else if (t === 'exam' || t === 'examination' || t === 'final exam') scores[g.subject]!.exam = g.score;
+      }
+      setNurseryScores(scores);
+      mySubjects = buildNurserySubjects(scores);
     } else {
-      mySubjects = computeSubjects(myGradeRows);
+      const scores: BasicScores = {};
+      for (const g of myGradeRows) {
+        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0 };
+        const t = g.assessment_type.toLowerCase().trim();
+        if (t === '1st ca' || t === 'first ca') scores[g.subject]!.ca1 = g.score;
+        else if (t === '2nd ca' || t === 'second ca') scores[g.subject]!.ca2 = g.score;
+        else if (t === 'exam' || t === 'examination' || t === 'final exam') scores[g.subject]!.exam = g.score;
+      }
+      setBasicScores(scores);
+      mySubjects = buildBasicSubjects(scores);
     }
     setActiveSubjects(mySubjects);
 
@@ -332,16 +411,48 @@ export default function ResultsSection({ profile }: Props) {
     }
   };
 
-  const closeModal = () => { setActiveStudent(null); setActiveSubjects([]); setActiveClassStats(null); setDeleteConfirm(false); };
+  const shareViaWhatsApp = () => {
+    const data = buildCardData();
+    if (!data) return;
+    const { student, term: t, academicYear: yr, subjects: subs, classStats } = data;
+    const scored = subs.filter(s => s.total > 0);
+    const avg = scored.length > 0 ? Math.round(scored.reduce((a, s) => a + s.total, 0) / scored.length) : 0;
+    const { grade, remark } = getNigerianGrade(avg);
+    const lines = [
+      `🏫 *${schoolName || 'Greenville Montessori Schools'}*`,
+      `📋 *${student.name} — Result Card*`,
+      `📚 ${student.className} | ${t} ${yr}`,
+      ``,
+      `📊 Average: *${avg}%* (${grade} — ${remark})`,
+      `🏆 Position: *${classStats.position}/${classStats.totalStudents}*`,
+      ``,
+      `*Subject Results:*`,
+      ...scored.map(s => `• ${s.subject}: ${s.total}% (${s.grade})`),
+      ``,
+      `— ${schoolName || 'Greenville Montessori Schools'}`,
+    ].join('\n');
+    window.open(`https://wa.me/?text=${encodeURIComponent(lines)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const closeModal = () => {
+    setActiveStudent(null); setActiveSubjects([]); setActiveClassStats(null);
+    setDeleteConfirm(false); setPreKgRatings({}); setNurseryScores({}); setBasicScores({});
+  };
 
   const buildCardData = (): ResultCardData | null => {
     if (!activeStudent || !activeClassStats) return null;
+    const level = activeStudent.classes?.level ?? '';
+    const visibleSubjects = isBasicStudent
+      ? getVisibleSubjects('basic', BASIC_SUBJECTS)
+      : isNurseryStudent
+      ? getVisibleSubjects('nursery', NURSERY_SUBJECTS)
+      : undefined;
     return {
       student: {
         name: `${activeStudent.profiles?.first_name} ${activeStudent.profiles?.last_name}`,
         studentId: activeStudent.student_id,
         className: activeStudent.classes?.name || '—',
-        classLevel: activeStudent.classes?.level,
+        classLevel: level,
         gender: activeStudent.gender || '',
         dob: activeStudent.date_of_birth || '',
       },
@@ -355,6 +466,7 @@ export default function ResultsSection({ profile }: Props) {
       comments: { teacher: metaForm.teacher_comment, principal: metaForm.principal_comment },
       nextTerm: { begins: metaForm.next_term_begins, fees: metaForm.next_term_fees },
       schoolName, schoolAddress: (settings.school_address as string) || '',
+      visibleSubjects,
     };
   };
 
@@ -376,7 +488,7 @@ export default function ResultsSection({ profile }: Props) {
       const { error } = await supabase.from('result_sheets').upsert(payload, { onConflict: 'student_id,term,academic_year' });
       if (error) throw error;
 
-      // Save pre-KG skill ratings (delete then insert)
+      // Save pre-KG skill ratings (toddler only — delete then insert)
       if (isToddlerStudent) {
         await supabase.from('grades')
           .delete()
@@ -396,6 +508,51 @@ export default function ResultsSection({ profile }: Props) {
             academic_year: academicYear,
             graded_by: profile.id,
           }));
+        if (gradeRows.length > 0) {
+          const { error: gErr } = await supabase.from('grades').insert(gradeRows);
+          if (gErr) throw gErr;
+        }
+      }
+
+      // Save basic subject grades (basic1-6 — delete then insert)
+      if (isBasicStudent) {
+        await supabase.from('grades')
+          .delete()
+          .eq('student_id', activeStudent.id)
+          .eq('term', selectedTerm)
+          .eq('academic_year', academicYear);
+        const bRows: { student_id: string; subject: string; assessment_type: string; score: number; max_score: number; term: string; academic_year: string; graded_by: string; }[] = [];
+        for (const subject of BASIC_SUBJECTS) {
+          const s = basicScores[subject];
+          if (!s) continue;
+          if (s.ca1  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca2  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.exam > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: BASIC_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        }
+        if (bRows.length > 0) {
+          const { error: gErr } = await supabase.from('grades').insert(bRows);
+          if (gErr) throw gErr;
+        }
+      }
+
+      // Save nursery subject grades (creche only — delete then insert)
+      if (isNurseryStudent) {
+        await supabase.from('grades')
+          .delete()
+          .eq('student_id', activeStudent.id)
+          .eq('term', selectedTerm)
+          .eq('academic_year', academicYear);
+        const gradeRows: {
+          student_id: string; subject: string; assessment_type: string;
+          score: number; max_score: number; term: string; academic_year: string; graded_by: string;
+        }[] = [];
+        for (const subject of NURSERY_SUBJECTS) {
+          const s = nurseryScores[subject];
+          if (!s) continue;
+          if (s.ca1  > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca2  > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.exam > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: NURSERY_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        }
         if (gradeRows.length > 0) {
           const { error: gErr } = await supabase.from('grades').insert(gradeRows);
           if (gErr) throw gErr;
@@ -432,18 +589,22 @@ export default function ResultsSection({ profile }: Props) {
   // Clear selection when class / term / year changes
   useEffect(() => { setSelectedIds(new Set()); }, [selectedClass, selectedTerm, academicYear]);
 
+  const selectedClassLevel = classes.find(c => c.id === selectedClass)?.level ?? '';
+  const isLandscapeClass = selectedClassLevel === 'creche' || selectedClassLevel === 'toddler';
+
   // Trigger print window once bulk cards have rendered into the hidden container
   useEffect(() => {
     if (bulkCards.length === 0) return;
     const t = setTimeout(() => {
       const el = bulkRef.current;
       if (!el) { setBulkCards([]); return; }
-      const win = window.open('', '_blank', 'width=1000,height=800');
+      const win = window.open('', '_blank', 'width=1200,height=850');
       if (!win) { setBulkCards([]); setToast({ msg: 'Pop-up blocked — allow pop-ups and try again', type: 'error' }); return; }
+      const pageSize = isLandscapeClass ? 'A4 landscape' : 'A4 portrait';
       win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
 <title>Result Sheets — ${selectedTerm} ${academicYear}</title>
 <style>
-  @page { size: A4 portrait; margin: 8mm 10mm; }
+  @page { size: ${pageSize}; margin: 6mm 8mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; background: #fff; }
   table { width: 100%; border-collapse: collapse; }
@@ -456,7 +617,7 @@ export default function ResultsSection({ profile }: Props) {
       setTimeout(() => { win.print(); setBulkCards([]); }, 700);
     }, 350);
     return () => clearTimeout(t);
-  }, [bulkCards, selectedTerm, academicYear]);
+  }, [bulkCards, selectedTerm, academicYear, isLandscapeClass]);
 
   const printSelected = useCallback(async () => {
     const ids = [...selectedIds];
@@ -529,6 +690,76 @@ export default function ResultsSection({ profile }: Props) {
     }
     setIsBulkLoading(false);
   }, [selectedIds, students, selectedTerm, academicYear, resultSheets, schoolName, settings]);
+
+  const printAll = useCallback(async () => {
+    if (students.length === 0) return;
+    setIsBulkLoading(true);
+    try {
+      const dateRange = getTermDateRange(selectedTerm, academicYear);
+      const [classGradesResult, attResultsAll] = await Promise.all([
+        supabase.from('grades').select('*')
+          .in('student_id', students.map(s => s.id))
+          .eq('term', selectedTerm).eq('academic_year', academicYear),
+        Promise.all(students.map(s =>
+          supabase.from('attendance').select('status')
+            .eq('student_id', s.id).gte('date', dateRange.start).lte('date', dateRange.end)
+        )),
+      ]);
+      const allGrades = (classGradesResult.data || []) as GradeRow[];
+      const grandTotalByStudent: Record<string, number> = {};
+      students.forEach(s => {
+        const sg = allGrades.filter(g => g.student_id === s.id);
+        grandTotalByStudent[s.id] = computeSubjects(sg).reduce((acc, sub) => acc + sub.total, 0);
+      });
+      const allTotals = Object.values(grandTotalByStudent).filter(t => t > 0);
+      const sorted = [...allTotals].sort((a, b) => b - a);
+      const classAvg = allTotals.length > 0 ? Math.round(allTotals.reduce((a, b) => a + b, 0) / allTotals.length) : 0;
+      const cards: ResultCardData[] = students.map((student, idx) => {
+        const myGrades = allGrades.filter(g => g.student_id === student.id);
+        const mySubjects = computeSubjects(myGrades);
+        const myGrandTotal = mySubjects.reduce((acc, s) => acc + s.total, 0);
+        const position = sorted.indexOf(myGrandTotal) + 1 || sorted.length + 1;
+        const attRecords = (attResultsAll[idx].data || []) as { status: string }[];
+        const attTotal = attRecords.length;
+        const attPresent = attRecords.filter(a => a.status === 'present' || a.status === 'late').length;
+        const meta = resultSheets[student.id] || defaultMeta;
+        const att = attTotal > 0
+          ? { daysPresent: attPresent, daysAbsent: attTotal - attPresent, totalDays: attTotal }
+          : { daysPresent: meta.days_present, daysAbsent: meta.days_absent, totalDays: meta.total_school_days };
+        const level = student.classes?.level ?? '';
+        const isBasic = ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(level);
+        const isNursery = level === 'creche';
+        const visibleSubjects = isBasic
+          ? getVisibleSubjects('basic', BASIC_SUBJECTS)
+          : isNursery
+          ? getVisibleSubjects('nursery', NURSERY_SUBJECTS)
+          : undefined;
+        return {
+          student: {
+            name: `${student.profiles?.first_name} ${student.profiles?.last_name}`,
+            studentId: student.student_id,
+            className: student.classes?.name || '—',
+            classLevel: level,
+            gender: student.gender || '',
+            dob: student.date_of_birth || '',
+          },
+          term: selectedTerm, academicYear,
+          subjects: mySubjects,
+          classStats: { position, totalStudents: students.length, grandTotal: myGrandTotal, highestInClass: sorted[0] ?? 0, lowestInClass: sorted[sorted.length - 1] ?? 0, classAverage: classAvg },
+          behavior: { punctuality: meta.punctuality, neatness: meta.neatness, honesty: meta.honesty, cooperation: meta.cooperation, attentiveness: meta.attentiveness, politeness: meta.politeness },
+          attendance: att,
+          comments: { teacher: meta.teacher_comment, principal: meta.principal_comment },
+          nextTerm: { begins: meta.next_term_begins, fees: meta.next_term_fees },
+          schoolName, schoolAddress: (settings.school_address as string) || '',
+          visibleSubjects,
+        };
+      });
+      setBulkCards(cards);
+    } catch {
+      setToast({ msg: 'Failed to load results for printing', type: 'error' });
+    }
+    setIsBulkLoading(false);
+  }, [students, selectedTerm, academicYear, resultSheets, schoolName, settings, subjectVisibility]);
 
   const toggleSelect = (id: string) => setSelectedIds(prev => {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
@@ -727,14 +958,85 @@ export default function ResultsSection({ profile }: Props) {
               <input placeholder="Search students…" value={search} onChange={e => setSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
-            {selectedIds.size > 0 && (
-              <button onClick={printSelected} disabled={isBulkLoading}
-                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-700 text-white rounded-lg text-xs font-semibold hover:bg-indigo-800 disabled:opacity-60 shadow-sm">
-                <Printer className="w-3.5 h-3.5" />
-                {isBulkLoading ? 'Loading…' : `Print Selected (${selectedIds.size})`}
+            {/* Subject visibility settings button */}
+            {(selectedClassLevel === 'basic1' || selectedClassLevel === 'basic2' || selectedClassLevel === 'basic3' || selectedClassLevel === 'basic4' || selectedClassLevel === 'basic5' || selectedClassLevel === 'basic6' || selectedClassLevel === 'creche') && (
+              <button onClick={() => setSubjectSettingsOpen(o => !o)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border shadow-sm ${subjectSettingsOpen ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                <Settings className="w-3.5 h-3.5" /> Subject Visibility
               </button>
             )}
+            {/* Print All */}
+            {students.length > 0 && (
+              <button onClick={printAll} disabled={isBulkLoading}
+                className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 text-white rounded-lg text-xs font-semibold hover:bg-gray-800 disabled:opacity-60 shadow-sm">
+                <Printer className="w-3.5 h-3.5" />
+                {isBulkLoading ? 'Loading…' : 'Print All'}
+              </button>
+            )}
+            {/* Print / Export Selected */}
+            {selectedIds.size > 0 && (
+              <div className="flex gap-1.5">
+                <button onClick={printSelected} disabled={isBulkLoading}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-700 text-white rounded-lg text-xs font-semibold hover:bg-indigo-800 disabled:opacity-60 shadow-sm">
+                  <Printer className="w-3.5 h-3.5" />
+                  {isBulkLoading ? 'Loading…' : `Print (${selectedIds.size})`}
+                </button>
+                <button onClick={() => { setToast({ msg: 'In the print dialog, choose "Save as PDF" as the destination', type: 'success' }); printSelected(); }} disabled={isBulkLoading}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-60 shadow-sm">
+                  <Download className="w-3.5 h-3.5" />
+                  Export PDF ({selectedIds.size})
+                </button>
+              </div>
+            )}
           </div>
+
+          {/* Subject Visibility Settings Panel */}
+          {subjectSettingsOpen && (selectedClassLevel === 'creche' || ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(selectedClassLevel)) && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-purple-900 flex items-center gap-2">
+                  <Settings className="w-4 h-4" /> Subject Visibility on Report Card
+                </h4>
+                <span className="text-xs text-purple-600">Toggles apply to all printed cards for this level</span>
+              </div>
+              {(['basic1','basic2','basic3','basic4','basic5','basic6'].includes(selectedClassLevel)) && (
+                <div>
+                  <p className="text-xs font-medium text-purple-800 mb-2">Basic Subjects:</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    {(BASIC_SUBJECTS as readonly string[]).map(subject => {
+                      const key = `basic:${subject}`;
+                      const visible = subjectVisibility[key] !== false;
+                      return (
+                        <label key={subject} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer text-xs transition-all ${visible ? 'bg-white border-purple-300 text-gray-800' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`}>
+                          <input type="checkbox" checked={visible} onChange={e => toggleSubjectVisibility('basic', subject, e.target.checked)}
+                            className="accent-purple-600 w-3.5 h-3.5 flex-shrink-0" />
+                          {subject}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {selectedClassLevel === 'creche' && (
+                <div>
+                  <p className="text-xs font-medium text-purple-800 mb-2">Nursery Subjects:</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    {(NURSERY_SUBJECTS as readonly string[]).map(subject => {
+                      const key = `nursery:${subject}`;
+                      const visible = subjectVisibility[key] !== false;
+                      return (
+                        <label key={subject} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer text-xs transition-all ${visible ? 'bg-white border-purple-300 text-gray-800' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`}>
+                          <input type="checkbox" checked={visible} onChange={e => toggleSubjectVisibility('nursery', subject, e.target.checked)}
+                            className="accent-purple-600 w-3.5 h-3.5 flex-shrink-0" />
+                          {subject}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {loading ? (
             <div className="flex justify-center items-center py-16"><div className="w-8 h-8 border-4 border-green-300 border-t-green-600 rounded-full animate-spin" /></div>
@@ -897,7 +1199,31 @@ export default function ResultsSection({ profile }: Props) {
               {/* Preview tab */}
               {modalTab === 'preview' && cardData && (
                 <div className="space-y-5">
-                  <ResultCard data={cardData} onPrint={() => printResultCard(`${activeStudent.profiles?.first_name} ${activeStudent.profiles?.last_name}`)} />
+                  <ResultCard data={cardData} onPrint={() => printResultCard(`${activeStudent.profiles?.first_name} ${activeStudent.profiles?.last_name}`, isNurseryStudent || isToddlerStudent)} />
+                  {/* Share / Export actions */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        const lvl = activeStudent?.classes?.level;
+                        const landscape = lvl === 'creche' || lvl === 'toddler';
+                        setToast({ msg: 'Tip: In the print dialog, select "Save as PDF" as destination', type: 'success' });
+                        printResultCard(`${activeStudent?.profiles?.first_name} ${activeStudent?.profiles?.last_name}`, landscape);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700">
+                      <Download className="w-3.5 h-3.5" /> Export as PDF
+                    </button>
+                    {metaForm.is_published && (
+                      <button onClick={shareViaWhatsApp}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-green-500 text-white rounded-xl text-xs font-semibold hover:bg-green-600">
+                        <MessageCircle className="w-3.5 h-3.5" /> Share via WhatsApp
+                      </button>
+                    )}
+                    {!metaForm.is_published && (
+                      <span className="flex items-center gap-1 px-3 py-2 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
+                        <EyeOff className="w-3.5 h-3.5" /> Publish result to enable WhatsApp sharing
+                      </span>
+                    )}
+                  </div>
                   {activeSubjects.length > 0 && (
                     <PerformanceChart subjects={activeSubjects} title={`${activeStudent.profiles?.first_name} — ${selectedTerm} Subject Performance`} />
                   )}
@@ -907,6 +1233,128 @@ export default function ResultsSection({ profile }: Props) {
               {/* Edit tab */}
               {modalTab === 'edit' && (
                 <div className="space-y-6">
+
+                  {/* ── Nursery Subject Scores (KG 1/2/3 — creche level only) ── */}
+                  {isNurseryStudent && (
+                    <div>
+                      <h4 className="font-semibold text-gray-800 text-sm mb-1">
+                        Subject Scores — {activeStudent?.classes?.name}
+                      </h4>
+                      <p className="text-xs text-gray-400 mb-3">
+                        Enter raw scores: 1st & 2nd CA out of {NURSERY_CA_MAX}, Exam out of {NURSERY_EXAM_MAX}.
+                      </p>
+                      <div className="overflow-x-auto rounded-xl border border-gray-200">
+                        <table className="w-full text-sm min-w-[480px]">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-200">
+                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-1/3">Subject</th>
+                              <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">
+                                1st CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span>
+                              </th>
+                              <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">
+                                2nd CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span>
+                              </th>
+                              <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">
+                                Exam<br /><span className="font-normal text-gray-400">/{NURSERY_EXAM_MAX}</span>
+                              </th>
+                              <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">
+                                Total<br /><span className="font-normal text-gray-400">/100</span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {NURSERY_SUBJECTS.map((subject, i) => {
+                              const s = nurseryScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 };
+                              const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / NURSERY_CA_MAX)   * 20) : 0;
+                              const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / NURSERY_CA_MAX)   * 20) : 0;
+                              const exam = s.exam > 0 ? Math.round((s.exam / NURSERY_EXAM_MAX) * 60) : 0;
+                              const total = ca1 + ca2 + exam;
+                              const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
+                              const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                              return (
+                                <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                                  <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
+                                  {(['ca1', 'ca2', 'exam'] as const).map(field => (
+                                    <td key={field} className="py-1 px-2 text-center">
+                                      <input
+                                        type="number" min={0}
+                                        max={field === 'exam' ? NURSERY_EXAM_MAX : NURSERY_CA_MAX}
+                                        value={s[field] || ''}
+                                        onChange={e => updateNurseryScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? NURSERY_EXAM_MAX : NURSERY_CA_MAX))}
+                                        className="w-14 border border-gray-200 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-green-500"
+                                      />
+                                    </td>
+                                  ))}
+                                  <td className="py-2 px-2 text-center">
+                                    <span className={`font-bold text-xs ${gc}`}>
+                                      {total > 0 ? `${total} (${grade})` : '—'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Basic Subject Scores (basic1-6 only) ── */}
+                  {isBasicStudent && (
+                    <div>
+                      <h4 className="font-semibold text-gray-800 text-sm mb-1">
+                        Subject Scores — {activeStudent?.classes?.name}
+                      </h4>
+                      <p className="text-xs text-gray-400 mb-3">
+                        1st &amp; 2nd CA out of {BASIC_CA_MAX}, Exam out of {BASIC_EXAM_MAX}.
+                      </p>
+                      <div className="overflow-x-auto rounded-xl border border-gray-200">
+                        <table className="w-full text-sm min-w-[480px]">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-200">
+                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-2/5">Subject</th>
+                              <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
+                              <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
+                              <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{BASIC_EXAM_MAX}</span></th>
+                              <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {BASIC_SUBJECTS.map((subject, i) => {
+                              const s = basicScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 };
+                              const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / BASIC_CA_MAX)   * 20) : 0;
+                              const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / BASIC_CA_MAX)   * 20) : 0;
+                              const exam = s.exam > 0 ? Math.round((s.exam / BASIC_EXAM_MAX) * 60) : 0;
+                              const total = ca1 + ca2 + exam;
+                              const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
+                              const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                              return (
+                                <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                                  <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
+                                  {(['ca1', 'ca2', 'exam'] as const).map(field => (
+                                    <td key={field} className="py-1 px-2 text-center">
+                                      <input
+                                        type="number" min={0}
+                                        max={field === 'exam' ? BASIC_EXAM_MAX : BASIC_CA_MAX}
+                                        value={s[field] || ''}
+                                        onChange={e => updateBasicScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? BASIC_EXAM_MAX : BASIC_CA_MAX))}
+                                        className="w-14 border border-gray-200 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-green-500"
+                                      />
+                                    </td>
+                                  ))}
+                                  <td className="py-2 px-2 text-center">
+                                    <span className={`font-bold text-xs ${gc}`}>
+                                      {total > 0 ? `${total} (${grade})` : '—'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
 
                   {/* ── Pre-KG Skill Ratings (toddler class only) ── */}
                   {isToddlerStudent && (
@@ -1064,7 +1512,7 @@ export default function ResultsSection({ profile }: Props) {
 
       {/* ── Hidden off-screen container for bulk printing ── */}
       {bulkCards.length > 0 && (
-        <div ref={bulkRef} style={{ position: 'fixed', left: '-99999px', top: 0, width: '210mm', pointerEvents: 'none' }} aria-hidden="true">
+        <div ref={bulkRef} style={{ position: 'fixed', left: '-99999px', top: 0, width: isLandscapeClass ? '297mm' : '210mm', pointerEvents: 'none' }} aria-hidden="true">
           {bulkCards.map((card, i) => (
             <div key={i} className="card-page" style={{ pageBreakAfter: i < bulkCards.length - 1 ? 'always' : 'auto' }}>
               <CardPrintContent data={card} />
