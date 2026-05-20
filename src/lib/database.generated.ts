@@ -1701,7 +1701,6 @@ export type Database = {
         | "basic3"
         | "basic4"
         | "basic5"
-        | "basic6"
       fee_status: "pending" | "partial" | "paid" | "overdue"
       user_role: "admin" | "teacher" | "parent" | "student"
     }
@@ -1843,7 +1842,6 @@ export const Constants = {
         "basic3",
         "basic4",
         "basic5",
-        "basic6",
       ],
       fee_status: ["pending", "partial", "paid", "overdue"],
       user_role: ["admin", "teacher", "parent", "student"],

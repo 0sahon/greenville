@@ -6,7 +6,7 @@ import type { ProfileRow, ClassLevel } from '../../../lib/supabase';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
-const LEVEL_LABELS: Record<ClassLevel, string> = { creche: 'Creche', toddler: 'Toddler (Pre-KG)', basic1: 'Basic 1', basic2: 'Basic 2', basic3: 'Basic 3', basic4: 'Basic 4', basic5: 'Basic 5', basic6: 'Basic 6' };
+const LEVEL_LABELS: Record<ClassLevel, string> = { creche: 'Creche', toddler: 'Toddler (Pre-KG)', basic1: 'Basic 1', basic2: 'Basic 2', basic3: 'Basic 3', basic4: 'Basic 4', basic5: 'Basic 5' };
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);

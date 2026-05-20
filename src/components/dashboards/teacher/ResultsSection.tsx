@@ -91,7 +91,7 @@ export default function TeacherResultsSection({ profile }: Props) {
 
   const isToddlerStudent = activeStudent?.classes?.level === 'toddler';
   const isNurseryStudent = activeStudent?.classes?.level === 'creche';
-  const isBasicStudent   = ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(activeStudent?.classes?.level ?? '');
+  const isBasicStudent   = ['basic1','basic2','basic3','basic4','basic5'].includes(activeStudent?.classes?.level ?? '');
 
   useEffect(() => {
     supabase.from('classes').select('id, name').eq('teacher_id', profile.id).order('name').then(({ data }) => {
@@ -289,7 +289,7 @@ export default function TeacherResultsSection({ profile }: Props) {
     setMetaForm({ ...defaultMeta, ...meta });
 
     const level = student.classes?.level ?? '';
-    const isBasicLvl = ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(level);
+    const isBasicLvl = ['basic1','basic2','basic3','basic4','basic5'].includes(level);
     const visibleSubjects = isBasicLvl
       ? getVisibleSubjects('basic', BASIC_SUBJECTS)
       : level === 'creche'

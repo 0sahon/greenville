@@ -100,7 +100,7 @@ export default function ResultsSection({ profile }: Props) {
 
   const isToddlerStudent = activeStudent?.classes?.level === 'toddler';
   const isNurseryStudent = activeStudent?.classes?.level === 'creche';
-  const isBasicStudent   = ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(activeStudent?.classes?.level ?? '');
+  const isBasicStudent   = ['basic1','basic2','basic3','basic4','basic5'].includes(activeStudent?.classes?.level ?? '');
 
   const buildPreKgSubjects = (ratings: Partial<Record<string, number>>): SubjectResult[] =>
     PRE_KG_SKILLS
@@ -710,7 +710,7 @@ export default function ResultsSection({ profile }: Props) {
           ? { daysPresent: attPresent, daysAbsent: attTotal - attPresent, totalDays: attTotal }
           : { daysPresent: meta.days_present, daysAbsent: meta.days_absent, totalDays: meta.total_school_days };
         const level = student.classes?.level ?? '';
-        const isBasic = ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(level);
+        const isBasic = ['basic1','basic2','basic3','basic4','basic5'].includes(level);
         const isNursery = level === 'creche';
         const visibleSubjects = isBasic
           ? getVisibleSubjects('basic', BASIC_SUBJECTS)
@@ -942,7 +942,7 @@ export default function ResultsSection({ profile }: Props) {
                 className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             {/* Subject visibility settings button */}
-            {(selectedClassLevel === 'basic1' || selectedClassLevel === 'basic2' || selectedClassLevel === 'basic3' || selectedClassLevel === 'basic4' || selectedClassLevel === 'basic5' || selectedClassLevel === 'basic6' || selectedClassLevel === 'creche') && (
+            {(selectedClassLevel === 'basic1' || selectedClassLevel === 'basic2' || selectedClassLevel === 'basic3' || selectedClassLevel === 'basic4' || selectedClassLevel === 'basic5' || selectedClassLevel === 'creche') && (
               <button onClick={() => setSubjectSettingsOpen(o => !o)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border shadow-sm ${subjectSettingsOpen ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
                 <Settings className="w-3.5 h-3.5" /> Subject Visibility
@@ -974,7 +974,7 @@ export default function ResultsSection({ profile }: Props) {
           </div>
 
           {/* Subject Visibility Settings Panel */}
-          {subjectSettingsOpen && (selectedClassLevel === 'creche' || ['basic1','basic2','basic3','basic4','basic5','basic6'].includes(selectedClassLevel)) && (
+          {subjectSettingsOpen && (selectedClassLevel === 'creche' || ['basic1','basic2','basic3','basic4','basic5'].includes(selectedClassLevel)) && (
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold text-purple-900 flex items-center gap-2">
@@ -982,7 +982,7 @@ export default function ResultsSection({ profile }: Props) {
                 </h4>
                 <span className="text-xs text-purple-600">Toggles apply to all printed cards for this level</span>
               </div>
-              {(['basic1','basic2','basic3','basic4','basic5','basic6'].includes(selectedClassLevel)) && (
+              {(['basic1','basic2','basic3','basic4','basic5'].includes(selectedClassLevel)) && (
                 <div>
                   <p className="text-xs font-medium text-purple-800 mb-2">Basic Subjects:</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">

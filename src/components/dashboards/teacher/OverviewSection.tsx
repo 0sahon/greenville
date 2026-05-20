@@ -5,7 +5,7 @@ import type { ProfileRow, ClassRow, GradeRow, ClassLevel } from '../../../lib/su
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
-const LEVEL_LABELS: Record<ClassLevel, string> = { creche: 'Creche', toddler: 'Toddler (Pre-KG)', basic1: 'Basic 1', basic2: 'Basic 2', basic3: 'Basic 3', basic4: 'Basic 4', basic5: 'Basic 5', basic6: 'Basic 6' };
+const LEVEL_LABELS: Record<ClassLevel, string> = { creche: 'Creche', toddler: 'Toddler (Pre-KG)', basic1: 'Basic 1', basic2: 'Basic 2', basic3: 'Basic 3', basic4: 'Basic 4', basic5: 'Basic 5' };
 
 interface ClassWithCount extends ClassRow { students: { count: number }[]; }
 interface GradeWithStudent extends GradeRow {
