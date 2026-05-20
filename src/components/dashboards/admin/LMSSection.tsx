@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Monitor, BookOpen, FileText, Plus, X, Search, Edit2, Trash2, Paperclip, ClipboardCheck, ExternalLink, CheckCircle, ClipboardList, Printer } from 'lucide-react';
+﻿import { useState, useEffect, useRef } from 'react';
+import { Monitor, BookOpen, FileText, Plus, X, Search, Edit2, Trash2, Paperclip, ClipboardCheck, ExternalLink, CheckCircle, ClipboardList } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { createSubmissionWorkSignedUrl, removeSubmissionWorkObjects } from '../../../lib/submissionWorkStorage';
 import { appStorageFrom, COURSE_MATERIALS_BUCKET } from '../../../lib/storageBuckets';
@@ -8,58 +8,19 @@ import {
   createClassMaterialSignedUrl,
   removeClassMaterialObject,
 } from '../../../lib/classMaterialStorage';
-import { openLessonPlanPrint } from '../../../lib/lessonPlanPrint';
-import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
-import type { ProfileRow, CourseRow, CourseInsert, AssignmentRow, AssignmentInsert, AssignmentType, ClassRow, CourseMaterialRow, SubmissionRow } from '../../../lib/supabase';
+import { getDefaultAcademicYear } from '../../../lib/academicConfig';
+import type { ProfileRow, CourseInsert, AssignmentInsert, AssignmentType, ClassRow } from '../../../lib/supabase';
+import {
+  CourseModal, AssignmentModal, MaterialModal, LessonPlanReviewModal, GradeSubmissionModal,
+  emptyCourseForm, emptyAssignForm, emptyMaterialForm, emptyGradeForm,
+  DEFAULT_SUBJECTS, SUBMISSION_STATUS_COLORS,
+  type CourseWithClass, type TeacherOption, type AssignmentWithCourse,
+  type MaterialWithCourse, type SubmissionWithDetails, type LessonPlanAdminRow,
+} from './LMSModals';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
-interface CourseWithClass extends CourseRow {
-  classes?: Pick<ClassRow, 'name' | 'level'> | null;
-}
-interface TeacherOption {
-  id: string; profile_id: string;
-  profiles?: { first_name: string; last_name: string } | null;
-}
-interface AssignmentWithCourse extends AssignmentRow {
-  courses?: { title: string; subject: string } | null;
-}
-interface MaterialWithCourse extends CourseMaterialRow {
-  courses?: { title: string; subject: string } | null;
-}
-interface SubmissionWithDetails extends SubmissionRow {
-  assignments?: { title: string; courses?: { subject: string; title: string } | null } | null;
-  students?: { student_id: string; profiles?: { first_name: string; last_name: string } | null } | null;
-}
-
-interface LessonPlanAdminRow {
-  id: string;
-  course_id: string;
-  teacher_profile_id: string;
-  title: string;
-  lesson_date: string | null;
-  objectives: string | null;
-  activities: string | null;
-  materials_needed: string | null;
-  differentiation: string | null;
-  assessment: string | null;
-  reflection_notes: string | null;
-  status: string;
-  review_note: string | null;
-  courses?: { title: string; subject: string } | null;
-}
-
 type TabType = 'courses' | 'assignments' | 'materials' | 'submissions' | 'lessonplans';
-
-const MATERIAL_TYPES = ['document', 'video', 'link', 'image'] as const;
-type MaterialType = typeof MATERIAL_TYPES[number];
-const MATERIAL_TYPE_ICONS: Record<MaterialType, string> = { document: '📄', video: '🎬', link: '🔗', image: '🖼️' };
-const SUBMISSION_STATUS_COLORS: Record<string, string> = {
-  submitted: 'bg-blue-100 text-blue-700',
-  graded: 'bg-green-100 text-green-700',
-  returned: 'bg-purple-100 text-purple-700',
-  late: 'bg-orange-100 text-orange-700',
-};
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
@@ -69,19 +30,6 @@ function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error';
     </div>
   );
 }
-
-const ASSIGNMENT_TYPES: AssignmentType[] = ['homework', 'quiz', 'exam', 'project', 'classwork'];
-const emptyCourseForm = { subject: '', title: '', description: '', class_id: '', teacher_id: '', term: 'First Term' as string, academic_year: getDefaultAcademicYear() };
-const emptyAssignForm = { course_id: '', title: '', description: '', due_date: '', max_score: '20', type: 'homework' as AssignmentType };
-const emptyMaterialForm = { course_id: '', title: '', type: 'link' as MaterialType, url: '', description: '' };
-const emptyGradeForm = { score: '', feedback: '', status: 'graded' as string };
-const DEFAULT_SUBJECTS = [
-  'Mathematics', 'English Language', 'Basic Science', 'Social Studies',
-  'Cultural & Creative Arts', 'Civic Education', 'Computer Studies',
-  'Christian Religious Studies', 'Physical & Health Education',
-  'Agricultural Science', 'Home Economics', 'Verbal Reasoning',
-  'Quantitative Reasoning', 'French', 'Yoruba', 'Igbo',
-];
 
 export default function LMSSection({ profile }: Props) {
   const [courses, setCourses] = useState<CourseWithClass[]>([]);
@@ -256,7 +204,7 @@ export default function LMSSection({ profile }: Props) {
   };
 
   // ── Course CRUD ──────────────────────────────────────────────────────────
-  const openAddCourse = () => { setEditCourse(null); setCourseForm(emptyCourseForm); setShowCourseModal(true); };
+  const openAddCourse = () => { setEditCourse(null); setCourseForm({ ...emptyCourseForm, academic_year: getDefaultAcademicYear() }); setShowCourseModal(true); };
   const openEditCourse = (c: CourseWithClass) => {
     setEditCourse(c);
     setCourseForm({ subject: c.subject, title: c.title, description: c.description || '', class_id: c.class_id || '', teacher_id: c.teacher_id || '', term: c.term, academic_year: c.academic_year });
@@ -718,322 +666,63 @@ export default function LMSSection({ profile }: Props) {
         </div>
       )}
 
-      {/* ── Course Modal ── */}
-      {showCourseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowCourseModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-800 text-lg">{editCourse ? 'Edit Topic' : 'Add Topic'}</h3>
-              <button onClick={() => setShowCourseModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
-            </div>
-            <div className="p-5 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Subject *</label>
-                <select value={courseForm.subject} onChange={e => setCourseForm(f => ({ ...f, subject: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
-                  <option value="">Select subject…</option>
-                  {subjectOptions.map(s => <option key={s}>{s}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Topic / Lesson Title *</label>
-                <input value={courseForm.title} onChange={e => setCourseForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Chapter 3: Basic Algebra" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Lesson Notes</label>
-                <textarea value={courseForm.description} onChange={e => setCourseForm(f => ({ ...f, description: e.target.value }))} rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-y" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Class</label>
-                <select value={courseForm.class_id} onChange={e => setCourseForm(f => ({ ...f, class_id: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
-                  <option value="">No class assigned</option>
-                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Teacher</label>
-                <select value={courseForm.teacher_id} onChange={e => setCourseForm(f => ({ ...f, teacher_id: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
-                  <option value="">No teacher assigned</option>
-                  {teachers.map(t => <option key={t.id} value={t.profile_id}>{t.profiles?.first_name} {t.profiles?.last_name}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Term</label>
-                  <select value={courseForm.term} onChange={e => setCourseForm(f => ({ ...f, term: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
-                    {TERMS.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Academic Year</label>
-                  <select value={courseForm.academic_year} onChange={e => setCourseForm(f => ({ ...f, academic_year: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
-                    {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-3 p-5 border-t border-gray-100">
-              <button onClick={() => setShowCourseModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button onClick={saveCourse} disabled={saving} className="flex-1 py-2.5 bg-pink-600 text-white rounded-xl text-sm font-medium hover:bg-pink-700 disabled:opacity-50">{saving ? 'Saving...' : editCourse ? 'Update Topic' : 'Create Topic'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Assignment Modal ── */}
-      {showAssignModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowAssignModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-800 text-lg">{editAssignment ? 'Edit Assignment' : 'Add Assignment'}</h3>
-              <button onClick={() => setShowAssignModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
-            </div>
-            <div className="p-5 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Subject / Topic *</label>
-                <select value={assignForm.course_id} onChange={e => setAssignForm(f => ({ ...f, course_id: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" disabled={!!editAssignment}>
-                  <option value="">Select topic…</option>
-                  {courses.map(c => <option key={c.id} value={c.id}>{c.subject} – {c.title}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Title *</label>
-                <input value={assignForm.title} onChange={e => setAssignForm(f => ({ ...f, title: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-                <textarea value={assignForm.description} onChange={e => setAssignForm(f => ({ ...f, description: e.target.value }))} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
-                  <select value={assignForm.type} onChange={e => setAssignForm(f => ({ ...f, type: e.target.value as AssignmentType }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
-                    {ASSIGNMENT_TYPES.map(t => <option key={t} value={t} className="capitalize">{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
-                  <input type="number" min={1} value={assignForm.max_score} onChange={e => setAssignForm(f => ({ ...f, max_score: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Due Date</label>
-                <input type="datetime-local" value={assignForm.due_date} onChange={e => setAssignForm(f => ({ ...f, due_date: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" />
-              </div>
-            </div>
-            <div className="flex gap-3 p-5 border-t border-gray-100">
-              <button onClick={() => setShowAssignModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button onClick={saveAssignment} disabled={saving} className="flex-1 py-2.5 bg-pink-600 text-white rounded-xl text-sm font-medium hover:bg-pink-700 disabled:opacity-50">{saving ? 'Saving...' : editAssignment ? 'Update' : 'Create'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Material Modal ── */}
-      {showMaterialModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowMaterialModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-800 text-lg">{editMaterial ? 'Edit Material' : 'Add Material'}</h3>
-              <button onClick={() => setShowMaterialModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
-            </div>
-            <div className="p-5 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Course / Topic *</label>
-                <select value={materialForm.course_id} onChange={e => setMaterialForm(f => ({ ...f, course_id: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" disabled={!!editMaterial}>
-                  <option value="">Select topic…</option>
-                  {courses.map(c => <option key={c.id} value={c.id}>{c.subject} – {c.title}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Title *</label>
-                <input value={materialForm.title} onChange={e => setMaterialForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Chapter 3 Notes PDF" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
-                <select value={materialForm.type} onChange={e => setMaterialForm(f => ({ ...f, type: e.target.value as MaterialType }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
-                  {MATERIAL_TYPES.map(t => <option key={t} value={t}>{MATERIAL_TYPE_ICONS[t]} {t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Upload file (optional)</label>
-                <input
-                  ref={materialFileInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.ppt,.pptx,.mp4,.webm,image/*"
-                  className="w-full text-xs text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-pink-50 file:text-pink-700"
-                  onChange={e => {
-                    const f = e.target.files?.[0] ?? null;
-                    setMaterialPendingFile(f);
-                    if (f) setMaterialRemoveStoredFile(false);
-                  }}
-                />
-                {materialPendingFile && <p className="text-[11px] text-gray-500 mt-1">Selected: {materialPendingFile.name}</p>}
-                {editMaterial?.file_storage_path && !materialPendingFile && (
-                  <label className="flex items-center gap-2 mt-2 text-xs text-gray-600 cursor-pointer">
-                    <input type="checkbox" checked={materialRemoveStoredFile} onChange={e => setMaterialRemoveStoredFile(e.target.checked)} />
-                    Remove uploaded file from storage
-                  </label>
-                )}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">URL / Link (optional)</label>
-                <input value={materialForm.url} onChange={e => setMaterialForm(f => ({ ...f, url: e.target.value }))} placeholder="https://..." className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" />
-                <p className="text-[11px] text-gray-400 mt-1">Provide a URL, a file, or both.</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-                <textarea value={materialForm.description} onChange={e => setMaterialForm(f => ({ ...f, description: e.target.value }))} rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none" />
-              </div>
-            </div>
-            <div className="flex gap-3 p-5 border-t border-gray-100">
-              <button onClick={() => setShowMaterialModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button onClick={saveMaterial} disabled={saving} className="flex-1 py-2.5 bg-pink-600 text-white rounded-xl text-sm font-medium hover:bg-pink-700 disabled:opacity-50">{saving ? 'Saving...' : editMaterial ? 'Update' : 'Add Material'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {reviewPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { setReviewPlan(null); setReviewNote(''); }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <div>
-                <h3 className="font-bold text-gray-800">Lesson plan review</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{reviewPlan.courses?.subject} · {reviewPlan.courses?.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{teacherName(reviewPlan.teacher_profile_id)} · Status: {reviewPlan.status}</p>
-              </div>
-              <button type="button" onClick={() => { setReviewPlan(null); setReviewNote(''); }} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
-            </div>
-            <div className="p-5 space-y-3 text-sm">
-              <p className="font-semibold text-gray-900">{reviewPlan.title}</p>
-              {reviewPlan.lesson_date && <p className="text-xs text-gray-500">Lesson date: {new Date(reviewPlan.lesson_date).toLocaleDateString('en-NG')}</p>}
-              {[
-                ['Objectives', reviewPlan.objectives],
-                ['Activities', reviewPlan.activities],
-                ['Materials', reviewPlan.materials_needed],
-                ['Differentiation', reviewPlan.differentiation],
-                ['Assessment', reviewPlan.assessment],
-                ['Reflection', reviewPlan.reflection_notes],
-              ].map(([label, val]) => val && (
-                <div key={String(label)}>
-                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">{label}</p>
-                  <div className="text-gray-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-3 border border-gray-100 max-h-40 overflow-y-auto">{val}</div>
-                </div>
-              ))}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Feedback to teacher (optional for approval; recommended if rejecting)</label>
-                <textarea value={reviewNote} onChange={e => setReviewNote(e.target.value)} rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none" />
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 p-5 border-t border-gray-100">
-              <button type="button" onClick={() => { setReviewPlan(null); setReviewNote(''); }} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">Close</button>
-              {['approved', 'submitted', 'rejected'].includes(reviewPlan.status) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    openLessonPlanPrint({
-                      title: reviewPlan.title,
-                      topicLine: `${reviewPlan.courses?.subject ?? ''} · ${reviewPlan.courses?.title ?? ''}`,
-                      lessonDate: reviewPlan.lesson_date,
-                      status: reviewPlan.status,
-                      sections: [
-                        { label: 'Objectives', value: reviewPlan.objectives },
-                        { label: 'Activities', value: reviewPlan.activities },
-                        { label: 'Materials needed', value: reviewPlan.materials_needed },
-                        { label: 'Differentiation', value: reviewPlan.differentiation },
-                        { label: 'Assessment', value: reviewPlan.assessment },
-                        { label: 'Reflection', value: reviewPlan.reflection_notes },
-                        { label: 'Admin feedback', value: reviewNote || reviewPlan.review_note },
-                      ],
-                    });
-                  }}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-800 hover:bg-gray-50 inline-flex items-center justify-center gap-1.5"
-                >
-                  <Printer className="w-4 h-4" /> Print / PDF
-                </button>
-              )}
-              {reviewPlan.status === 'submitted' && (
-                <>
-                  <button type="button" onClick={() => savePlanReview('rejected')} disabled={reviewSaving} className="flex-1 py-2.5 border border-red-300 text-red-700 rounded-xl text-sm font-medium hover:bg-red-50 disabled:opacity-50">Reject</button>
-                  <button type="button" onClick={() => savePlanReview('approved')} disabled={reviewSaving} className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50">{reviewSaving ? 'Saving…' : 'Approve'}</button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Grade Submission Modal ── */}
-      {gradeTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setGradeTarget(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <div>
-                <h3 className="font-bold text-gray-800">Grade Submission</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{gradeTarget.students?.profiles?.first_name} {gradeTarget.students?.profiles?.last_name} · {gradeTarget.assignments?.title}</p>
-              </div>
-              <button onClick={() => setGradeTarget(null)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
-            </div>
-            {gradeTarget.content && (
-              <div className="mx-5 mt-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs font-medium text-gray-500 mb-1">Student's submission:</p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{gradeTarget.content}</p>
-              </div>
-            )}
-            {gradeTarget.file_url && (
-              <div className="mx-5 mt-3">
-                <p className="text-xs font-medium text-gray-500 mb-1">Submitted link</p>
-                <a href={gradeTarget.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">{gradeTarget.file_url}</a>
-              </div>
-            )}
-            {gradeWorkImageUrl && (
-              <div className="mx-5 mt-3">
-                <p className="text-xs font-medium text-gray-500 mb-1">Photo of student work</p>
-                <img src={gradeWorkImageUrl} alt="" className="w-full max-h-64 object-contain rounded-lg border border-gray-200 bg-gray-50" />
-                <p className="text-[11px] text-gray-400 mt-1">Photo and document files are removed when status is Graded and you save.</p>
-              </div>
-            )}
-            {gradeWorkDocUrl && (
-              <div className="mx-5 mt-3">
-                <p className="text-xs font-medium text-gray-500 mb-1">Submitted document</p>
-                <a
-                  href={gradeWorkDocUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline"
-                >
-                  <FileText className="w-4 h-4" /> Open or download document
-                </a>
-              </div>
-            )}
-            <div className="p-5 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Score</label>
-                  <input type="number" min={0} value={gradeForm.score} onChange={e => setGradeForm(f => ({ ...f, score: e.target.value }))} placeholder="0" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                  <select value={gradeForm.status} onChange={e => setGradeForm(f => ({ ...f, status: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
-                    <option value="graded">Graded</option>
-                    <option value="returned">Returned</option>
-                    <option value="submitted">Submitted</option>
-                    <option value="late">Late</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Feedback to student</label>
-                <textarea rows={3} value={gradeForm.feedback} onChange={e => setGradeForm(f => ({ ...f, feedback: e.target.value }))} placeholder="Write feedback…" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none" />
-              </div>
-            </div>
-            <div className="flex gap-3 p-5 border-t border-gray-100">
-              <button onClick={() => setGradeTarget(null)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button onClick={saveGrade} disabled={gradingSaving} className="flex-1 py-2.5 bg-pink-600 text-white rounded-xl text-sm font-medium hover:bg-pink-700 disabled:opacity-50">{gradingSaving ? 'Saving...' : 'Save Grade'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Modals ── */}
+      <CourseModal
+        open={showCourseModal}
+        editCourse={editCourse}
+        courseForm={courseForm}
+        setCourseForm={setCourseForm}
+        subjectOptions={subjectOptions}
+        classes={classes}
+        teachers={teachers}
+        saving={saving}
+        onSave={saveCourse}
+        onClose={() => setShowCourseModal(false)}
+      />
+      <AssignmentModal
+        open={showAssignModal}
+        editAssignment={editAssignment}
+        assignForm={assignForm}
+        setAssignForm={setAssignForm}
+        courses={courses}
+        saving={saving}
+        onSave={saveAssignment}
+        onClose={() => setShowAssignModal(false)}
+      />
+      <MaterialModal
+        open={showMaterialModal}
+        editMaterial={editMaterial}
+        materialForm={materialForm}
+        setMaterialForm={setMaterialForm}
+        materialPendingFile={materialPendingFile}
+        setMaterialPendingFile={setMaterialPendingFile}
+        materialRemoveStoredFile={materialRemoveStoredFile}
+        setMaterialRemoveStoredFile={setMaterialRemoveStoredFile}
+        materialFileInputRef={materialFileInputRef}
+        courses={courses}
+        saving={saving}
+        onSave={saveMaterial}
+        onClose={() => { setShowMaterialModal(false); setMaterialPendingFile(null); setMaterialRemoveStoredFile(false); if (materialFileInputRef.current) materialFileInputRef.current.value = ''; }}
+      />
+      <LessonPlanReviewModal
+        plan={reviewPlan}
+        reviewNote={reviewNote}
+        setReviewNote={setReviewNote}
+        reviewSaving={reviewSaving}
+        teacherName={teacherName}
+        onSave={savePlanReview}
+        onClose={() => { setReviewPlan(null); setReviewNote(''); }}
+      />
+      <GradeSubmissionModal
+        target={gradeTarget}
+        gradeForm={gradeForm}
+        setGradeForm={setGradeForm}
+        gradeWorkImageUrl={gradeWorkImageUrl}
+        gradeWorkDocUrl={gradeWorkDocUrl}
+        gradingSaving={gradingSaving}
+        onSave={saveGrade}
+        onClose={() => setGradeTarget(null)}
+      />
 
       {/* ── Delete Confirms ── */}
       {deleteCourse && (
