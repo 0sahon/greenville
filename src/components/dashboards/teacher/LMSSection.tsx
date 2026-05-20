@@ -264,7 +264,7 @@ Keep the language visual and exciting! Do not use complex jargon.`;
   const openEditAssignment = (a: AssignmentWithCourse) => {
     setEditingAssignment(a);
     setAssignForm({
-      course_id: a.course_id,
+      course_id: a.course_id ?? '',
       title: a.title,
       description: a.description ?? '',
       due_date: a.due_date ? new Date(a.due_date).toISOString().slice(0, 16) : '',
@@ -804,7 +804,6 @@ Keep the language visual and exciting! Do not use complex jargon.`;
                     </div>
                   ) : null;
                 })()}
-              </div>
                 {/* Previous content quick-fill */}
                 {prevDescriptions.length > 0 && (
                   <div className="mt-2">
