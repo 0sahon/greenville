@@ -266,12 +266,12 @@ function RecordsTab({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Score *</label>
-                  <input type="number" min={0} step={0.5} value={form.score} onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
+                  <input type="number" inputMode="numeric" autoComplete="off" min={0} step={0.5} value={form.score} onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
-                  <input type="number" min={1} value={form.max_score} onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
+                  <input type="number" inputMode="numeric" autoComplete="off" min={1} value={form.max_score} onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                 </div>
               </div>
@@ -404,7 +404,7 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
-          <input type="number" min={1} value={maxScore} onChange={e => setMaxScore(e.target.value)}
+          <input type="number" inputMode="numeric" autoComplete="off" min={1} value={maxScore} onChange={e => setMaxScore(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
         </div>
         <div>
@@ -457,7 +457,7 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
                         <td className="py-2.5 px-4 font-medium text-gray-800">{r.name}</td>
                         <td className="py-2.5 px-4">
                           <input
-                            type="number" min={0} max={max} step={0.5} value={r.score}
+                            type="number" inputMode="numeric" autoComplete="off" min={0} max={max} step={0.5} value={r.score}
                             onChange={e => setRows(prev => prev.map((row, idx) => idx === i ? { ...row, score: e.target.value } : row))}
                             className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                             placeholder="—"

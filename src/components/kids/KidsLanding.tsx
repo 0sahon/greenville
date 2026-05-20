@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useSounds } from '../../hooks/useSounds';
 import { useKidsProgress } from '../../hooks/useKidsProgress';
 import {
@@ -17,12 +17,18 @@ import {
   VolumeX
 } from 'lucide-react';
 
-import MathFun from './activities/MathFun';
-import ReadingCorner from './activities/ReadingCorner';
-import ArtStudio from './activities/ArtStudio';
-import MusicRoom from './activities/MusicRoom';
-import WorldExplorer from './activities/WorldExplorer';
-import AchievementHall from './activities/AchievementHall';
+const MathFun       = lazy(() => import('./activities/MathFun'));
+const ReadingCorner = lazy(() => import('./activities/ReadingCorner'));
+const ArtStudio     = lazy(() => import('./activities/ArtStudio'));
+const MusicRoom     = lazy(() => import('./activities/MusicRoom'));
+const WorldExplorer = lazy(() => import('./activities/WorldExplorer'));
+const AchievementHall = lazy(() => import('./activities/AchievementHall'));
+
+const ActivitySpinner = () => (
+  <div className="min-h-screen bg-gradient-to-br from-orange-50 via-blue-50 to-green-50 flex items-center justify-center">
+    <div className="w-12 h-12 border-4 border-orange-300 border-t-orange-600 rounded-full animate-spin" />
+  </div>
+);
 
 interface KidsLandingProps {
   onBack: () => void;
@@ -110,27 +116,27 @@ export default function KidsLanding({ onBack }: KidsLandingProps) {
 
   // Render specific activity
   if (currentActivity === 'math-fun') {
-    return <MathFun onBack={() => setCurrentActivity(null)} onCorrectAnswer={recordMathCorrect} />;
+    return <Suspense fallback={<ActivitySpinner />}><MathFun onBack={() => setCurrentActivity(null)} onCorrectAnswer={recordMathCorrect} /></Suspense>;
   }
 
   if (currentActivity === 'reading-corner') {
-    return <ReadingCorner onBack={() => setCurrentActivity(null)} onStoryCompleted={recordStoryCompleted} />;
+    return <Suspense fallback={<ActivitySpinner />}><ReadingCorner onBack={() => setCurrentActivity(null)} onStoryCompleted={recordStoryCompleted} /></Suspense>;
   }
 
   if (currentActivity === 'art-studio') {
-    return <ArtStudio onBack={() => setCurrentActivity(null)} onArtworkSaved={recordArtworkSaved} />;
+    return <Suspense fallback={<ActivitySpinner />}><ArtStudio onBack={() => setCurrentActivity(null)} onArtworkSaved={recordArtworkSaved} /></Suspense>;
   }
 
   if (currentActivity === 'music-room') {
-    return <MusicRoom onBack={() => setCurrentActivity(null)} onInstrumentTried={recordInstrumentTried} onSongStarted={recordSongStarted} />;
+    return <Suspense fallback={<ActivitySpinner />}><MusicRoom onBack={() => setCurrentActivity(null)} onInstrumentTried={recordInstrumentTried} onSongStarted={recordSongStarted} /></Suspense>;
   }
 
   if (currentActivity === 'world-explorer') {
-    return <WorldExplorer onBack={() => setCurrentActivity(null)} onCountryExplored={recordCountryExplored} />;
+    return <Suspense fallback={<ActivitySpinner />}><WorldExplorer onBack={() => setCurrentActivity(null)} onCountryExplored={recordCountryExplored} /></Suspense>;
   }
 
   if (currentActivity === 'achievement-hall') {
-    return <AchievementHall onBack={() => setCurrentActivity(null)} progress={progress} />;
+    return <Suspense fallback={<ActivitySpinner />}><AchievementHall onBack={() => setCurrentActivity(null)} progress={progress} /></Suspense>;
   }
 
   // Generic coming soon for other activities

@@ -6,6 +6,7 @@ import { useStudentData } from './useStudentData';
 import ResultCard, { getNigerianGrade, printResultCard } from '../admin/ResultCard';
 import type { ResultCardData, SubjectResult } from '../admin/ResultCard';
 import type { ProfileRow, GradeRow } from '../../../lib/supabase';
+import { computeSubjects } from '../../../lib/gradeCompute';
 import PerformanceChart from '../shared/PerformanceChart';
 import {
   SCHOOL_ADDRESS_SINGLE,
@@ -14,35 +15,6 @@ import {
 } from '../../../config/schoolBrand';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
-
-function computeSubjects(grades: GradeRow[]): SubjectResult[] {
-  const subjectMap = new Map<string, { ca1: { score: number; max: number } | null; ca2: { score: number; max: number } | null; exam: { score: number; max: number } | null }>();
-  for (const g of grades) {
-    const key = g.subject.trim();
-    if (!subjectMap.has(key)) subjectMap.set(key, { ca1: null, ca2: null, exam: null });
-    const entry = subjectMap.get(key)!;
-    const type = g.assessment_type.toLowerCase();
-    if (type === '1st ca' || type === 'first ca' || type === '1st continuous assessment') {
-      entry.ca1 = { score: g.score, max: g.max_score };
-    } else if (type === '2nd ca' || type === 'second ca' || type === '2nd continuous assessment') {
-      entry.ca2 = { score: g.score, max: g.max_score };
-    } else if (type === 'exam' || type === 'examination' || type === 'final exam') {
-      entry.exam = { score: g.score, max: g.max_score };
-    } else if (type === 'ca' || type === 'test' || type === 'continuous assessment') {
-      if (!entry.ca1) entry.ca1 = { score: g.score, max: g.max_score };
-      else if (!entry.ca2) entry.ca2 = { score: g.score, max: g.max_score };
-    }
-  }
-  return Array.from(subjectMap.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([subject, s]) => {
-      const ca1 = s.ca1 ? Math.round((s.ca1.score / s.ca1.max) * 20) : 0;
-      const ca2 = s.ca2 ? Math.round((s.ca2.score / s.ca2.max) * 20) : 0;
-      const exam = s.exam ? Math.round((s.exam.score / s.exam.max) * 60) : 0;
-      const total = ca1 + ca2 + exam;
-      return { subject, ca1, ca2, exam, total, ...getNigerianGrade(total) };
-    });
-}
 
 interface ResultSheetRow {
   id: string;
@@ -86,7 +58,7 @@ export default function StudentResultsSection({ profile }: Props) {
           .eq('is_published', true)
           .maybeSingle(),
         supabase.from('grades')
-          .select('*')
+          .select('id,subject,assessment_type,score,max_score,student_id,term,academic_year')
           .eq('student_id', student.id)
           .eq('term', selectedTerm)
           .eq('academic_year', academicYear),

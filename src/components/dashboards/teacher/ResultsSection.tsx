@@ -13,6 +13,7 @@ import ResultCard, {
 import type { ResultCardData, SubjectResult, NurseryScores, BasicScores } from '../admin/ResultCard';
 import type { ProfileRow, GradeRow } from '../../../lib/supabase';
 import PerformanceChart from '../shared/PerformanceChart';
+import { computeSubjects } from '../../../lib/gradeCompute';
 import {
   SCHOOL_ADDRESS_SINGLE,
   SCHOOL_NAME,
@@ -54,46 +55,6 @@ const defaultMeta: ResultSheetMeta = {
   days_present: 0, days_absent: 0, total_school_days: 0,
   next_term_begins: '', next_term_fees: '', is_published: false,
 };
-
-function computeSubjects(grades: GradeRow[]): SubjectResult[] {
-  const map = new Map<string, {
-    ca1:     { score: number; max: number } | null;
-    ca2:     { score: number; max: number } | null;
-    exam:    { score: number; max: number } | null;
-    hw:      { score: number; max: number } | null;
-    project: { score: number; max: number } | null;
-  }>();
-  for (const g of grades) {
-    const key = g.subject.trim();
-    if (!map.has(key)) map.set(key, { ca1: null, ca2: null, exam: null, hw: null, project: null });
-    const entry = map.get(key)!;
-    const type = g.assessment_type.toLowerCase().trim();
-    if (type === 'home work' || type === 'homework') {
-      entry.hw = { score: g.score, max: g.max_score };
-    } else if (type === '1st ca' || type === 'first ca' || type === '1st continuous assessment') {
-      entry.ca1 = { score: g.score, max: g.max_score };
-    } else if (type === '2nd ca' || type === 'second ca' || type === '2nd continuous assessment') {
-      entry.ca2 = { score: g.score, max: g.max_score };
-    } else if (type === 'exam' || type === 'examination' || type === 'final exam') {
-      entry.exam = { score: g.score, max: g.max_score };
-    } else if (type === 'project') {
-      entry.project = { score: g.score, max: g.max_score };
-    } else if (!entry.ca1) {
-      entry.ca1 = { score: g.score, max: g.max_score };
-    } else if (!entry.ca2) {
-      entry.ca2 = { score: g.score, max: g.max_score };
-    }
-  }
-  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([subject, s]) => {
-    const ca1      = s.ca1      ? Math.round((s.ca1.score      / s.ca1.max)      * 15) : 0;
-    const ca2      = s.ca2      ? Math.round((s.ca2.score      / s.ca2.max)      * 15) : 0;
-    const exam     = s.exam     ? Math.round((s.exam.score     / s.exam.max)     * 50) : 0;
-    const homework = s.hw       ? Math.round((s.hw.score       / s.hw.max)       * 10) : 0;
-    const project  = s.project  ? Math.round((s.project.score  / s.project.max)  * 10) : 0;
-    const total = ca1 + ca2 + exam + homework + project;
-    return { subject, ca1, ca2, exam, homework, project, total, ...getNigerianGrade(total) };
-  });
-}
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
@@ -256,8 +217,8 @@ export default function TeacherResultsSection({ profile }: Props) {
 
     const [{ data: sheet }, { data: gradeRows }, { data: classGrades }] = await Promise.all([
       supabase.from('result_sheets').select('*').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear).maybeSingle(),
-      supabase.from('grades').select('*').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear),
-      supabase.from('grades').select('*').in('student_id', students.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
+      supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear),
+      supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').in('student_id', students.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
     ]);
 
     const rs = sheet as ResultSheetMeta | null;

@@ -2,7 +2,6 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const hasPublicKey =
@@ -38,21 +37,37 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,svg,png,webp,jpg,jpeg,woff2}'],
+          // Pre-cache all static assets so the shell loads offline
+          globPatterns: ['**/*.{js,css,html,ico,svg,png,webp,jpg,jpeg,woff2,woff,ttf}'],
+          // SPA fallback — serve index.html for any navigation miss (offline routing)
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api\//, /^\/rest\//, /^\/auth\//],
           runtimeCaching: [
             {
+              // Supabase REST + Auth — network-first so data stays fresh, falls back to cache
               urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'supabase-api',
-                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
+                networkTimeoutSeconds: 10,
+                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 }, // 1 hour
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
+            {
+              // Google Fonts and other CDN assets — cache-first, long TTL
+              urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts',
+                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                cacheableResponse: { statuses: [0, 200] },
               },
             },
           ],
         },
-        devOptions: {
-          enabled: true,
-        },
+        // Disable in dev — service workers cause confusing caching issues during development
+        devOptions: { enabled: false },
       }),
     ],
     optimizeDeps: {

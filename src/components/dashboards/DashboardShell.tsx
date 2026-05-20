@@ -79,6 +79,10 @@ export default function DashboardShell({
   const handleSignOut = async () => { await supabase.auth.signOut(); };
   const activeNav = navItems.find(n => n.id === activeSection);
 
+  useEffect(() => {
+    document.title = activeNav ? `${activeNav.label} | ${SCHOOL_NAME_SHORT}` : SCHOOL_NAME_SHORT;
+  }, [activeNav]);
+
   const roleBadge: Record<string, string> = {
     admin: 'Administrator',
     teacher: 'Teacher',

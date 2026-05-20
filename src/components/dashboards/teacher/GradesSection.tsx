@@ -576,13 +576,15 @@ function RecordsView({ profile }: { profile: ProfileRow }) {
     setLoading(true);
     const { data, error } = await supabase
       .from('grades')
-      .select('*, students:student_id(id, student_id, profiles:profile_id(first_name,last_name), classes:class_id(id, name))')
+      .select('id, subject, assessment_type, score, max_score, term, academic_year, created_at, student_id, students:student_id(id, student_id, profiles:profile_id(first_name,last_name), classes:class_id(id, name))')
+      .eq('term', filterTerm)
+      .eq('academic_year', getDefaultAcademicYear())
       .order('created_at', { ascending: false })
-      .limit(400);
+      .limit(200);
     if (error) setToast({ msg: error.message, type: 'error' });
     setGrades((data || []) as GradeWithStudent[]);
     setLoading(false);
-  }, []);
+  }, [filterTerm]);
 
   useEffect(() => { fetchGrades(); }, [fetchGrades]);
 
@@ -786,12 +788,12 @@ function RecordsView({ profile }: { profile: ProfileRow }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Score *</label>
-                  <input type="number" min={0} step={0.5} value={form.score} onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
+                  <input type="number" inputMode="numeric" autoComplete="off" min={0} step={0.5} value={form.score} onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
-                  <input type="number" min={1} value={form.max_score} onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
+                  <input type="number" inputMode="numeric" autoComplete="off" min={1} value={form.max_score} onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                 </div>
               </div>

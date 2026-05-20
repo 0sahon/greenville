@@ -46,7 +46,7 @@ export default function ChildrenSection({ profile }: Props) {
     setSelected(child);
     setDetailLoading(true);
     const [{ data: g }, { data: a }] = await Promise.all([
-      supabase.from('grades').select('*').eq('student_id', child.id).order('created_at', { ascending: false }).limit(40),
+      supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').eq('student_id', child.id).order('created_at', { ascending: false }).limit(40),
       supabase.from('attendance').select('*').eq('student_id', child.id).order('date', { ascending: false }).limit(30),
     ]);
     setGrades((g || []) as GradeRow[]);

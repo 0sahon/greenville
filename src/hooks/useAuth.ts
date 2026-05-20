@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -19,9 +19,11 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  // Tracks the user ID being fetched so getSession + onAuthStateChange can't double-fetch
+  const fetchingUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    // Get initial session
+    // Seed state from the current session, then let onAuthStateChange own all subsequent events.
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -31,13 +33,14 @@ export function useAuth() {
       }
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      const uid = session?.user?.id ?? null;
       setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+      if (uid) {
+        // Skip if getSession already started a fetch for this same user
+        if (fetchingUserId.current !== uid) fetchProfile(uid);
       } else {
         setProfile(null);
         setLoading(false);
@@ -45,9 +48,11 @@ export function useAuth() {
     });
 
     return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProfile = async (userId: string, isRetry = false) => {
+    fetchingUserId.current = userId;
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -56,7 +61,7 @@ export function useAuth() {
         .single();
 
       if (error) {
-        // Right after first login, handle_new_user may commit a tick later — retry once for "no rows".
+        // Right after first login, handle_new_user may commit a tick later — retry once
         if (!isRetry && error.code === 'PGRST116') {
           await new Promise((r) => setTimeout(r, 700));
           await fetchProfile(userId, true);
@@ -69,22 +74,16 @@ export function useAuth() {
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
+      fetchingUserId.current = null;
       setLoading(false);
     }
   };
 
   const signOut = () => {
-    // Clear state immediately so the UI transitions without waiting for the network
     setUser(null);
     setProfile(null);
-    // Fire-and-forget — invalidates the session on the server in the background
     supabase.auth.signOut().catch(e => console.error('Error signing out:', e));
   };
 
-  return {
-    user,
-    profile,
-    loading,
-    signOut,
-  };
+  return { user, profile, loading, signOut };
 }

@@ -6,6 +6,7 @@ import type { ProfileRow } from '../../../lib/supabase';
 import ResultCard, { getNigerianGrade, printResultCard } from '../admin/ResultCard';
 import type { ResultCardData, SubjectResult } from '../admin/ResultCard';
 import PerformanceChart from '../shared/PerformanceChart';
+import { computeSubjects } from '../../../lib/gradeCompute';
 import {
   SCHOOL_ADDRESS_SINGLE,
   SCHOOL_NAME,
@@ -67,37 +68,6 @@ function gradeColor(pct: number) {
   return pct >= 70 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-600';
 }
 
-function computeSubjects(grades: Grade[]): SubjectResult[] {
-  const map = new Map<string, { ca1: { score: number; max: number } | null; ca2: { score: number; max: number } | null; exam: { score: number; max: number } | null; hw: { score: number; max: number } | null }>();
-  for (const g of grades) {
-    const key = g.subject.trim();
-    if (!map.has(key)) map.set(key, { ca1: null, ca2: null, exam: null, hw: null });
-    const entry = map.get(key)!;
-    const type = g.assessment_type.toLowerCase().trim();
-    if (type === 'home work' || type === 'homework') {
-      entry.hw = { score: g.score, max: g.max_score };
-    } else if (type === '1st ca' || type === 'first ca') {
-      entry.ca1 = { score: g.score, max: g.max_score };
-    } else if (type === '2nd ca' || type === 'second ca') {
-      entry.ca2 = { score: g.score, max: g.max_score };
-    } else if (type === 'exam' || type === 'examination' || type === 'final exam') {
-      entry.exam = { score: g.score, max: g.max_score };
-    } else if (!entry.ca1) {
-      entry.ca1 = { score: g.score, max: g.max_score };
-    } else if (!entry.ca2) {
-      entry.ca2 = { score: g.score, max: g.max_score };
-    }
-  }
-  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([subject, s]) => {
-    const ca1  = s.ca1  ? Math.round((s.ca1.score  / s.ca1.max)  * 20) : 0;
-    const ca2  = s.ca2  ? Math.round((s.ca2.score  / s.ca2.max)  * 20) : 0;
-    const exam = s.exam ? Math.round((s.exam.score / s.exam.max) * 60) : 0;
-    const hw   = s.hw   ? Math.round((s.hw.score   / s.hw.max)   * 20) : undefined;
-    const total = ca1 + ca2 + exam;
-    return { subject, ca1, ca2, exam, homework: hw, total, ...getNigerianGrade(total) };
-  });
-}
-
 export default function ParentGradesSection({ profile }: Props) {
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedChild, setSelectedChild] = useState<string>('');
@@ -134,7 +104,7 @@ export default function ParentGradesSection({ profile }: Props) {
     setLoading(true);
     try {
       const [gradesRes, cbtRes] = await Promise.all([
-        supabase.from('grades').select('*').eq('student_id', childId).order('created_at', { ascending: false }).limit(200),
+        supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year,created_at').eq('student_id', childId).order('created_at', { ascending: false }).limit(200),
         supabase.from('cbt_sessions').select('*, cbt_exams:exam_id(title, subject, total_marks)').eq('student_id', childId).eq('is_submitted', true).order('submitted_at', { ascending: false }),
       ]);
       setGrades((gradesRes.data || []) as Grade[]);
@@ -151,7 +121,7 @@ export default function ParentGradesSection({ profile }: Props) {
     try {
       const [{ data: sheet, error: sheetErr }, { data: gradeRows, error: gradeErr }] = await Promise.all([
         supabase.from('result_sheets').select('*').eq('student_id', childId).eq('term', effectiveTerm).eq('academic_year', filterYear).eq('is_published', true).maybeSingle(),
-        supabase.from('grades').select('*').eq('student_id', childId).eq('term', effectiveTerm).eq('academic_year', filterYear),
+        supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').eq('student_id', childId).eq('term', effectiveTerm).eq('academic_year', filterYear),
       ]);
       if (sheetErr) throw sheetErr;
       if (gradeErr) throw gradeErr;

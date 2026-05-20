@@ -570,13 +570,13 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
         </div>
       </div>
 
-      {/* ── SUBJECTS TABLE ── subjects as vertical rows, same column structure as basic card ── */}
+      {/* ── SUBJECTS TABLE — Nursery-appropriate headers (CA1/CA2 instead of 1st CAT/2nd CAT) ── */}
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
             <th style={{ ...TH, textAlign: 'left', width: '27%', padding: '5px 6px', fontSize: '9pt' }}>SUBJECTS</th>
-            <th style={{ ...TH, width: '8%' }}>1st<br />CAT<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
-            <th style={{ ...TH, width: '8%' }}>2nd<br />CAT<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
+            <th style={{ ...TH, width: '8%' }}>CA1<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
+            <th style={{ ...TH, width: '8%' }}>CA2<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
             <th style={{ ...TH, width: '8%' }}>Project<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>10%</span></th>
             <th style={{ ...TH, width: '10%' }}>HW/<br />Assignment<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>10%</span></th>
             <th style={{ ...TH, width: '8%' }}>Exam<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>50%</span></th>
