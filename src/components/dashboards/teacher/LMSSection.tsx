@@ -544,6 +544,7 @@ Keep the language visual and exciting! Do not use complex jargon.`;
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
+                          </div>
                         ))}
                       </div>
                     )}
