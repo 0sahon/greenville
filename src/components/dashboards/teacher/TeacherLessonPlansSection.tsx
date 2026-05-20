@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, X, Edit2, Trash2, Send, FileText, Printer, LayoutTemplate } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Send, FileText, Printer, LayoutTemplate, Sparkles, Image, RefreshCw } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { openLessonPlanPrint } from '../../../lib/lessonPlanPrint';
 import { montessoriFivePartTemplate, simpleLessonSkeletonTemplate } from '../../../lib/lessonPlanTemplates';
@@ -63,6 +63,86 @@ export default function TeacherLessonPlansSection({ profile, courses, onToast }:
   const [form, setForm] = useState(() => emptyForm());
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [visualGenerating, setVisualGenerating] = useState(false);
+
+  const generateWithAI = async () => {
+    if (!form.title.trim()) {
+      onToast('Please enter a plan title first', 'error');
+      return;
+    }
+    const selectedCourse = courses.find(c => c.id === form.course_id);
+    const subject = selectedCourse?.subject || 'General';
+    setAiGenerating(true);
+    try {
+      const prompt = `You are a high-quality Montessori school educator. Create a Montessori lesson plan for the subject "${subject}" and the lesson title "${form.title}".
+Return ONLY a valid JSON object containing exactly these keys: "objectives", "activities", "materials_needed", "differentiation", "assessment", "reflection_notes".
+Values must be short, inspiring, practical, child-centric paragraphs or lists designed for Montessori Basic 1-5 (Primary) school kids.
+Do not wrap your response in markdown code block markers (like \`\`\`json or \`\`\`), do not include any explanatory text before or after the JSON, just output the raw JSON object string.`;
+      
+      const res = await fetch('https://text.pollinations.ai/' + encodeURIComponent(prompt));
+      if (!res.ok) throw new Error('AI service returned an error');
+      const rawText = await res.text();
+      
+      let clean = rawText.trim();
+      if (clean.startsWith('```json')) clean = clean.substring(7);
+      else if (clean.startsWith('```')) clean = clean.substring(3);
+      if (clean.endsWith('```')) clean = clean.substring(0, clean.length - 3);
+      clean = clean.trim();
+      
+      const parsed = JSON.parse(clean);
+      setForm(f => ({
+        ...f,
+        objectives: parsed.objectives || '',
+        activities: parsed.activities || '',
+        materials_needed: parsed.materials_needed || '',
+        differentiation: parsed.differentiation || '',
+        assessment: parsed.assessment || '',
+        reflection_notes: parsed.reflection_notes || '',
+      }));
+      onToast('Lesson plan generated successfully!', 'success');
+    } catch (e) {
+      console.error(e);
+      onToast('AI Generation failed. Please try again.', 'error');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const generateVisualAI = async () => {
+    if (!form.title.trim()) {
+      onToast('Please enter a plan title first', 'error');
+      return;
+    }
+    const selectedCourse = courses.find(c => c.id === form.course_id);
+    const subject = selectedCourse?.subject || 'General';
+    setVisualGenerating(true);
+    try {
+      const seed = Math.floor(Math.random() * 1000000);
+      const visualPrompt = `Montessori classroom illustration teaching ${form.title} for ${subject}, cartoon learning graphic for children, vibrant, highly detailed, no text`;
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt)}?width=800&height=600&nologo=true&seed=${seed}`;
+      
+      setForm(f => {
+        const current = f.materials_needed.trim();
+        const divider = current ? '\n\n' : '';
+        return {
+          ...f,
+          materials_needed: `${current}${divider}![Visual Lesson Aid](${imageUrl})`
+        };
+      });
+      onToast('AI Illustration generated and added to materials!', 'success');
+    } catch (e) {
+      console.error(e);
+      onToast('Visual AI failed to generate', 'error');
+    } finally {
+      setVisualGenerating(false);
+    }
+  };
+
+  const extractVisualAidUrl = (text: string) => {
+    const match = text.match(/!\[[^\]]*\]\((https?:\/\/[^\)]+)\)/i);
+    return match ? match[1] : null;
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -338,31 +418,67 @@ export default function TeacherLessonPlansSection({ profile, courses, onToast }:
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => applyTemplate('montessori')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-pink-200 text-xs font-medium text-pink-800 bg-pink-50 hover:bg-pink-100"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-pink-200 text-xs font-medium text-pink-800 bg-pink-50 hover:bg-pink-100 transition-all"
                 >
                   <LayoutTemplate className="w-3.5 h-3.5" /> Montessori 5-part
                 </button>
                 <button
                   type="button"
                   onClick={() => applyTemplate('simple')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition-all"
                 >
                   <LayoutTemplate className="w-3.5 h-3.5" /> Simple skeleton
                 </button>
+                <button
+                  type="button"
+                  onClick={generateWithAI}
+                  disabled={aiGenerating}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-xs font-medium text-white shadow-sm disabled:opacity-50 transition-all transform active:scale-95"
+                >
+                  {aiGenerating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  {aiGenerating ? 'Generating...' : '✨ Generate with AI'}
+                </button>
+                <button
+                  type="button"
+                  onClick={generateVisualAI}
+                  disabled={visualGenerating}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-xs font-medium text-white shadow-sm disabled:opacity-50 transition-all transform active:scale-95"
+                >
+                  {visualGenerating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Image className="w-3.5 h-3.5" />}
+                  {visualGenerating ? 'Generating...' : '🎨 AI Illustration'}
+                </button>
               </div>
+
               {(['objectives', 'activities', 'materials_needed', 'differentiation', 'assessment', 'reflection_notes'] as const).map(field => (
-                <div key={field}>
-                  <label className="block text-xs font-medium text-gray-600 mb-1 capitalize">{field.replace(/_/g, ' ')}</label>
+                <div key={field} className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-600 capitalize">{field.replace(/_/g, ' ')}</label>
                   <textarea
                     value={form[field]}
                     onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
                     rows={field === 'activities' ? 4 : 3}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-y"
                   />
+                  {field === 'materials_needed' && (() => {
+                    const visualAidUrl = extractVisualAidUrl(form.materials_needed);
+                    return visualAidUrl ? (
+                      <div className="mt-2 p-3 border border-purple-100 rounded-xl bg-purple-50/50 space-y-2 animate-fadeIn">
+                        <p className="text-[10px] font-semibold text-purple-700 uppercase tracking-wider flex items-center gap-1">
+                          <Image className="w-3 h-3 text-purple-500" /> Live Illustration Preview:
+                        </p>
+                        <div className="relative group overflow-hidden rounded-lg border border-purple-200/40 shadow-sm bg-white aspect-video max-h-40 flex items-center justify-center">
+                          <img
+                            src={visualAidUrl}
+                            alt="AI Lesson Aid"
+                            className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               ))}
             </div>

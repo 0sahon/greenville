@@ -23,11 +23,19 @@ export function openLessonPlanPrint(input: LessonPlanPrintInput): void {
   const bodySections = input.sections
     .filter(s => s.value && String(s.value).trim())
     .map(
-      s => `
-      <section class="block">
-        <h2>${escapeHtml(s.label)}</h2>
-        <div class="pre">${escapeHtml(String(s.value).trim())}</div>
-      </section>`
+      s => {
+        const rawVal = String(s.value).trim();
+        // Escape HTML, then replace ![alt](url) with a styled img tag
+        let formatted = escapeHtml(rawVal);
+        formatted = formatted.replace(/!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/gi, (_, alt, url) => {
+          return `<br/><img src="${url}" alt="${alt}" style="max-width: 100%; max-height: 380px; height: auto; display: block; margin: 12px auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #eee; page-break-inside: avoid;" /><br/>`;
+        });
+        return `
+        <section class="block">
+          <h2>${escapeHtml(s.label)}</h2>
+          <div class="pre">${formatted}</div>
+        </section>`;
+      }
     )
     .join('');
 

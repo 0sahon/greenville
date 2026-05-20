@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   BookOpen, FileText, Users, Plus, X, CheckCircle, Clock, Star,
   RefreshCw, ChevronDown, ChevronRight, Eye, Trash2, Layers, Edit2,
-  Paperclip, ClipboardList, CalendarDays,
+  Paperclip, ClipboardList, CalendarDays, Sparkles, Tv, Image
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { createSubmissionWorkSignedUrl, removeSubmissionWorkObjects } from '../../../lib/submissionWorkStorage';
@@ -14,6 +14,7 @@ import type {
 import TeacherClassMaterialsSection from './TeacherClassMaterialsSection';
 import TeacherLessonPlansSection from './TeacherLessonPlansSection';
 import TeacherWeekGlanceSection from './TeacherWeekGlanceSection';
+import KidsSlideshowPlayer from '../KidsSlideshowPlayer';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
@@ -55,6 +56,51 @@ export default function LMSSection({ profile }: Props) {
     setToast({ msg, type });
   }, []);
   const [saving, setSaving] = useState(false);
+  const [aiGeneratingNotes, setAiGeneratingNotes] = useState(false);
+  const [activeSlideshowTopic, setActiveSlideshowTopic] = useState<CourseWithClass | null>(null);
+
+  const generateLMSNotes = async () => {
+    if (!topicForm.subject || !topicForm.title.trim()) {
+      showToast('Please select a subject and enter a topic title first', 'error');
+      return;
+    }
+    setAiGeneratingNotes(true);
+    try {
+      const prompt = `You are a high-quality Montessori school teacher. Write engaging, fun, easy-to-understand educational lesson notes for Montessori Basic school kids (Basic 1-5 level) on the subject "${topicForm.subject}" and topic "${topicForm.title}".
+Format the notes nicely with clear section headers like Introduction, Key Points, Concrete Activity.
+At the very end of the notes, add an interactive multiple-choice quiz section EXACTLY like this:
+[Quiz]
+Question: [Enter a child-friendly simple question here]
+A) [Option 1]
+B) [Option 2]
+C) [Option 3]
+Correct: A (or B or C)
+
+Keep the language visual and exciting! Do not use complex jargon.`;
+
+      const res = await fetch('https://text.pollinations.ai/' + encodeURIComponent(prompt));
+      if (!res.ok) throw new Error('AI service returned an error');
+      const text = await res.text();
+
+      const seed = Math.floor(Math.random() * 1000000);
+      const visualPrompt = `Montessori educational illustration for topic ${topicForm.title} in ${topicForm.subject}, cartoon learning vector for children, bright and friendly, no text`;
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt)}?width=800&height=600&nologo=true&seed=${seed}`;
+
+      const finalContent = `![Lesson Graphic](${imageUrl})\n\n${text.trim()}`;
+      setTopicForm(f => ({ ...f, description: finalContent }));
+      showToast('Notes and Illustration generated successfully!', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Failed to generate lesson notes', 'error');
+    } finally {
+      setAiGeneratingNotes(false);
+    }
+  };
+
+  const extractLmsVisualUrl = (text: string) => {
+    const match = text.match(/!\[[^\]]*\]\((https?:\/\/[^\)]+)\)/i);
+    return match ? match[1] : null;
+  };
 
   useEffect(() => {
     try {
@@ -482,17 +528,22 @@ export default function LMSSection({ profile }: Props) {
                             </div>
                             <div className="flex gap-1 shrink-0">
                               {t.description && (
-                                <button onClick={() => setViewTopic(t)}
-                                  className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500" title="View materials">
-                                  <Eye className="w-4 h-4" />
-                                </button>
+                                <>
+                                  <button onClick={() => setViewTopic(t)}
+                                    className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500" title="View materials">
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={() => setActiveSlideshowTopic(t)}
+                                    className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-600" title="🎬 Play Slideshow">
+                                    <Tv className="w-4 h-4" />
+                                  </button>
+                                </>
                               )}
                               <button onClick={() => deleteTopic(t.id)}
                                 className="p-1.5 hover:bg-red-50 rounded-lg text-red-400" title="Remove">
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
-                          </div>
                         ))}
                       </div>
                     )}
@@ -713,11 +764,20 @@ export default function LMSSection({ profile }: Props) {
                   placeholder="e.g. Chapter 3: Addition & Subtraction"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
                 />
-              </div>
-
-              {/* Lesson notes / materials */}
+              </div>              {/* Lesson notes / materials */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Lesson Notes / Materials</label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-medium text-gray-600">Lesson Notes / Materials</label>
+                  <button
+                    type="button"
+                    onClick={generateLMSNotes}
+                    disabled={aiGeneratingNotes}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-[10px] font-bold shadow-sm disabled:opacity-50 transition-all transform active:scale-95"
+                  >
+                    {aiGeneratingNotes ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                    {aiGeneratingNotes ? 'Generating...' : '✨ AI Generate Notes'}
+                  </button>
+                </div>
                 <textarea
                   value={topicForm.description}
                   onChange={e => setTopicForm(f => ({ ...f, description: e.target.value }))}
@@ -726,6 +786,24 @@ export default function LMSSection({ profile }: Props) {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 resize-y"
                 />
 
+                {(() => {
+                  const visualUrl = extractLmsVisualUrl(topicForm.description);
+                  return visualUrl ? (
+                    <div className="mt-2 p-3 border border-purple-100 rounded-xl bg-purple-50/50 space-y-2 animate-fadeIn">
+                      <p className="text-[10px] font-bold text-purple-700 uppercase tracking-wider flex items-center gap-1">
+                        <Image className="w-3 h-3 text-purple-500" /> Lesson Graphic Preview:
+                      </p>
+                      <div className="relative overflow-hidden rounded-lg border border-purple-200/40 shadow-sm bg-white aspect-video max-h-40 flex items-center justify-center">
+                        <img
+                          src={visualUrl}
+                          alt="AI Topic Graphic"
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
                 {/* Previous content quick-fill */}
                 {prevDescriptions.length > 0 && (
                   <div className="mt-2">
@@ -973,36 +1051,95 @@ export default function LMSSection({ profile }: Props) {
         </div>
       )}
 
-      {/* ── Material Viewer Modal ── */}
+      {/* ── View Topic Modal (Material Viewer) ── */}
       {viewTopic && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setViewTopic(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-scaleUp" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div>
-                <p className="text-xs font-medium text-pink-600 uppercase">{viewTopic.subject}</p>
-                <h3 className="font-bold text-gray-800">{viewTopic.title}</h3>
+                <span className="text-[10px] px-2 py-0.5 bg-pink-50 text-pink-700 rounded-full font-bold uppercase tracking-wider">{viewTopic.subject}</span>
+                <h3 className="font-bold text-gray-800 text-lg mt-1">{viewTopic.title}</h3>
               </div>
               <button onClick={() => setViewTopic(null)} className="p-1.5 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <div className="p-5">
-              <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap min-h-[120px] max-h-[400px] overflow-y-auto">
-                {viewTopic.description}
+            
+            <div className="p-5 space-y-4">
+              {/* Image Illustration */}
+              {(() => {
+                const visualUrl = extractLmsVisualUrl(viewTopic.description || '');
+                return visualUrl ? (
+                  <div className="relative overflow-hidden rounded-xl border border-purple-100 shadow-sm bg-purple-50 aspect-video max-h-60 flex items-center justify-center">
+                    <img
+                      src={visualUrl}
+                      alt="Lesson illustration"
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Notes content */}
+              <div className="prose max-w-none">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Lesson Notes & Materials</p>
+                <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto border border-gray-100 shadow-inner">
+                  {viewTopic.description ? (
+                    // Strip image link and quiz from displaying as raw text
+                    viewTopic.description
+                      .replace(/!\[[^\]]*\]\([^\)]+\)/g, '')
+                      .replace(/\[Quiz\][\s\S]*/gi, '')
+                      .trim()
+                  ) : (
+                    <span className="text-gray-400 italic">No notes provided for this lesson topic.</span>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-2 mt-3 text-xs text-gray-400 flex-wrap">
-                <span className="px-2 py-1 bg-gray-100 rounded-full">{viewTopic.term}</span>
-                <span className="px-2 py-1 bg-gray-100 rounded-full">{viewTopic.academic_year}</span>
-                {viewTopic.classes?.name && <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-full">{viewTopic.classes.name}</span>}
-              </div>
+
+              {/* Quiz indicator */}
+              {viewTopic.description && /\[Quiz\]/i.test(viewTopic.description) && (
+                <div className="bg-purple-50 border border-purple-100 rounded-xl p-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-purple-700">
+                    <Sparkles className="w-5 h-5 text-purple-500 animate-pulse" />
+                    <div>
+                      <p className="text-xs font-bold">Interactive Learning Quiz Available!</p>
+                      <p className="text-[10px] text-purple-500">Perfect for student engagement and class review.</p>
+                    </div>
+                  </div>
+                  <span className="text-xs px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg font-bold">Interactive Game</span>
+                </div>
+              )}
             </div>
-            <div className="p-4 border-t border-gray-100 flex justify-end">
-              <button onClick={() => setViewTopic(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Close</button>
+
+            <div className="flex gap-3 p-5 border-t border-gray-100 bg-gray-50/50">
+              <button onClick={() => setViewTopic(null)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 bg-white transition-colors">
+                Close Viewer
+              </button>
+              {viewTopic.description && (
+                <button
+                  onClick={() => {
+                    setActiveSlideshowTopic(viewTopic);
+                    setViewTopic(null);
+                  }}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-[0.98]"
+                >
+                  <Tv className="w-4 h-4" /> 🎬 Play Slideshow
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
+      {/* ── Slideshow Immersive Player Overlay ── */}
+      {activeSlideshowTopic && (
+        <KidsSlideshowPlayer
+          topic={activeSlideshowTopic}
+          onClose={() => setActiveSlideshowTopic(null)}
+        />
+      )}
     </div>
   );
 }
+
+

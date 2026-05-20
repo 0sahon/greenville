@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ClipboardCheck, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, AlertCircle, Sparkles, RefreshCw, Smile, Compass, Gift } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import type { ProfileRow, ClassRow, AttendanceStatus } from '../../../lib/supabase';
 
@@ -20,6 +20,49 @@ export default function AttendanceSection({ profile }: Props) {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState('');
 
+  // Daily Morning Circle Energizer States
+  const [energizer, setEnergizer] = useState<string | null>(null);
+  const [energizerImg, setEnergizerImg] = useState<string | null>(null);
+  const [energizerLoading, setEnergizerLoading] = useState(false);
+
+  const generateMorningEnergizer = async () => {
+    setEnergizerLoading(true);
+    try {
+      const themes = [
+        "Jungle Safari Animals", "Outerspace Astronauts", "Deep Blue Ocean Explorers",
+        "Ancient Dinosaurs", "Magical Forest Fairies & Elves", "Flying Superheroes",
+        "Busy Builders & Robots", "Friendly Farm Animals", "Olympic Gymnasts"
+      ];
+      const selectedTheme = themes[Math.floor(Math.random() * themes.length)];
+      
+      const prompt = `You are a creative Montessori Kindergarten & Basic School teacher. Generate a fun, active daily morning circle warm-up activity for children (aged 5-10) based on the theme: "${selectedTheme}".
+Respond with:
+Theme: [Fun Theme Name]
+Greeting: [Wave or handshake action]
+Movement Energizer: [A simple, fun, physical movement riddle or counting action to perform together]
+
+Keep it extremely brief, simple, exciting, and child-friendly!`;
+
+      const textRes = await fetch('https://text.pollinations.ai/' + encodeURIComponent(prompt));
+      if (!textRes.ok) throw new Error('AI text retrieval failed');
+      const text = await textRes.text();
+      setEnergizer(text.trim());
+
+      // Fetch matching visual graphic
+      const seed = Math.floor(Math.random() * 1000000);
+      const visualPrompt = `Montessori friendly cartoon illustration for theme ${selectedTheme}, simple bright colors, vector art for kids, no text`;
+      const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt)}?width=400&height=400&nologo=true&seed=${seed}`;
+      setEnergizerImg(imgUrl);
+    } catch (e) {
+      console.error(e);
+      // Fallback
+      setEnergizer(`Theme: 🦁 Friendly Lions!\nGreeting: Wave with your lion paws and say "Roar-llo!"\nMovement Energizer: Stand on one foot like a lion balancing on a rock for 5 seconds!`);
+      setEnergizerImg(`https://image.pollinations.ai/prompt/cute%20cartoon%20lion%20waving%20vector?width=400&height=400&nologo=true`);
+    } finally {
+      setEnergizerLoading(false);
+    }
+  };
+
   useEffect(() => {
     supabase.from('classes').select('id,name,level').eq('teacher_id', profile.id)
       .then(({ data }) => setClasses((data || []) as Pick<ClassRow, 'id' | 'name' | 'level'>[]));
@@ -29,6 +72,10 @@ export default function AttendanceSection({ profile }: Props) {
     if (!selectedClass) return;
     setStatuses({});
     setStudents([]);
+    
+    // Auto-trigger daily morning energizer on class selection
+    generateMorningEnergizer();
+
     (async () => {
       const { data: studs } = await supabase.from('students').select('id, student_id, profiles:profile_id(first_name,last_name)').eq('class_id', selectedClass).eq('is_active', true);
       const studList = (studs || []) as StudentWithProfile[];
@@ -79,6 +126,95 @@ export default function AttendanceSection({ profile }: Props) {
           </button>
         )}
       </div>
+
+      {/* ── Daily Morning Circle Warmup Card ── */}
+      {selectedClass && (
+        <div className="relative overflow-hidden rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50/60 via-purple-50/40 to-indigo-50/50 p-5 shadow-sm">
+          {/* Subtle animated floating bubble decorations */}
+          <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-pink-300/10 blur-xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-28 h-28 rounded-full bg-purple-300/10 blur-xl pointer-events-none" />
+
+          <div className="flex flex-col md:flex-row gap-5 items-center justify-between relative z-10">
+            {/* Energizer content area */}
+            <div className="flex-1 space-y-3.5">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-pink-100 text-pink-600 rounded-lg">
+                  <Smile className="w-5 h-5 animate-pulse" />
+                </span>
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-sm sm:text-base flex items-center gap-1.5">
+                    ☀️ Daily Morning Circle Warmup!
+                  </h3>
+                  <p className="text-[11px] text-gray-500 font-medium">Use these fun movements during roll call to energize the kids!</p>
+                </div>
+              </div>
+
+              {energizerLoading ? (
+                <div className="py-6 flex flex-col items-center justify-center gap-2">
+                  <RefreshCw className="w-6 h-6 text-pink-500 animate-spin" />
+                  <p className="text-xs font-bold text-pink-500 animate-pulse">Consulting the morning circle wizard...</p>
+                </div>
+              ) : energizer ? (
+                <div className="space-y-2.5 text-xs sm:text-sm font-semibold text-slate-700 bg-white/75 backdrop-blur-sm p-4 rounded-xl border border-slate-100/50 shadow-inner">
+                  {energizer.split('\n').map((line, lIdx) => {
+                    if (line.toLowerCase().startsWith('theme:')) {
+                      return (
+                        <p key={lIdx} className="text-sm font-black text-pink-600 flex items-center gap-1.5">
+                          <Compass className="w-4 h-4 text-pink-500 shrink-0" />
+                          <span>{line}</span>
+                        </p>
+                      );
+                    }
+                    if (line.toLowerCase().startsWith('greeting:')) {
+                      return (
+                        <p key={lIdx} className="flex items-start gap-2">
+                          <span className="text-purple-500 shrink-0 text-sm">👋</span>
+                          <span className="leading-relaxed">{line}</span>
+                        </p>
+                      );
+                    }
+                    if (line.toLowerCase().startsWith('movement') || line.toLowerCase().startsWith('riddle')) {
+                      return (
+                        <p key={lIdx} className="flex items-start gap-2 border-t border-slate-100 pt-2 mt-2">
+                          <span className="text-indigo-500 shrink-0 text-sm">🦁</span>
+                          <span className="leading-relaxed font-bold bg-indigo-50/50 px-2 py-1 rounded-lg text-indigo-950">{line}</span>
+                        </p>
+                      );
+                    }
+                    return (
+                      <p key={lIdx} className="pl-6 text-[11px] text-slate-500 font-medium leading-relaxed">
+                        {line}
+                      </p>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 italic">Select a class to generate morning magic.</p>
+              )}
+            </div>
+
+            {/* Illustrative image */}
+            {selectedClass && !energizerLoading && energizerImg && (
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-white shrink-0 relative group">
+                <img
+                  src={energizerImg}
+                  alt="Daily circle illustration"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <button
+                  onClick={generateMorningEnergizer}
+                  disabled={energizerLoading}
+                  className="absolute bottom-1 right-1 p-1 bg-pink-600 hover:bg-pink-700 text-white rounded-lg shadow-md transition-all active:scale-90"
+                  title="Generate a new warmup theme!"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {saveError && (
         <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
           <AlertCircle size={15} className="flex-shrink-0" /> {saveError}
