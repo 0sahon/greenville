@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import type { ProfileRow } from '../../../lib/supabase';
-import { nigerianGrade } from '../../../lib/grading';
+import { getNigerianGrade } from '../../../lib/grading';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
@@ -504,11 +504,11 @@ export default function TeacherStudentsSection({ profile }: Props) {
                         <p className="text-sm text-gray-400 text-center py-8">No grades recorded yet.</p>
                       ) : (
                         <>
-                          <p className="text-xs text-gray-400">Showing aggregated scores across all assessments (1st CA + 2nd CA + Exam = /100)</p>
+                          <p className="text-xs text-gray-400">Showing aggregated scores across all assessments (1st CA/15 + 2nd CA/15 + Project/10 + HW/10 + Exam/50 = /100)</p>
                           <div className="space-y-2">
                             {Object.entries(gradesBySubject).map(([subject, { total, max }]) => {
-                              const grade = nigerianGrade(total, max);
                               const pct = max > 0 ? Math.round((total / max) * 100) : 0;
+                              const grade = getNigerianGrade(pct);
                               return (
                                 <div key={subject} className="flex items-center gap-3 bg-gray-50 rounded-lg px-4 py-3">
                                   <div className="flex-1 min-w-0">
@@ -523,7 +523,7 @@ export default function TeacherStudentsSection({ profile }: Props) {
                                   <div className="text-right flex-shrink-0">
                                     <p className="text-sm font-bold text-gray-700">{total}/{max}</p>
                                   </div>
-                                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${grade.color}`}>{grade.label}</span>
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${grade.color}`}>{grade.grade}</span>
                                 </div>
                               );
                             })}

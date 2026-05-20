@@ -3,6 +3,7 @@ import { Settings, Save, RefreshCw, X, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import type { ProfileRow, SchoolSettingsRow } from '../../../lib/supabase';
 import { SCHOOL_NAME } from '../../../config/schoolBrand';
+import { invalidateSchoolSettings } from '../../../hooks/useSchoolSettings';
 
 const ALL_TABLES = [
   'profiles', 'classes', 'students', 'teachers', 'parents', 'student_parents',
@@ -75,6 +76,7 @@ export default function SettingsSection({ profile: _profile }: Props) {
         supabase.from('school_settings').upsert({ key: 'currency', value: currency as unknown as object }, { onConflict: 'key' }),
       ]);
       setSettings(s => ({ ...s, school_name: schoolName, current_academic_year: academicYear, terms, currency }));
+      invalidateSchoolSettings();
       setToast({ msg: 'Settings saved', type: 'success' });
     } catch (e) {
       setToast({ msg: e instanceof Error ? e.message : 'Save failed', type: 'error' });

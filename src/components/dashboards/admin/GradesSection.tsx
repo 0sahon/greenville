@@ -3,7 +3,7 @@ import { BarChart3, Search, Download, Plus, X, Edit2, Trash2, Layers, BookOpen }
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import type { ProfileRow, GradeRow, GradeInsert, ClassRow } from '../../../lib/supabase';
-import { nigerianGrade } from '../../../lib/grading';
+import { nigerianGrade, getNigerianGrade } from '../../../lib/grading';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
@@ -21,8 +21,9 @@ interface StudentOption {
   profiles?: { first_name: string; last_name: string } | null;
 }
 
-const ASSESSMENT_TYPES = ['Home Work', '1st CA', '2nd CA', 'Exam', 'Test', 'CA', 'Project', 'Assignment', 'Quiz'];
-const DEFAULT_MAX: Record<string, number> = { 'Home Work': 20, '1st CA': 20, '2nd CA': 20, 'Exam': 60, 'Test': 30 };
+const ASSESSMENT_TYPES = ['Home Work', '1st CA', '2nd CA', 'Project', 'Exam', 'Test', 'CA', 'Assignment', 'Quiz'];
+// Montessori Greenville score limits: CA1/15, CA2/15, Project/10, HW/10, Exam/50
+const DEFAULT_MAX: Record<string, number> = { 'Home Work': 10, '1st CA': 15, '2nd CA': 15, 'Project': 10, 'Exam': 50, 'Test': 30 };
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
@@ -56,7 +57,7 @@ function RecordsTab({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [form, setForm] = useState({
-    student_id: '', subject: '', assessment_type: '1st CA', score: '', max_score: '20',
+    student_id: '', subject: '', assessment_type: '1st CA', score: '', max_score: '15',
     term: 'First Term', academic_year: getDefaultAcademicYear(),
   });
 
@@ -93,7 +94,7 @@ function RecordsTab({
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ student_id: '', subject: '', assessment_type: '1st CA', score: '', max_score: '20', term: 'First Term', academic_year: getDefaultAcademicYear() });
+    setForm({ student_id: '', subject: '', assessment_type: '1st CA', score: '', max_score: '15', term: 'First Term', academic_year: getDefaultAcademicYear() });
     setShowModal(true);
   };
 
@@ -612,7 +613,7 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
               <div className="bg-purple-50 rounded-xl p-4 text-center">
                 <p className="text-xs text-purple-600 mb-1">Class Average</p>
                 <p className="text-2xl font-bold text-purple-700">{classAvg}%</p>
-                <p className="text-xs font-semibold text-purple-500 mt-0.5">{nigerianGrade(classAvg, 100).label}</p>
+                <p className="text-xs font-semibold text-purple-500 mt-0.5">{getNigerianGrade(classAvg).grade}</p>
               </div>
               <div className="bg-blue-50 rounded-xl p-4 text-center">
                 <p className="text-xs text-blue-600 mb-1">Subjects</p>
@@ -652,7 +653,7 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
                   </thead>
                   <tbody>
                     {subjectStats.map(s => {
-                      const { label, color } = nigerianGrade(s.avg, 100);
+                      const { grade: label, color } = getNigerianGrade(s.avg);
                       return (
                         <tr key={s.subject} className="border-b border-gray-50 hover:bg-gray-50">
                           <td className="py-3 px-4 font-medium text-gray-800">{s.subject}</td>
@@ -692,7 +693,7 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
                   </thead>
                   <tbody>
                     {studentStats.map((s, i) => {
-                      const { label, color } = nigerianGrade(s.avg, 100);
+                      const { grade: label, color } = getNigerianGrade(s.avg);
                       return (
                         <tr key={s.studentId} className={`border-b border-gray-50 hover:bg-gray-50 ${i < 3 ? 'bg-amber-50/30' : ''}`}>
                           <td className="py-3 px-4 text-lg font-bold">{posEmoji(i)}</td>

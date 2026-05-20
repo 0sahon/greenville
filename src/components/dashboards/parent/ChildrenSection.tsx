@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Users, GraduationCap, Calendar, TrendingUp } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import type { ProfileRow, StudentWithProfileAndClass, GradeRow, AttendanceRow, ClassLevel } from '../../../lib/supabase';
-import { nigerianGrade } from '../../../lib/grading';
+import { getNigerianGrade } from '../../../lib/grading';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
@@ -144,14 +144,14 @@ export default function ChildrenSection({ profile }: Props) {
                       <div className="space-y-3">
                         {Object.entries(gradesBySubject).map(([subject, { total, max }]) => {
                           const pct = max > 0 ? Math.round((total / max) * 100) : 0;
-                          const grade = nigerianGrade(total, max);
+                          const grade = getNigerianGrade(pct);
                           return (
                             <div key={subject}>
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-sm font-medium text-gray-700 truncate flex-1 mr-2">{subject}</span>
                                 <div className="flex items-center gap-2 flex-shrink-0">
                                   <span className="text-xs text-gray-500">{total}/{max}</span>
-                                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${grade.color}`}>{grade.label}</span>
+                                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${grade.color}`}>{grade.grade}</span>
                                 </div>
                               </div>
                               <div className="w-full bg-gray-100 rounded-full h-1.5">

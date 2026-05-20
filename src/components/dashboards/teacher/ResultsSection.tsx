@@ -56,26 +56,42 @@ const defaultMeta: ResultSheetMeta = {
 };
 
 function computeSubjects(grades: GradeRow[]): SubjectResult[] {
-  const map = new Map<string, { ca1: { score: number; max: number } | null; ca2: { score: number; max: number } | null; exam: { score: number; max: number } | null; hw: { score: number; max: number } | null }>();
+  const map = new Map<string, {
+    ca1:     { score: number; max: number } | null;
+    ca2:     { score: number; max: number } | null;
+    exam:    { score: number; max: number } | null;
+    hw:      { score: number; max: number } | null;
+    project: { score: number; max: number } | null;
+  }>();
   for (const g of grades) {
     const key = g.subject.trim();
-    if (!map.has(key)) map.set(key, { ca1: null, ca2: null, exam: null, hw: null });
+    if (!map.has(key)) map.set(key, { ca1: null, ca2: null, exam: null, hw: null, project: null });
     const entry = map.get(key)!;
     const type = g.assessment_type.toLowerCase().trim();
-    if (type === 'home work' || type === 'homework') entry.hw = { score: g.score, max: g.max_score };
-    else if (type === '1st ca' || type === 'first ca') entry.ca1 = { score: g.score, max: g.max_score };
-    else if (type === '2nd ca' || type === 'second ca') entry.ca2 = { score: g.score, max: g.max_score };
-    else if (type === 'exam' || type === 'examination' || type === 'final exam') entry.exam = { score: g.score, max: g.max_score };
-    else if (!entry.ca1) entry.ca1 = { score: g.score, max: g.max_score };
-    else if (!entry.ca2) entry.ca2 = { score: g.score, max: g.max_score };
+    if (type === 'home work' || type === 'homework') {
+      entry.hw = { score: g.score, max: g.max_score };
+    } else if (type === '1st ca' || type === 'first ca' || type === '1st continuous assessment') {
+      entry.ca1 = { score: g.score, max: g.max_score };
+    } else if (type === '2nd ca' || type === 'second ca' || type === '2nd continuous assessment') {
+      entry.ca2 = { score: g.score, max: g.max_score };
+    } else if (type === 'exam' || type === 'examination' || type === 'final exam') {
+      entry.exam = { score: g.score, max: g.max_score };
+    } else if (type === 'project') {
+      entry.project = { score: g.score, max: g.max_score };
+    } else if (!entry.ca1) {
+      entry.ca1 = { score: g.score, max: g.max_score };
+    } else if (!entry.ca2) {
+      entry.ca2 = { score: g.score, max: g.max_score };
+    }
   }
   return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([subject, s]) => {
-    const ca1  = s.ca1  ? Math.round((s.ca1.score  / s.ca1.max)  * 20) : 0;
-    const ca2  = s.ca2  ? Math.round((s.ca2.score  / s.ca2.max)  * 20) : 0;
-    const exam = s.exam ? Math.round((s.exam.score / s.exam.max) * 60) : 0;
-    const hw   = s.hw   ? Math.round((s.hw.score   / s.hw.max)   * 20) : undefined;
-    const total = ca1 + ca2 + exam;
-    return { subject, ca1, ca2, exam, homework: hw, total, ...getNigerianGrade(total) };
+    const ca1      = s.ca1      ? Math.round((s.ca1.score      / s.ca1.max)      * 15) : 0;
+    const ca2      = s.ca2      ? Math.round((s.ca2.score      / s.ca2.max)      * 15) : 0;
+    const exam     = s.exam     ? Math.round((s.exam.score     / s.exam.max)     * 50) : 0;
+    const homework = s.hw       ? Math.round((s.hw.score       / s.hw.max)       * 10) : 0;
+    const project  = s.project  ? Math.round((s.project.score  / s.project.max)  * 10) : 0;
+    const total = ca1 + ca2 + exam + homework + project;
+    return { subject, ca1, ca2, exam, homework, project, total, ...getNigerianGrade(total) };
   });
 }
 
@@ -180,11 +196,10 @@ export default function TeacherResultsSection({ profile }: Props) {
         const ca1 = Math.round((r / 5) * 20);
         return { subject: s.name, ca1, ca2: 0, exam: 0, total: ca1, grade: '', remark: '' };
       });
-
-  const updateNurseryScore = (subject: string, field: 'ca1' | 'ca2' | 'exam', value: number) => {
+  const updateNurseryScore = (subject: string, field: 'ca1' | 'ca2' | 'exam' | 'project' | 'homework', value: number) => {
     const updated: NurseryScores = {
       ...nurseryScores,
-      [subject]: { ...(nurseryScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 }), [field]: value },
+      [subject]: { ...(nurseryScores[subject] ?? { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 }), [field]: value },
     };
     setNurseryScores(updated);
     const newSubs = buildNurserySubjects(updated);
@@ -192,17 +207,16 @@ export default function TeacherResultsSection({ profile }: Props) {
     setCardData(prev => prev ? { ...prev, subjects: newSubs } : null);
   };
 
-  const updateBasicScore = (subject: string, field: 'ca1' | 'ca2' | 'exam', value: number) => {
+  const updateBasicScore = (subject: string, field: 'ca1' | 'ca2' | 'exam' | 'project' | 'homework', value: number) => {
     const updated: BasicScores = {
       ...basicScores,
-      [subject]: { ...(basicScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 }), [field]: value },
+      [subject]: { ...(basicScores[subject] ?? { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 }), [field]: value },
     };
     setBasicScores(updated);
     const newSubs = buildBasicSubjects(updated);
     setSubjects(newSubs);
     setCardData(prev => prev ? { ...prev, subjects: newSubs } : null);
   };
-
   const getVisibleSubjects = (levelGroup: 'basic' | 'nursery', allSubjects: readonly string[]): string[] | undefined => {
     const hasSettings = Object.keys(subjectVisibility).some(k => k.startsWith(`${levelGroup}:`));
     if (!hasSettings) return undefined;
@@ -259,22 +273,38 @@ export default function TeacherResultsSection({ profile }: Props) {
     } else if (isNursery) {
       const scores: NurseryScores = {};
       for (const g of allGradeRows) {
-        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0 };
+        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
         const t = g.assessment_type.toLowerCase().trim();
-        if (t === '1st ca' || t === 'first ca') scores[g.subject]!.ca1 = g.score;
-        else if (t === '2nd ca' || t === 'second ca') scores[g.subject]!.ca2 = g.score;
-        else if (t === 'exam' || t === 'examination' || t === 'final exam') scores[g.subject]!.exam = g.score;
+        // Raw direct system: use score as-is, no proportional scaling
+        if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
+          scores[g.subject]!.ca1 = g.score;
+        else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
+          scores[g.subject]!.ca2 = g.score;
+        else if (t === 'exam' || t === 'examination' || t === 'final exam')
+          scores[g.subject]!.exam = g.score;
+        else if (t === 'project')
+          scores[g.subject]!.project = g.score;
+        else if (t === 'homework' || t === 'home work')
+          scores[g.subject]!.homework = g.score;
       }
       setNurseryScores(scores);
       subs = buildNurserySubjects(scores);
     } else {
       const scores: BasicScores = {};
       for (const g of allGradeRows) {
-        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0 };
+        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
         const t = g.assessment_type.toLowerCase().trim();
-        if (t === '1st ca' || t === 'first ca') scores[g.subject]!.ca1 = g.score;
-        else if (t === '2nd ca' || t === 'second ca') scores[g.subject]!.ca2 = g.score;
-        else if (t === 'exam' || t === 'examination' || t === 'final exam') scores[g.subject]!.exam = g.score;
+        // Raw direct system: use score as-is, no proportional scaling
+        if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
+          scores[g.subject]!.ca1 = g.score;
+        else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
+          scores[g.subject]!.ca2 = g.score;
+        else if (t === 'exam' || t === 'examination' || t === 'final exam')
+          scores[g.subject]!.exam = g.score;
+        else if (t === 'project')
+          scores[g.subject]!.project = g.score;
+        else if (t === 'homework' || t === 'home work')
+          scores[g.subject]!.homework = g.score;
       }
       setBasicScores(scores);
       subs = buildBasicSubjects(scores);
@@ -405,6 +435,8 @@ export default function TeacherResultsSection({ profile }: Props) {
           if (s.ca1  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
           if (s.ca2  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
           if (s.exam > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: BASIC_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.project && s.project > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'project',  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.homework && s.homework > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'homework', score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
         }
         if (bRows.length > 0) {
           const { error: gErr } = await supabase.from('grades').insert(bRows);
@@ -426,6 +458,8 @@ export default function TeacherResultsSection({ profile }: Props) {
           if (s.ca1  > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
           if (s.ca2  > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
           if (s.exam > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: NURSERY_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.project && s.project > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: 'project',  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.homework && s.homework > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: 'homework', score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
         }
         if (nRows.length > 0) {
           const { error: gErr } = await supabase.from('grades').insert(nRows);
@@ -729,43 +763,47 @@ export default function TeacherResultsSection({ profile }: Props) {
                             Subject Scores — {activeStudent?.classes?.name}
                           </h4>
                           <p className="text-xs text-gray-400 mb-3">
-                            1st &amp; 2nd CA out of {BASIC_CA_MAX}, Exam out of {BASIC_EXAM_MAX}.
+                            Enter raw scores: Homework &amp; Project out of 10, CAs out of {BASIC_CA_MAX}, Exam out of {BASIC_EXAM_MAX}.
                           </p>
                           <div className="overflow-x-auto rounded-xl border border-gray-200">
-                            <table className="w-full text-sm min-w-[480px]">
+                            <table className="w-full text-sm min-w-[580px]">
                               <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
-                                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-2/5">Subject</th>
-                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
-                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
-                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{BASIC_EXAM_MAX}</span></th>
-                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
+                                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-1/4">Subject</th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Homework<br /><span className="font-normal text-gray-400">/10</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Project<br /><span className="font-normal text-gray-400">/10</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{BASIC_EXAM_MAX}</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {BASIC_SUBJECTS.map((subject, i) => {
-                                  const s = basicScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 };
-                                  const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / BASIC_CA_MAX)   * 20) : 0;
-                                  const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / BASIC_CA_MAX)   * 20) : 0;
-                                  const exam = s.exam > 0 ? Math.round((s.exam / BASIC_EXAM_MAX) * 60) : 0;
-                                  const total = ca1 + ca2 + exam;
+                                  const s = basicScores[subject] ?? { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+                                  const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / BASIC_CA_MAX)   * 15) : 0;
+                                  const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / BASIC_CA_MAX)   * 15) : 0;
+                                  const exam = s.exam > 0 ? Math.round((s.exam / BASIC_EXAM_MAX) * 50) : 0;
+                                  const project = s.project && s.project > 0 ? Math.round((s.project / 10) * 10) : 0;
+                                  const homework = s.homework && s.homework > 0 ? Math.round((s.homework / 10) * 10) : 0;
+                                  const total = ca1 + ca2 + project + homework + exam;
                                   const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
                                   const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
                                   return (
                                     <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
                                       <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
-                                      {(['ca1', 'ca2', 'exam'] as const).map(field => (
-                                        <td key={field} className="py-1 px-2 text-center">
+                                      {(['homework', 'ca1', 'ca2', 'project', 'exam'] as const).map(field => (
+                                        <td key={field} className="py-1 px-1 text-center">
                                           <input
                                             type="number" min={0}
-                                            max={field === 'exam' ? BASIC_EXAM_MAX : BASIC_CA_MAX}
+                                            max={field === 'exam' ? BASIC_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? BASIC_CA_MAX : 10}
                                             value={s[field] || ''}
-                                            onChange={e => updateBasicScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? BASIC_EXAM_MAX : BASIC_CA_MAX))}
-                                            className="w-14 border border-gray-200 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            onChange={e => updateBasicScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? BASIC_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? BASIC_CA_MAX : 10))}
+                                            className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
                                           />
                                         </td>
                                       ))}
-                                      <td className="py-2 px-2 text-center">
+                                      <td className="py-2 px-1 text-center">
                                         <span className={`font-bold text-xs ${gc}`}>
                                           {total > 0 ? `${total} (${grade})` : '—'}
                                         </span>
@@ -786,43 +824,47 @@ export default function TeacherResultsSection({ profile }: Props) {
                             Subject Scores — {activeStudent?.classes?.name}
                           </h4>
                           <p className="text-xs text-gray-400 mb-3">
-                            1st & 2nd CA out of {NURSERY_CA_MAX}, Exam out of {NURSERY_EXAM_MAX}.
+                            Enter raw scores: Homework &amp; Project out of 10, CAs out of {NURSERY_CA_MAX}, Exam out of {NURSERY_EXAM_MAX}.
                           </p>
                           <div className="overflow-x-auto rounded-xl border border-gray-200">
-                            <table className="w-full text-sm min-w-[480px]">
+                            <table className="w-full text-sm min-w-[580px]">
                               <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
-                                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-1/3">Subject</th>
-                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
-                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
-                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{NURSERY_EXAM_MAX}</span></th>
-                                  <th className="py-2 px-2 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
+                                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-1/4">Subject</th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Homework<br /><span className="font-normal text-gray-400">/10</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Project<br /><span className="font-normal text-gray-400">/10</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{NURSERY_EXAM_MAX}</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {NURSERY_SUBJECTS.map((subject, i) => {
-                                  const s = nurseryScores[subject] ?? { ca1: 0, ca2: 0, exam: 0 };
-                                  const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / NURSERY_CA_MAX)   * 20) : 0;
-                                  const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / NURSERY_CA_MAX)   * 20) : 0;
-                                  const exam = s.exam > 0 ? Math.round((s.exam / NURSERY_EXAM_MAX) * 60) : 0;
-                                  const total = ca1 + ca2 + exam;
+                                  const s = nurseryScores[subject] ?? { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+                                  const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / NURSERY_CA_MAX)   * 15) : 0;
+                                  const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / NURSERY_CA_MAX)   * 15) : 0;
+                                  const exam = s.exam > 0 ? Math.round((s.exam / NURSERY_EXAM_MAX) * 50) : 0;
+                                  const project = s.project && s.project > 0 ? Math.round((s.project / 10) * 10) : 0;
+                                  const homework = s.homework && s.homework > 0 ? Math.round((s.homework / 10) * 10) : 0;
+                                  const total = ca1 + ca2 + project + homework + exam;
                                   const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
                                   const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
                                   return (
                                     <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
                                       <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
-                                      {(['ca1', 'ca2', 'exam'] as const).map(field => (
-                                        <td key={field} className="py-1 px-2 text-center">
+                                      {(['homework', 'ca1', 'ca2', 'project', 'exam'] as const).map(field => (
+                                        <td key={field} className="py-1 px-1 text-center">
                                           <input
                                             type="number" min={0}
-                                            max={field === 'exam' ? NURSERY_EXAM_MAX : NURSERY_CA_MAX}
+                                            max={field === 'exam' ? NURSERY_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? NURSERY_CA_MAX : 10}
                                             value={s[field] || ''}
-                                            onChange={e => updateNurseryScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? NURSERY_EXAM_MAX : NURSERY_CA_MAX))}
-                                            className="w-14 border border-gray-200 rounded px-1.5 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            onChange={e => updateNurseryScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? NURSERY_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? NURSERY_CA_MAX : 10))}
+                                            className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
                                           />
                                         </td>
                                       ))}
-                                      <td className="py-2 px-2 text-center">
+                                      <td className="py-2 px-1 text-center">
                                         <span className={`font-bold text-xs ${gc}`}>
                                           {total > 0 ? `${total} (${grade})` : '—'}
                                         </span>

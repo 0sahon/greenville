@@ -3,7 +3,7 @@ import { AlertCircle } from 'lucide-react';
 import { useStudentData } from './useStudentData';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import type { ProfileRow } from '../../../lib/supabase';
-import { nigerianGrade } from '../../../lib/grading';
+import { nigerianGrade, getNigerianGrade } from '../../../lib/grading';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
@@ -64,7 +64,7 @@ export default function GradesSection({ profile }: Props) {
             <tbody>
               {filtered.map(g => {
                 const pct = g.max_score > 0 ? Math.round((g.score / g.max_score) * 100) : 0;
-                const { label, color } = nigerianGrade(pct, 100);
+                const { grade: label, color } = getNigerianGrade(pct);
                 return (
                   <tr key={g.id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="py-3 px-4 font-medium text-gray-800">{g.subject}</td>

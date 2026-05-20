@@ -11,28 +11,7 @@ import {
   SCHOOL_NAME,
   SCHOOL_PHONE_DISPLAY,
 } from '../../../config/schoolBrand';
-
-/* ─── Grading Scale — matches "INTERPRETING OF GRADING SYSTEM" on the report card ── */
-export function getNigerianGrade(total: number): { grade: string; remark: string } {
-  if (total >= 80) return { grade: 'A+', remark: 'Excellent' };
-  if (total >= 70) return { grade: 'A',  remark: 'Very Good' };
-  if (total >= 65) return { grade: 'B',  remark: 'Good' };
-  if (total >= 55) return { grade: 'C',  remark: 'Satisfactory' };
-  if (total >= 50) return { grade: 'D',  remark: 'Need Improvement' };
-  if (total >= 40) return { grade: 'E',  remark: 'Unsatisfactory' };
-  return { grade: 'F', remark: 'Poor' };
-}
-
-/* Full grading key — shown on the printed card */
-export const GRADING_KEY = [
-  { grade: 'A+', range: '80% & above',  remark: 'Excellent' },
-  { grade: 'A',  range: '70% – 79%',    remark: 'Very Good' },
-  { grade: 'B',  range: '65% – 69%',    remark: 'Good' },
-  { grade: 'C',  range: '55% – 64%',    remark: 'Satisfactory' },
-  { grade: 'D',  range: '50% – 54%',    remark: 'Need Improvement' },
-  { grade: 'E',  range: '40% – 49%',    remark: 'Unsatisfactory' },
-  { grade: 'F',  range: 'Below 40%',    remark: 'Poor' },
-] as const;
+export { getNigerianGrade, GRADING_KEY } from '../../../lib/grading';
 
 function gradeColor(grade: string): React.CSSProperties {
   if (grade === 'A+') return { background: '#bbf7d0', color: '#14532d', fontWeight: 'bold' };
@@ -59,6 +38,7 @@ export interface SubjectResult {
   grade: string;
   remark: string;
   homework?: number;
+  project?: number;
 }
 
 export interface ResultCardData {
@@ -272,7 +252,7 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
                 </td>
                 <td style={TD}>{s && s.ca1 > 0 ? s.ca1 : ''}</td>
                 <td style={TD}>{s && s.ca2 > 0 ? s.ca2 : ''}</td>
-                <td style={TD}>{/* Project */}</td>
+                <td style={TD}>{s?.project !== undefined ? s.project : ''}</td>
                 <td style={TD}>{s?.homework !== undefined ? s.homework : ''}</td>
                 <td style={TD}>{s && s.exam > 0 ? s.exam : ''}</td>
                 <td style={{ ...TD, fontWeight: 'bold', background: s && s.total > 0 ? '#f0f0f0' : '#fff' }}>
@@ -445,18 +425,25 @@ export const BASIC_SUBJECTS = [
 export const BASIC_CA_MAX   = 15;
 export const BASIC_EXAM_MAX = 50;
 
-export type BasicScores = Partial<Record<string, { ca1: number; ca2: number; exam: number }>>;
+export type BasicScores = Partial<Record<string, { ca1: number; ca2: number; exam: number; project?: number; homework?: number }>>;
 
 export function buildBasicSubjects(scores: BasicScores): SubjectResult[] {
+  // Direct raw system: scores are stored at face value (ca1 out of 15, exam out of 50, etc.)
+  // No proportional scaling — 15 is 15, 10 is 10, 50 is 50. Caps prevent over-entry.
   return (BASIC_SUBJECTS as readonly string[])
-    .filter(name => { const s = scores[name]; return s && (s.ca1 > 0 || s.ca2 > 0 || s.exam > 0); })
+    .filter(name => {
+      const s = scores[name];
+      return s && (s.ca1 > 0 || s.ca2 > 0 || s.exam > 0 || (s.project && s.project > 0) || (s.homework && s.homework > 0));
+    })
     .map(name => {
       const s = scores[name]!;
-      const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / BASIC_CA_MAX)   * 20) : 0;
-      const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / BASIC_CA_MAX)   * 20) : 0;
-      const exam = s.exam > 0 ? Math.round((s.exam / BASIC_EXAM_MAX) * 60) : 0;
-      const total = ca1 + ca2 + exam;
-      return { subject: name, ca1, ca2, exam, total, ...getNigerianGrade(total) };
+      const ca1      = Math.min(Math.round(s.ca1  ?? 0), 15);
+      const ca2      = Math.min(Math.round(s.ca2  ?? 0), 15);
+      const exam     = Math.min(Math.round(s.exam ?? 0), 50);
+      const project  = Math.min(Math.round(s.project  ?? 0), 10);
+      const homework = Math.min(Math.round(s.homework ?? 0), 10);
+      const total = ca1 + ca2 + project + homework + exam;
+      return { subject: name, ca1, ca2, project, homework, exam, total, ...getNigerianGrade(total) };
     });
 }
 
@@ -464,18 +451,25 @@ export function buildBasicSubjects(scores: BasicScores): SubjectResult[] {
 export const NURSERY_CA_MAX   = 15;
 export const NURSERY_EXAM_MAX = 50;
 
-export type NurseryScores = Partial<Record<string, { ca1: number; ca2: number; exam: number }>>;
+export type NurseryScores = Partial<Record<string, { ca1: number; ca2: number; exam: number; project?: number; homework?: number }>>;
 
 export function buildNurserySubjects(scores: NurseryScores): SubjectResult[] {
+  // Direct raw system: scores are stored at face value (ca1 out of 15, exam out of 50, etc.)
+  // No proportional scaling — 15 is 15, 10 is 10, 50 is 50. Caps prevent over-entry.
   return (NURSERY_SUBJECTS as readonly string[])
-    .filter(name => { const s = scores[name]; return s && (s.ca1 > 0 || s.ca2 > 0 || s.exam > 0); })
+    .filter(name => {
+      const s = scores[name];
+      return s && (s.ca1 > 0 || s.ca2 > 0 || s.exam > 0 || (s.project && s.project > 0) || (s.homework && s.homework > 0));
+    })
     .map(name => {
       const s = scores[name]!;
-      const ca1  = s.ca1  > 0 ? Math.round((s.ca1  / NURSERY_CA_MAX)   * 20) : 0;
-      const ca2  = s.ca2  > 0 ? Math.round((s.ca2  / NURSERY_CA_MAX)   * 20) : 0;
-      const exam = s.exam > 0 ? Math.round((s.exam / NURSERY_EXAM_MAX) * 60) : 0;
-      const total = ca1 + ca2 + exam;
-      return { subject: name, ca1, ca2, exam, total, ...getNigerianGrade(total) };
+      const ca1      = Math.min(Math.round(s.ca1  ?? 0), 15);
+      const ca2      = Math.min(Math.round(s.ca2  ?? 0), 15);
+      const exam     = Math.min(Math.round(s.exam ?? 0), 50);
+      const project  = Math.min(Math.round(s.project  ?? 0), 10);
+      const homework = Math.min(Math.round(s.homework ?? 0), 10);
+      const total = ca1 + ca2 + project + homework + exam;
+      return { subject: name, ca1, ca2, project, homework, exam, total, ...getNigerianGrade(total) };
     });
 }
 
@@ -603,7 +597,7 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
                 </td>
                 <td style={TD}>{s && s.ca1 > 0 ? s.ca1 : ''}</td>
                 <td style={TD}>{s && s.ca2 > 0 ? s.ca2 : ''}</td>
-                <td style={TD}>{/* Project — not stored */}</td>
+                <td style={TD}>{s?.project !== undefined ? s.project : ''}</td>
                 <td style={TD}>{s?.homework !== undefined ? s.homework : ''}</td>
                 <td style={TD}>{s && s.exam > 0 ? s.exam : ''}</td>
                 <td style={{ ...TD, fontWeight: 'bold', background: s && s.total > 0 ? '#f0f0f0' : '#fff' }}>
@@ -1056,7 +1050,7 @@ interface Props {
   onPrint: () => void;
 }
 
-export default function ResultCard({ data, onPrint }: Props) {
+function ResultCard({ data, onPrint }: Props) {
   const level = data.student.classLevel ?? '';
   const isToddler = level === 'toddler';
   const isNursery = level === 'creche';
@@ -1107,3 +1101,5 @@ export default function ResultCard({ data, onPrint }: Props) {
     </>
   );
 }
+
+export default React.memo(ResultCard);

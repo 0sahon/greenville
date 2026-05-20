@@ -3,6 +3,7 @@ import { DollarSign, Search, Plus, X, Download, Layers, Edit2, Trash2, Zap } fro
 import { supabase } from '../../../lib/supabase';
 import type { ProfileRow, FeeRow, FeeInsert, FeeStatus, FeeTemplateRow, FeeTemplateInsert } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
+import { formatNaira } from '../../../lib/format';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
@@ -298,9 +299,9 @@ export default function FeesSection({ profile: _profile }: Props) {
                     <tr key={f.id} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="py-3 px-4 font-medium text-gray-800">{f.students?.profiles?.first_name} {f.students?.profiles?.last_name}</td>
                       <td className="py-3 px-4 text-gray-600">{f.fee_type}</td>
-                      <td className="py-3 px-4 font-medium">₦{Number(f.amount).toLocaleString()}</td>
-                      <td className="py-3 px-4 text-green-600">₦{Number(f.paid_amount ?? 0).toLocaleString()}</td>
-                      <td className="py-3 px-4 font-medium text-red-600">₦{(f.amount - (f.paid_amount ?? 0)).toLocaleString()}</td>
+                      <td className="py-3 px-4 font-medium">{formatNaira(Number(f.amount))}</td>
+                      <td className="py-3 px-4 text-green-600">{formatNaira(Number(f.paid_amount ?? 0))}</td>
+                      <td className="py-3 px-4 font-medium text-red-600">{formatNaira(f.amount - (f.paid_amount ?? 0))}</td>
                       <td className="py-3 px-4 text-gray-500">{new Date(f.due_date).toLocaleDateString()}</td>
                       <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[f.status]}`}>{f.status}</span></td>
                       <td className="py-3 px-4">
@@ -342,7 +343,7 @@ export default function FeesSection({ profile: _profile }: Props) {
                       <tr key={t.id} className="border-b border-gray-50 hover:bg-gray-50">
                         <td className="py-3 px-4 font-medium text-gray-800">{t.name}</td>
                         <td className="py-3 px-4 text-gray-600">{t.fee_type}</td>
-                        <td className="py-3 px-4 font-medium text-gray-800">₦{Number(t.amount).toLocaleString()}</td>
+                        <td className="py-3 px-4 font-medium text-gray-800">{formatNaira(Number(t.amount))}</td>
                         <td className="py-3 px-4 text-gray-500 text-xs">{t.term} · {t.academic_year}</td>
                         <td className="py-3 px-4 text-gray-600">{cls?.name || 'All Classes'}</td>
                         <td className="py-3 px-4 flex items-center gap-1">
@@ -382,7 +383,7 @@ export default function FeesSection({ profile: _profile }: Props) {
               <button onClick={() => { setShowPayment(null); setPaymentAmount(''); }} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
             </div>
             <p className="text-sm text-gray-600 mb-1">{showPayment.students?.profiles?.first_name} {showPayment.students?.profiles?.last_name} · {showPayment.fee_type}</p>
-            <p className="text-xs text-gray-500 mb-4">Balance: ₦{(showPayment.amount - (showPayment.paid_amount ?? 0)).toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mb-4">Balance: {formatNaira(showPayment.amount - (showPayment.paid_amount ?? 0))}</p>
             <input type="number" step="0.01" min="0" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Amount (₦)" />
             <div className="flex gap-3">
@@ -527,7 +528,7 @@ export default function FeesSection({ profile: _profile }: Props) {
             </div>
             <p className="text-sm text-gray-600 mb-1 font-medium">{applyTarget.name}</p>
             <p className="text-xs text-gray-500 mb-4">
-              ₦{Number(applyTarget.amount).toLocaleString()} · {applyTarget.fee_type} · {applyTarget.term}<br />
+              {formatNaira(Number(applyTarget.amount))} · {applyTarget.fee_type} · {applyTarget.term}<br />
               Applies to: {classes.find(c => c.id === applyTarget.applies_to_class)?.name || 'All Classes'}
             </p>
             <p className="text-xs text-gray-500 mb-1">This will create fee records for all active{applyTarget.applies_to_class ? ' students in that class' : ' students'}.</p>

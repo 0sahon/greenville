@@ -1,61 +1,60 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 
 import { useAuth } from './hooks/useAuth';
+import ErrorBoundary from './components/ErrorBoundary';
 import MainWebsite from './components/website/MainWebsite';
 import AuthLayout from './components/auth/AuthLayout';
 import LoginForm from './components/auth/LoginForm';
-import ParentDashboard from './components/dashboards/ParentDashboard';
-import TeacherDashboard from './components/dashboards/TeacherDashboard';
-import AdminDashboard from './components/dashboards/AdminDashboard';
-import StudentDashboard from './components/dashboards/StudentDashboard';
-import KidsLanding from './components/kids/KidsLanding';
 import { LogOut } from 'lucide-react';
 import { SCHOOL_NAME } from './config/schoolBrand';
+
+const AdminDashboard   = lazy(() => import('./components/dashboards/AdminDashboard'));
+const TeacherDashboard = lazy(() => import('./components/dashboards/TeacherDashboard'));
+const ParentDashboard  = lazy(() => import('./components/dashboards/ParentDashboard'));
+const StudentDashboard = lazy(() => import('./components/dashboards/StudentDashboard'));
+const KidsLanding      = lazy(() => import('./components/kids/KidsLanding'));
+
+const Spinner = () => (
+  <div className="min-h-screen bg-gradient-to-br from-orange-50 via-blue-50 to-green-50 flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-16 h-16 border-4 border-orange-300 border-t-orange-600 rounded-full animate-spin mx-auto mb-4" />
+      <p className="text-gray-600 text-lg">Loading {SCHOOL_NAME}...</p>
+    </div>
+  </div>
+);
 
 function App() {
   const { user, profile, loading, signOut } = useAuth();
   const [showMainWebsite, setShowMainWebsite] = useState(true);
   const [showKidsZone, setShowKidsZone] = useState(false);
 
-  if (loading) {
+  if (loading) return <Spinner />;
+
+  if (showKidsZone) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-blue-50 to-green-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-orange-300 border-t-orange-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading {SCHOOL_NAME}...</p>
-        </div>
-      </div>
+      <ErrorBoundary label="Kids Zone">
+        <Suspense fallback={<Spinner />}>
+          <KidsLanding onBack={() => {
+            setShowKidsZone(false);
+            if (!user) setShowMainWebsite(true);
+          }} />
+        </Suspense>
+      </ErrorBoundary>
     );
   }
 
-  // Show Kids Zone if requested
-  if (showKidsZone) {
-    return <KidsLanding onBack={() => {
-      setShowKidsZone(false);
-      if (!user) setShowMainWebsite(true);
-    }} />;
-  }
-
-  // Show main website if not authenticated
   if (!user && showMainWebsite) {
     return (
       <MainWebsite
         onLoginClick={() => setShowMainWebsite(false)}
-        onKidsZoneClick={() => {
-          setShowKidsZone(true);
-          setShowMainWebsite(false);
-        }}
+        onKidsZoneClick={() => { setShowKidsZone(true); setShowMainWebsite(false); }}
       />
     );
   }
 
   if (!user || !profile) {
     return (
-      <AuthLayout
-        title="Welcome Back!"
-        subtitle="Please sign in to access your account"
-      >
-        {/* Back to Website Link */}
+      <AuthLayout title="Welcome Back!" subtitle="Please sign in to access your account">
         <div className="text-center mb-4">
           <button
             onClick={() => setShowMainWebsite(true)}
@@ -64,23 +63,37 @@ function App() {
             ← Back to Main Website
           </button>
         </div>
-
         <LoginForm onSuccess={() => {}} />
       </AuthLayout>
     );
   }
 
-  // Render appropriate dashboard based on role
   const renderDashboard = () => {
     switch (profile.role) {
       case 'parent':
-        return <ParentDashboard profile={profile} />;
+        return (
+          <ErrorBoundary label="Parent Dashboard">
+            <Suspense fallback={<Spinner />}><ParentDashboard profile={profile} /></Suspense>
+          </ErrorBoundary>
+        );
       case 'teacher':
-        return <TeacherDashboard profile={profile} />;
+        return (
+          <ErrorBoundary label="Teacher Dashboard">
+            <Suspense fallback={<Spinner />}><TeacherDashboard profile={profile} /></Suspense>
+          </ErrorBoundary>
+        );
       case 'admin':
-        return <AdminDashboard profile={profile} />;
+        return (
+          <ErrorBoundary label="Admin Dashboard">
+            <Suspense fallback={<Spinner />}><AdminDashboard profile={profile} /></Suspense>
+          </ErrorBoundary>
+        );
       case 'student':
-        return <StudentDashboard profile={profile} />;
+        return (
+          <ErrorBoundary label="Student Dashboard">
+            <Suspense fallback={<Spinner />}><StudentDashboard profile={profile} /></Suspense>
+          </ErrorBoundary>
+        );
       default:
         return (
           <div className="min-h-screen bg-gray-100 flex items-center justify-center">
