@@ -19,10 +19,10 @@ interface StudentInClass {
 }
 
 const LEVEL_LABELS: Record<ClassLevel, string> = {
-  creche: 'Creche', basic1: 'Basic 1', basic2: 'Basic 2', basic3: 'Basic 3',
+  creche: 'Creche', toddler: 'Toddler (Pre-KG)', basic1: 'Basic 1', basic2: 'Basic 2', basic3: 'Basic 3',
   basic4: 'Basic 4', basic5: 'Basic 5', basic6: 'Basic 6',
 };
-const LEVEL_ORDER: ClassLevel[] = ['creche', 'basic1', 'basic2', 'basic3', 'basic4', 'basic5', 'basic6'];
+const LEVEL_ORDER: ClassLevel[] = ['creche', 'toddler', 'basic1', 'basic2', 'basic3', 'basic4', 'basic5', 'basic6'];
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);

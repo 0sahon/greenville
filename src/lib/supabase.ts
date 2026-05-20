@@ -9,7 +9,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // DB enums (match PostgreSQL enums)
 export type UserRole = 'admin' | 'teacher' | 'parent' | 'student';
-export type ClassLevel = 'creche' | 'basic1' | 'basic2' | 'basic3' | 'basic4' | 'basic5' | 'basic6';
+export type ClassLevel = 'creche' | 'toddler' | 'basic1' | 'basic2' | 'basic3' | 'basic4' | 'basic5' | 'basic6';
 export type FeeStatus = 'pending' | 'partial' | 'paid' | 'overdue';
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 export type AnnouncementPriority = 'low' | 'normal' | 'high' | 'urgent';

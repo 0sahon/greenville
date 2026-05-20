@@ -1695,6 +1695,7 @@ export type Database = {
       attendance_status: "present" | "absent" | "late" | "excused"
       class_level:
         | "creche"
+        | "toddler"
         | "basic1"
         | "basic2"
         | "basic3"
@@ -1836,6 +1837,7 @@ export const Constants = {
       attendance_status: ["present", "absent", "late", "excused"],
       class_level: [
         "creche",
+        "toddler",
         "basic1",
         "basic2",
         "basic3",

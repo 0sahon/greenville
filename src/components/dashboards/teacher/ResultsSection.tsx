@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
-import ResultCard, { getNigerianGrade, printResultCard } from '../admin/ResultCard';
+import ResultCard, { getNigerianGrade, printResultCard, PRE_KG_SKILLS, PRE_KG_COMMENTS } from '../admin/ResultCard';
 import type { ResultCardData, SubjectResult } from '../admin/ResultCard';
 import type { ProfileRow, GradeRow } from '../../../lib/supabase';
 import PerformanceChart from '../shared/PerformanceChart';
@@ -104,6 +104,9 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [metaForm, setMetaForm] = useState<ResultSheetMeta>(defaultMeta);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [preKgRatings, setPreKgRatings] = useState<Partial<Record<string, number>>>({});
+
+  const isToddlerStudent = activeStudent?.classes?.level === 'toddler';
 
   useEffect(() => {
     supabase.from('classes').select('id, name').eq('teacher_id', profile.id).order('name').then(({ data }) => {
@@ -148,11 +151,22 @@ export default function TeacherResultsSection({ profile }: Props) {
 
   useEffect(() => { loadStudents(); }, [loadStudents]);
 
+  const buildPreKgSubjects = (ratings: Partial<Record<string, number>>): SubjectResult[] =>
+    PRE_KG_SKILLS
+      .filter(s => (ratings[s.name] ?? 0) > 0)
+      .map(s => {
+        const r = ratings[s.name] ?? 0;
+        const ca1 = Math.round((r / 5) * 20);
+        return { subject: s.name, ca1, ca2: 0, exam: 0, total: ca1, grade: '', remark: '' };
+      });
+
   const openCard = async (student: StudentInfo) => {
     setActiveStudent(student);
     setModalTab('preview');
     setDeleteConfirm(false);
     setLoadingCard(true);
+
+    const isToddler = student.classes?.level === 'toddler';
 
     const [{ data: sheet }, { data: gradeRows }, { data: classGrades }] = await Promise.all([
       supabase.from('result_sheets').select('*').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear).maybeSingle(),
@@ -161,14 +175,28 @@ export default function TeacherResultsSection({ profile }: Props) {
     ]);
 
     const rs = sheet as ResultSheetMeta | null;
-    const subs = computeSubjects((gradeRows || []) as GradeRow[]);
+    const allGradeRows = (gradeRows || []) as GradeRow[];
+
+    // For toddler: separate pre_kg grades from academic grades
+    let subs: SubjectResult[];
+    let ratings: Record<string, number> = {};
+    if (isToddler) {
+      const pkGrades = allGradeRows.filter(g => g.assessment_type === 'pre_kg');
+      pkGrades.forEach(g => { ratings[g.subject] = g.score; });
+      setPreKgRatings(ratings);
+      subs = buildPreKgSubjects(ratings);
+    } else {
+      subs = computeSubjects(allGradeRows);
+    }
     setSubjects(subs);
 
     // Compute class stats
     const allGrades = (classGrades || []) as GradeRow[];
     const grandTotals = students.map(s => {
       const sg = allGrades.filter(g => g.student_id === s.id);
-      const ssubs = computeSubjects(sg);
+      const ssubs = s.classes?.level === 'toddler'
+        ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [g.subject, g.score])))
+        : computeSubjects(sg);
       return ssubs.reduce((a, sub) => a + sub.total, 0);
     }).filter(t => t > 0);
     const myTotal = subs.reduce((a, s) => a + s.total, 0);
@@ -206,6 +234,14 @@ export default function TeacherResultsSection({ profile }: Props) {
       schoolAddress: `${SCHOOL_ADDRESS_SINGLE} · TEL: ${SCHOOL_PHONE_DISPLAY}`,
     });
     setLoadingCard(false);
+  };
+
+  const updatePreKgRating = (skillName: string, rating: number) => {
+    const updated: Partial<Record<string, number>> = { ...preKgRatings, [skillName]: rating === 0 ? undefined : rating };
+    setPreKgRatings(updated);
+    const newSubs = buildPreKgSubjects(updated);
+    setSubjects(newSubs);
+    setCardData(prev => prev ? { ...prev, subjects: newSubs } : null);
   };
 
   // Sync cardData behavior/comments/attendance when metaForm changes in Edit tab
@@ -254,6 +290,33 @@ export default function TeacherResultsSection({ profile }: Props) {
       };
       const { error } = await supabase.from('result_sheets').upsert(payload, { onConflict: 'student_id,term,academic_year' });
       if (error) throw error;
+
+      // Save pre-KG skill ratings as grades (delete then insert)
+      if (activeStudent.classes?.level === 'toddler') {
+        await supabase.from('grades')
+          .delete()
+          .eq('student_id', activeStudent.id)
+          .eq('assessment_type', 'pre_kg')
+          .eq('term', selectedTerm)
+          .eq('academic_year', academicYear);
+        const gradeRows = PRE_KG_SKILLS
+          .filter(s => (preKgRatings[s.name] || 0) > 0)
+          .map(s => ({
+            student_id: activeStudent.id,
+            subject: s.name,
+            assessment_type: 'pre_kg',
+            score: preKgRatings[s.name] ?? 0,
+            max_score: 5,
+            term: selectedTerm,
+            academic_year: academicYear,
+            graded_by: profile.id,
+          }));
+        if (gradeRows.length > 0) {
+          const { error: gErr } = await supabase.from('grades').insert(gradeRows);
+          if (gErr) throw gErr;
+        }
+      }
+
       setToast({ msg: 'Result sheet saved', type: 'success' });
       setResultSheets(prev => ({ ...prev, [activeStudent.id]: metaForm }));
       loadStudents();
@@ -490,6 +553,66 @@ export default function TeacherResultsSection({ profile }: Props) {
                   {/* ── Edit Tab ── */}
                   {modalTab === 'edit' && (
                     <div className="space-y-6">
+
+                      {/* ── Pre-KG Skill Ratings (toddler class only) ── */}
+                      {isToddlerStudent && (
+                        <div>
+                          <h4 className="font-semibold text-gray-800 text-sm mb-1">Skill Ratings — Toddler Pre-KG</h4>
+                          <p className="text-xs text-gray-400 mb-3">Select a rating for each skill area. Click a button for quick entry or choose from the dropdown.</p>
+                          <div className="grid grid-cols-1 gap-3">
+                            {PRE_KG_SKILLS.map(skill => {
+                              const current = preKgRatings[skill.name] || 0;
+                              return (
+                                <div key={skill.name} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                                  <div className="flex items-center justify-between gap-2 mb-2">
+                                    <span className="text-sm font-semibold text-gray-700">{skill.name}</span>
+                                    {current > 0 && (
+                                      <span className="text-xs text-indigo-600 font-medium italic truncate max-w-[200px]">
+                                        {PRE_KG_COMMENTS[skill.name]?.[current]}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {/* Quick-select buttons */}
+                                  <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {[
+                                      { r: 5, label: 'Excellent',         cls: 'bg-green-100 text-green-800 border-green-300' },
+                                      { r: 4, label: 'Very Good',         cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+                                      { r: 3, label: 'Good',              cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+                                      { r: 2, label: 'Fair',              cls: 'bg-orange-100 text-orange-800 border-orange-300' },
+                                      { r: 1, label: 'Needs Improvement', cls: 'bg-red-100 text-red-800 border-red-300' },
+                                    ].map(({ r, label, cls }) => (
+                                      <button
+                                        key={r}
+                                        onClick={() => updatePreKgRating(skill.name, current === r ? 0 : r)}
+                                        className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-all ${
+                                          current === r
+                                            ? cls + ' ring-2 ring-offset-1 ring-indigo-400'
+                                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                                        }`}
+                                      >
+                                        {label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  {/* Manual select dropdown */}
+                                  <select
+                                    value={current}
+                                    onChange={e => updatePreKgRating(skill.name, Number(e.target.value))}
+                                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                  >
+                                    <option value={0}>— Not rated —</option>
+                                    {[5, 4, 3, 2, 1].map(r => (
+                                      <option key={r} value={r}>
+                                        {['', 'Needs Improvement', 'Fair', 'Good', 'Very Good', 'Excellent'][r]} — {PRE_KG_COMMENTS[skill.name]?.[r]}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Attendance */}
                       <div>
