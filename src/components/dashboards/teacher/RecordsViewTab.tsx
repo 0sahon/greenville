@@ -1,0 +1,309 @@
+import { useState, useEffect, useCallback } from 'react';
+import { BarChart3, Search, Plus, X, Edit2, Trash2, Download } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
+import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
+import type { ProfileRow, GradeRow, ClassRow } from '../../../lib/supabase';
+import { nigerianGrade } from '../../../lib/grading';
+
+interface GradeWithStudent extends GradeRow {
+  students?: { id: string; student_id: string; profiles?: { first_name: string; last_name: string }; classes?: { id: string; name: string }; } | null;
+}
+interface StudentOption { id: string; student_id: string; profiles?: { first_name: string; last_name: string } | null; }
+
+const ASSESSMENT_TYPES = ['Home Work', '1st CA', '2nd CA', 'Project', 'Exam', 'Test', 'CA', 'Assignment', 'Quiz'];
+const DEFAULT_MAX: Record<string, number> = { 'Home Work': 10, '1st CA': 15, '2nd CA': 15, 'Project': 10, 'Exam': 50, 'Test': 30 };
+
+function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
+  return (
+    <div className={`fixed bottom-6 right-6 z-[100] px-5 py-3 rounded-xl shadow-xl text-white text-sm font-medium flex items-center gap-2 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+      {msg}<button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100"><X className="w-4 h-4" /></button>
+    </div>
+  );
+}
+
+export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
+  const [grades, setGrades] = useState<GradeWithStudent[]>([]);
+  const [myClasses, setMyClasses] = useState<Pick<ClassRow, 'id' | 'name'>[]>([]);
+  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [search, setSearch] = useState('');
+  const [filterClass, setFilterClass] = useState('');
+  const [filterTerm, setFilterTerm] = useState('First Term');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<GradeWithStudent | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    student_id: '', subject: '', assessment_type: '1st CA',
+    score: '', max_score: '15', term: 'First Term', academic_year: getDefaultAcademicYear(),
+  });
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: allClasses } = await supabase.from('classes').select('id, name').order('name');
+      setMyClasses((allClasses || []) as Pick<ClassRow, 'id' | 'name'>[]);
+      const { data: ownClassIds } = await supabase.from('classes').select('id').eq('teacher_id', profile.id);
+      const ids = (ownClassIds || []).map((c: { id: string }) => c.id);
+      if (ids.length > 0) {
+        const { data } = await supabase.from('students').select('id, student_id, profiles:profile_id(first_name,last_name)').in('class_id', ids).eq('is_active', true).order('student_id');
+        setStudents((data || []) as unknown as StudentOption[]);
+      } else {
+        const { data } = await supabase.from('students').select('id, student_id, profiles:profile_id(first_name,last_name)').eq('is_active', true).order('student_id');
+        setStudents((data || []) as unknown as StudentOption[]);
+      }
+    };
+    load();
+  }, [profile.id]);
+
+  const fetchGrades = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('grades')
+      .select('id, subject, assessment_type, score, max_score, term, academic_year, created_at, student_id, students:student_id(id, student_id, profiles:profile_id(first_name,last_name), classes:class_id(id, name))')
+      .eq('term', filterTerm)
+      .eq('academic_year', getDefaultAcademicYear())
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) setToast({ msg: error.message, type: 'error' });
+    setGrades((data || []) as GradeWithStudent[]);
+    setLoading(false);
+  }, [filterTerm]);
+
+  useEffect(() => { fetchGrades(); }, [fetchGrades]);
+
+  const subjects = [...new Set(grades.map(g => g.subject))].sort();
+
+  const filtered = grades.filter(g => {
+    const name = `${g.students?.profiles?.first_name ?? ''} ${g.students?.profiles?.last_name ?? ''}`.toLowerCase();
+    return (
+      (!search || name.includes(search.toLowerCase()) || g.subject.toLowerCase().includes(search.toLowerCase()) || g.students?.student_id?.toLowerCase().includes(search.toLowerCase())) &&
+      (!filterClass || g.students?.classes?.id === filterClass) &&
+      (!filterTerm || g.term === filterTerm) &&
+      (!filterSubject || g.subject === filterSubject)
+    );
+  });
+
+  const exportCSV = () => {
+    const rows = [['Student', 'ID', 'Class', 'Subject', 'Type', 'Score', 'Max', 'Grade', 'Term']];
+    filtered.forEach(g => {
+      const { label } = nigerianGrade(g.score, g.max_score);
+      rows.push([`${g.students?.profiles?.first_name ?? ''} ${g.students?.profiles?.last_name ?? ''}`.trim(), g.students?.student_id ?? '', g.students?.classes?.name ?? '', g.subject, g.assessment_type, String(g.score), String(g.max_score), label, g.term]);
+    });
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows.map(r => r.join(',')).join('\n'));
+    a.download = 'grades.csv'; a.click();
+  };
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm({ student_id: '', subject: '', assessment_type: '1st CA', score: '', max_score: '15', term: filterTerm || 'First Term', academic_year: getDefaultAcademicYear() });
+    setShowModal(true);
+  };
+  const openEdit = (g: GradeWithStudent) => {
+    setEditing(g);
+    setForm({ student_id: g.student_id, subject: g.subject, assessment_type: g.assessment_type, score: String(g.score), max_score: String(g.max_score), term: g.term, academic_year: g.academic_year });
+    setShowModal(true);
+  };
+
+  const save = async () => {
+    if (!form.student_id || !form.subject.trim() || form.score === '') return setToast({ msg: 'Student, subject and score required', type: 'error' });
+    const score = parseFloat(form.score);
+    const max_score = parseFloat(form.max_score) || 100;
+    if (isNaN(score) || score < 0) return setToast({ msg: 'Enter a valid score', type: 'error' });
+    if (score > max_score) return setToast({ msg: `Score cannot exceed ${max_score}`, type: 'error' });
+    setSaving(true);
+    try {
+      const payload = { student_id: form.student_id, subject: form.subject.trim(), assessment_type: form.assessment_type, score, max_score, term: form.term, academic_year: form.academic_year, graded_by: profile.id };
+      if (editing) {
+        const { error } = await supabase.from('grades').update(payload).eq('id', editing.id);
+        if (error) throw error;
+        setToast({ msg: 'Grade updated', type: 'success' });
+      } else {
+        const { error } = await supabase.from('grades').insert(payload);
+        if (error) throw error;
+        setToast({ msg: 'Grade added', type: 'success' });
+      }
+      setShowModal(false); fetchGrades();
+    } catch (e: unknown) { setToast({ msg: e instanceof Error ? e.message : 'Save failed', type: 'error' }); }
+    setSaving(false);
+  };
+
+  const deleteGrade = async (id: string) => {
+    setDeleting(id);
+    const { error } = await supabase.from('grades').delete().eq('id', id);
+    if (error) setToast({ msg: error.message, type: 'error' });
+    else { setToast({ msg: 'Deleted', type: 'success' }); fetchGrades(); }
+    setDeleting(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+      <div className="flex flex-wrap gap-2 items-center justify-between">
+        <div className="flex flex-wrap gap-2 flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-52" />
+          </div>
+          <select value={filterClass} onChange={e => setFilterClass(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+            <option value="">All classes</option>
+            {myClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+            <option value="">All subjects</option>
+            {subjects.map(s => <option key={s}>{s}</option>)}
+          </select>
+          <select value={filterTerm} onChange={e => setFilterTerm(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+            <option value="">All terms</option>
+            {TERMS.map(t => <option key={t}>{t}</option>)}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+            <Download className="w-4 h-4" /> CSV
+          </button>
+          <button onClick={openAdd} className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700">
+            <Plus className="w-4 h-4" /> Add
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" /></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500 uppercase text-left">
+                  <th className="py-3 px-4">Student</th>
+                  <th className="py-3 px-4">Class</th>
+                  <th className="py-3 px-4">Subject</th>
+                  <th className="py-3 px-4">Type</th>
+                  <th className="py-3 px-4">Score</th>
+                  <th className="py-3 px-4">Grade</th>
+                  <th className="py-3 px-4">Term</th>
+                  <th className="py-3 px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(g => {
+                  const { label, color } = nigerianGrade(g.score, g.max_score);
+                  return (
+                    <tr key={g.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="py-2.5 px-4">
+                        <div className="font-medium text-gray-800">{g.students?.profiles?.first_name} {g.students?.profiles?.last_name}</div>
+                        <div className="text-xs text-gray-400 font-mono">{g.students?.student_id}</div>
+                      </td>
+                      <td className="py-2.5 px-4 text-gray-600 text-sm">{g.students?.classes?.name ?? '—'}</td>
+                      <td className="py-2.5 px-4 text-gray-700">{g.subject}</td>
+                      <td className="py-2.5 px-4 text-gray-500 text-xs">{g.assessment_type}</td>
+                      <td className="py-2.5 px-4 font-semibold tabular-nums">{g.score}/{g.max_score}</td>
+                      <td className="py-2.5 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span></td>
+                      <td className="py-2.5 px-4 text-gray-400 text-xs">{g.term}</td>
+                      <td className="py-2.5 px-4">
+                        <div className="flex gap-1">
+                          <button onClick={() => openEdit(g)} className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500"><Edit2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => deleteGrade(g.id)} disabled={deleting === g.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400 disabled:opacity-40">
+                            {deleting === g.id ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={8} className="text-center py-12 text-gray-400">
+                    {grades.length === 0 ? 'No grades yet — use Grade Sheet to enter scores.' : 'No records match the filters.'}
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b">
+              <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-purple-500" /> {editing ? 'Edit Grade' : 'Add Grade'}
+              </h3>
+              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Student *</label>
+                <select value={form.student_id} onChange={e => setForm(f => ({ ...f, student_id: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  <option value="">Select student…</option>
+                  {students.map(s => <option key={s.id} value={s.id}>{s.profiles?.first_name} {s.profiles?.last_name} ({s.student_id})</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Subject *</label>
+                {subjects.length > 0 ? (
+                  <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                    <option value="">Select subject…</option>
+                    {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                ) : (
+                  <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="e.g. Mathematics"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Type</label>
+                <select value={form.assessment_type}
+                  onChange={e => { const t = e.target.value; setForm(f => ({ ...f, assessment_type: t, ...(DEFAULT_MAX[t] ? { max_score: String(DEFAULT_MAX[t]) } : {}) })); }}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  {ASSESSMENT_TYPES.map(t => <option key={t}>{t}{DEFAULT_MAX[t] ? ` (max ${DEFAULT_MAX[t]})` : ''}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Score *</label>
+                  <input type="number" inputMode="numeric" autoComplete="off" min={0} step={0.5} value={form.score} onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
+                  <input type="number" inputMode="numeric" autoComplete="off" min={1} value={form.max_score} onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Term</label>
+                  <select value={form.term} onChange={e => setForm(f => ({ ...f, term: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                    {TERMS.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Academic Year</label>
+                  <select value={form.academic_year} onChange={e => setForm(f => ({ ...f, academic_year: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                    {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t">
+              <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={save} disabled={saving} className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
+                {saving ? 'Saving…' : editing ? 'Update' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
