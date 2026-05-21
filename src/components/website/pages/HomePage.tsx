@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Star, Heart, Sparkles, BookOpen, Users, Award, Phone, Camera, Check } from 'lucide-react';
+import { ArrowRight, Star, Heart, Sparkles, BookOpen, Users, Award, Phone, Camera, Check, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SCHOOL_NAME, SCHOOL_TAGLINE } from '../../../config/schoolBrand';
 
 interface HomePageProps {
-  onScheduleTour: () => void;
+  onParentPortal: () => void;
 }
 
-export default function HomePage({ onScheduleTour }: HomePageProps) {
+export default function HomePage({ onParentPortal }: HomePageProps) {
   const navigate = useNavigate();
 
   const handleOurPrograms = () => {
@@ -77,11 +77,11 @@ export default function HomePage({ onScheduleTour }: HomePageProps) {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <button
-                  onClick={onScheduleTour}
+                  onClick={onParentPortal}
                   className="bg-gradient-to-r from-indigo-600 to-indigo-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:from-indigo-700 hover:to-indigo-600 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
                 >
-                  Schedule a Tour
-                  <ArrowRight className="w-5 h-5" />
+                  <LogIn className="w-5 h-5" />
+                  Parent Portal
                 </button>
                 
                 <button 
@@ -260,15 +260,15 @@ export default function HomePage({ onScheduleTour }: HomePageProps) {
           </div>
           <h2 className="text-4xl font-black mb-6">Ready to Begin Your Child's Journey? 🚀</h2>
           <p className="text-xl mb-8 opacity-90 font-medium">
-            Schedule a visit today to see our beautiful learning environment in action and meet our wonderful Guides!
+            Join our Parent Portal to track your child's progress, access grades, view timetables, and stay connected with our Guides!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={onScheduleTour}
+              onClick={onParentPortal}
               className="bg-white text-indigo-700 px-8 py-4 rounded-full font-extrabold text-lg hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 mx-auto sm:mx-0"
             >
-              <Phone className="w-5 h-5" />
-              Book a Tour Now!
+              <LogIn className="w-5 h-5" />
+              Access Parent Portal
             </button>
             <button 
               onClick={() => navigate('/contact')}

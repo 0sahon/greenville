@@ -19,15 +19,11 @@ interface MainWebsiteProps {
 export default function MainWebsite({ onLoginClick, onKidsZoneClick }: MainWebsiteProps) {
   const navigate = useNavigate();
 
-  const handleScheduleTour = () => {
-    navigate('/contact');
-  };
-
   return (
     <div className="min-h-screen bg-white">
       <Header onLoginClick={onLoginClick} onKidsZoneClick={onKidsZoneClick} />
       <Routes>
-        <Route path="/" element={<HomePage onScheduleTour={handleScheduleTour} />} />
+        <Route path="/" element={<HomePage onParentPortal={onLoginClick} />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/programs" element={<ProgramsPage />} />
         <Route path="/academics" element={<AcademicsPage />} />
