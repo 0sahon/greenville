@@ -108,7 +108,14 @@ export default function ResultCardModal({
 
         <div className="p-6">
 
-          {/* Preview tab */}
+          {/* Preview tab — show spinner while cardData loads */}
+          {modalTab === 'preview' && !cardData && (
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+              <div className="w-8 h-8 border-4 border-green-300 border-t-green-600 rounded-full animate-spin" />
+              <p className="text-sm">Loading result card…</p>
+            </div>
+          )}
+
           {modalTab === 'preview' && cardData && (
             <div className="space-y-5">
               <ResultCard data={cardData} onPrint={() => printResultCard(`${student.profiles?.first_name} ${student.profiles?.last_name}`, isNurseryStudent || isToddlerStudent)} />
@@ -388,18 +395,42 @@ export default function ResultCardModal({
               {/* Remarks */}
               <div className="space-y-3">
                 <h4 className="font-semibold text-gray-800 text-sm mb-1">Remarks</h4>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Class Teacher's Remark</label>
-                  <textarea rows={3} value={metaForm.teacher_comment} onChange={e => setMetaForm(f => ({ ...f, teacher_comment: e.target.value }))}
-                    placeholder="e.g. A diligent student who shows great potential…"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Proprietress' Remark</label>
-                  <textarea rows={3} value={metaForm.principal_comment} onChange={e => setMetaForm(f => ({ ...f, principal_comment: e.target.value }))}
-                    placeholder="e.g. Excellent performance. We are proud of your achievements!"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
-                </div>
+                {(isToddlerStudent || isNurseryStudent) ? (
+                  <>
+                    <p className="text-xs text-indigo-600 bg-indigo-50 rounded-lg px-3 py-2 border border-indigo-100">
+                      Keep remarks short — 3 to 7 words (e.g. "Great effort this term!", "Well done, keep it up!")
+                    </p>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Class Teacher's Remark</label>
+                      <input type="text" value={metaForm.teacher_comment}
+                        onChange={e => setMetaForm(f => ({ ...f, teacher_comment: e.target.value }))}
+                        placeholder="e.g. Great effort this term!"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Proprietress' Remark</label>
+                      <input type="text" value={metaForm.principal_comment}
+                        onChange={e => setMetaForm(f => ({ ...f, principal_comment: e.target.value }))}
+                        placeholder="e.g. Well done, keep it up!"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Class Teacher's Remark</label>
+                      <textarea rows={3} value={metaForm.teacher_comment} onChange={e => setMetaForm(f => ({ ...f, teacher_comment: e.target.value }))}
+                        placeholder="e.g. A diligent student who shows great potential…"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Proprietress' Remark</label>
+                      <textarea rows={3} value={metaForm.principal_comment} onChange={e => setMetaForm(f => ({ ...f, principal_comment: e.target.value }))}
+                        placeholder="e.g. Excellent performance. We are proud of your achievements!"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Next term */}
