@@ -8,7 +8,6 @@ import ResultCard, {
   BASIC_SUBJECTS, BASIC_CA_MAX, BASIC_EXAM_MAX,
 } from './ResultCard';
 import type { ResultCardData, SubjectResult, NurseryScores, BasicScores } from './ResultCard';
-import PerformanceChart from '../shared/PerformanceChart';
 
 export const defaultMeta = {
   teacher_comment: '', principal_comment: '',
@@ -78,7 +77,7 @@ interface Props {
 export default function ResultCardModal({
   student, term, academicYear,
   modalTab, onTabChange, onClose,
-  cardData, activeSubjects,
+  cardData,
   isNurseryStudent, isToddlerStudent, isBasicStudent,
   nurseryScores, basicScores, preKgRatings,
   onNurseryScore, onBasicScore, onPreKgRating,
@@ -129,20 +128,36 @@ export default function ResultCardModal({
 
           {modalTab === 'preview' && cardData && (
             <div className="space-y-5">
-              <ResultCard data={cardData} onPrint={() => printResultCard(`${student.profiles?.first_name} ${student.profiles?.last_name}`, isNurseryStudent || isToddlerStudent)} />
+              {/* Scrollable + auto-scaled wrapper so the fixed-width card is readable on phones */}
+              <div className="overflow-x-auto -mx-6 px-6">
+                <div style={{ minWidth: isToddlerStudent ? 760 : 620 }}>
+                  <ResultCard data={cardData} onPrint={() => printResultCard(`${student.profiles?.first_name} ${student.profiles?.last_name}`, isNurseryStudent || isToddlerStudent)} />
+                </div>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => {
                     const lvl = student?.classes?.level;
                     const landscape = lvl === 'creche' || lvl === 'toddler';
-                    onToast('Tip: In the print dialog, select "Save as PDF" as destination', 'success');
+                    const hint = landscape
+                      ? 'Tip: Select "Landscape" orientation in the print dialog, then "Save as PDF"'
+                      : 'Tip: In the print dialog, select "Save as PDF" as destination';
+                    onToast(hint, 'success');
                     printResultCard(`${student?.profiles?.first_name} ${student?.profiles?.last_name}`, landscape);
                   }}
                   className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700">
                   <Download className="w-3.5 h-3.5" /> Export as PDF
                 </button>
                 {metaForm.is_published && (
-                  <button onClick={onShareWhatsApp}
+                  <button
+                    onClick={() => {
+                      // Step 1: open print/save-as-PDF dialog so user gets the file
+                      const lvl = student?.classes?.level;
+                      const landscape = lvl === 'creche' || lvl === 'toddler';
+                      printResultCard(`${student?.profiles?.first_name} ${student?.profiles?.last_name}`, landscape);
+                      // Step 2: after brief delay, open WhatsApp so user can attach the saved PDF
+                      setTimeout(() => onShareWhatsApp(), 800);
+                    }}
                     className="flex items-center gap-1.5 px-3 py-2 bg-green-500 text-white rounded-xl text-xs font-semibold hover:bg-green-600">
                     <MessageCircle className="w-3.5 h-3.5" /> Share via WhatsApp
                   </button>
@@ -153,10 +168,6 @@ export default function ResultCardModal({
                   </span>
                 )}
               </div>
-              {/* Toddler uses word-based skill ratings — percentage chart is meaningless */}
-              {!isToddlerStudent && activeSubjects.length > 0 && (
-                <PerformanceChart subjects={activeSubjects} title={`${student.profiles?.first_name} — ${term} Subject Performance`} />
-              )}
             </div>
           )}
 

@@ -86,26 +86,47 @@ export interface ResultCardData {
 export function printResultCard(studentName: string, landscape = false) {
   const el = document.getElementById(RESULT_CARD_PRINT_DOM_ID);
   if (!el) return;
-  const win = window.open('', '_blank', 'width=1050,height=750');
+  // Open at correct proportions so the preview matches the page orientation
+  const [w, h] = landscape ? [1280, 920] : [900, 1100];
+  const win = window.open('', '_blank', `width=${w},height=${h}`);
   if (!win) return;
-  const pageSize = landscape ? 'A4 landscape' : 'A4 portrait';
+  // Explicit mm dimensions beat keyword-only @page in most engines
+  const pageDecl = landscape
+    ? '297mm 210mm'  // A4 landscape: wider than tall
+    : '210mm 297mm'; // A4 portrait
+  const bodyW   = landscape ? '277mm' : '190mm'; // page width minus margins
+  const bodyMH  = landscape ? '196mm' : '277mm';
+  const banner  = landscape
+    ? `<div id="ls-banner" style="font-family:Arial,sans-serif;font-size:12px;color:#555;background:#fffbe6;border:1px solid #f59e0b;border-radius:6px;padding:6px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+         <span style="font-size:16px;">⚠️</span>
+         <span>In the print dialog, set <strong>Orientation → Landscape</strong> (or "Landscape" under Page Setup) if it shows Portrait.</span>
+       </div>`
+    : '';
   win.document.write(`<!DOCTYPE html><html><head>
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Result Sheet – ${studentName}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&display=swap" rel="stylesheet">
 <style>
-  @page { size: ${pageSize}; margin: 6mm 8mm; }
+  /* Primary @page — explicit mm overrides keyword-only in Chrome/Firefox */
+  @page { size: ${pageDecl}; margin: 6mm 8mm; }
+  /* Extra hint for browsers that only read the keyword */
+  @media print {
+    @page { size: ${landscape ? 'landscape' : 'portrait'}; margin: 6mm 8mm; }
+    #ls-banner { display: none !important; }
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { width: ${bodyW}; min-height: ${bodyMH}; }
   body { font-family: 'Fredoka', Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; background: #fff; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #ccc; padding: 3px 5px; }
   img { max-width: 100%; }
 </style>
-</head><body>${el.innerHTML}</body></html>`);
+</head><body>${banner}${el.innerHTML}</body></html>`);
   win.document.close();
-  setTimeout(() => { win.print(); }, 500);
+  setTimeout(() => { win.print(); }, 600);
 }
 
 /* ─── PRIMARY / BASIC Result Card — matches physical "LOWER AND MIDDLE BASIC REPORT SHEET" ── */
