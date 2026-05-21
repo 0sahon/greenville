@@ -164,9 +164,10 @@ export default function ResultsSection({ profile }: Props) {
         });
         setResultSheets(map);
 
-        // Build class chart bars
+        // Build class chart bars — toddler classes use word-based ratings, skip numerical chart
         const allGrades = (allGradesRaw || []) as GradeRow[];
-        const bars: SubjectResult[] = studList
+        const isToddlerClass = studList[0]?.classes?.level === 'toddler';
+        const bars: SubjectResult[] = isToddlerClass ? [] : studList
           .map(s => {
             const sGrades = allGrades.filter(g => g.student_id === s.id);
             const subs = computeSubjects(sGrades);
@@ -252,7 +253,15 @@ export default function ResultsSection({ profile }: Props) {
 
       const stats: OverallClassStat[] = classes.map(cls => {
         const studIds = byClass.get(cls.id) || [];
-        let totalAvg = 0; let count = 0; let published = 0;
+        let published = 0;
+        studIds.forEach(sid => { if (publishedById[sid]) published++; });
+
+        // Toddler/Pre-KG uses word-based ratings — no numerical percentage average
+        if (cls.level === 'toddler') {
+          return { name: cls.name, studentCount: studIds.length, average: 0, grade: '—', remark: 'Skill-based', published };
+        }
+
+        let totalAvg = 0; let count = 0;
         studIds.forEach(sid => {
           const sGrades = allGrades.filter(g => g.student_id === sid);
           const subs = computeSubjects(sGrades);
@@ -260,7 +269,6 @@ export default function ResultsSection({ profile }: Props) {
             totalAvg += Math.round(subs.reduce((a, sub) => a + sub.total, 0) / subs.length);
             count++;
           }
-          if (publishedById[sid]) published++;
         });
         const avg = count > 0 ? Math.round(totalAvg / count) : 0;
         return { name: cls.name, studentCount: studIds.length, average: avg, ...getNigerianGrade(avg), published };
@@ -635,12 +643,15 @@ export default function ResultsSection({ profile }: Props) {
       ]);
 
       const allGrades = (classGradesResult.data || []) as GradeRow[];
+      const isToddlerBulk = students[0]?.classes?.level === 'toddler';
 
-      // Class-wide stats (shared)
+      // Class-wide stats (shared) — route toddler through skill-rating path
       const grandTotalByStudent: Record<string, number> = {};
       students.forEach(s => {
         const sg = allGrades.filter(g => g.student_id === s.id);
-        grandTotalByStudent[s.id] = computeSubjects(sg).reduce((acc, sub) => acc + sub.total, 0);
+        grandTotalByStudent[s.id] = isToddlerBulk
+          ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [(g.subject || '').trim(), g.score]))).reduce((acc, sub) => acc + sub.total, 0)
+          : computeSubjects(sg).reduce((acc, sub) => acc + sub.total, 0);
       });
       const allTotals = Object.values(grandTotalByStudent).filter(t => t > 0);
       const sorted = [...allTotals].sort((a, b) => b - a);
@@ -648,7 +659,9 @@ export default function ResultsSection({ profile }: Props) {
 
       const cards: ResultCardData[] = selected.map((student, idx) => {
         const myGrades = allGrades.filter(g => g.student_id === student.id);
-        const mySubjects = computeSubjects(myGrades);
+        const mySubjects = isToddlerBulk
+          ? buildPreKgSubjects(Object.fromEntries(myGrades.filter(g => g.assessment_type === 'pre_kg').map(g => [(g.subject || '').trim(), g.score])))
+          : computeSubjects(myGrades);
         const myGrandTotal = mySubjects.reduce((acc, s) => acc + s.total, 0);
         const position = sorted.indexOf(myGrandTotal) + 1 || sorted.length + 1;
 
@@ -710,17 +723,23 @@ export default function ResultsSection({ profile }: Props) {
         )),
       ]);
       const allGrades = (classGradesResult.data || []) as GradeRow[];
+      const isToddlerPrintAll = students[0]?.classes?.level === 'toddler';
+
       const grandTotalByStudent: Record<string, number> = {};
       students.forEach(s => {
         const sg = allGrades.filter(g => g.student_id === s.id);
-        grandTotalByStudent[s.id] = computeSubjects(sg).reduce((acc, sub) => acc + sub.total, 0);
+        grandTotalByStudent[s.id] = isToddlerPrintAll
+          ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [(g.subject || '').trim(), g.score]))).reduce((acc, sub) => acc + sub.total, 0)
+          : computeSubjects(sg).reduce((acc, sub) => acc + sub.total, 0);
       });
       const allTotals = Object.values(grandTotalByStudent).filter(t => t > 0);
       const sorted = [...allTotals].sort((a, b) => b - a);
       const classAvg = allTotals.length > 0 ? Math.round(allTotals.reduce((a, b) => a + b, 0) / allTotals.length) : 0;
       const cards: ResultCardData[] = students.map((student, idx) => {
         const myGrades = allGrades.filter(g => g.student_id === student.id);
-        const mySubjects = computeSubjects(myGrades);
+        const mySubjects = isToddlerPrintAll
+          ? buildPreKgSubjects(Object.fromEntries(myGrades.filter(g => g.assessment_type === 'pre_kg').map(g => [(g.subject || '').trim(), g.score])))
+          : computeSubjects(myGrades);
         const myGrandTotal = mySubjects.reduce((acc, s) => acc + s.total, 0);
         const position = sorted.indexOf(myGrandTotal) + 1 || sorted.length + 1;
         const attRecords = (attResultsAll[idx].data || []) as { status: string }[];
@@ -787,7 +806,7 @@ export default function ResultsSection({ profile }: Props) {
   });
 
   // Grade color helper for overview table
-  const gradeColor = (g: string) => g.startsWith('A') ? 'text-green-700' : g.startsWith('B') ? 'text-blue-700' : g.startsWith('C') ? 'text-yellow-700' : 'text-red-700';
+  const gradeColor = (g: string) => g.startsWith('A') ? 'text-green-700' : g.startsWith('B') ? 'text-blue-700' : g.startsWith('C') ? 'text-yellow-700' : (g === '—' || g === '') ? 'text-gray-400' : 'text-red-700';
 
   return (
     <div className="space-y-5">
@@ -1054,7 +1073,13 @@ export default function ResultsSection({ profile }: Props) {
           ) : classView === 'chart' ? (
             /* ── Performance Chart view ── */
             <div className="space-y-5">
-              {classChartBars.length === 0 ? (
+              {selectedClassLevel === 'toddler' ? (
+                <div className="text-center py-12 text-gray-400">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">Skill-based assessment</p>
+                  <p className="text-xs mt-1">Pre-KG/Toddler results use word ratings — no percentage chart available.</p>
+                </div>
+              ) : classChartBars.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p>No grade data for this class / term yet</p>
