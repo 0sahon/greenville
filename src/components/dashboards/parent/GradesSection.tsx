@@ -224,7 +224,7 @@ export default function ParentGradesSection({ profile }: Props) {
               onClick={() => setTab('result')}
               className={`px-4 py-2 transition-all ${tab === 'result' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
             >
-              Result Card
+              Report Card
             </button>
           </div>
 
@@ -353,8 +353,8 @@ export default function ParentGradesSection({ profile }: Props) {
             ) : !resultSheet ? (
               <div className="text-center py-16 text-gray-400">
                 <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="font-medium">No published result card for {filterTerm || TERMS[0]} · {filterYear}</p>
-                <p className="text-xs mt-1">The result will appear here once the school publishes it.</p>
+                <p className="font-medium">No published report card for {filterTerm || TERMS[0]} · {filterYear}</p>
+                <p className="text-xs mt-1">The report card will appear here once the school publishes it.</p>
               </div>
             ) : cardData ? (
               <>

@@ -380,7 +380,7 @@ export default function ResultsSection({ profile }: Props) {
     const { grade, remark } = getNigerianGrade(avg);
     const lines = [
       `🏫 *${schoolName || 'Greenville Montessori Schools'}*`,
-      `📋 *${student.name} — Result Card*`,
+      `📋 *${student.name} — Report Card*`,
       `📚 ${student.className} | ${t} ${yr}`,
       ``,
       `📊 Average: *${avg}%* (${grade} — ${remark})`,
@@ -527,7 +527,7 @@ export default function ResultsSection({ profile }: Props) {
         }
       }
 
-      setToast({ msg: 'Result saved successfully', type: 'success' });
+      setToast({ msg: 'Report card saved successfully', type: 'success' });
       setResultSheets(prev => ({ ...prev, [activeStudent.id]: { ...metaForm } }));
       loadClassData();
     } catch (e: unknown) {
@@ -545,7 +545,7 @@ export default function ResultsSection({ profile }: Props) {
         .eq('term', selectedTerm)
         .eq('academic_year', academicYear);
       if (error) throw error;
-      setToast({ msg: 'Result sheet deleted', type: 'success' });
+      setToast({ msg: 'Report card deleted', type: 'success' });
       setResultSheets(prev => { const n = { ...prev }; delete n[activeStudent.id]; return n; });
       closeModal();
       loadClassData();
@@ -570,7 +570,7 @@ export default function ResultsSection({ profile }: Props) {
       if (!win) { setBulkCards([]); setToast({ msg: 'Pop-up blocked — allow pop-ups and try again', type: 'error' }); return; }
       const pageSize = isLandscapeClass ? 'A4 landscape' : 'A4 portrait';
       win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
-<title>Result Sheets — ${selectedTerm} ${academicYear}</title>
+<title>Report Cards — ${selectedTerm} ${academicYear}</title>
 <style>
   @page { size: ${pageSize}; margin: 6mm 8mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -767,7 +767,7 @@ export default function ResultsSection({ profile }: Props) {
       {/* ── Page Header ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Result Sheets</h2>
+          <h2 className="text-xl font-bold text-gray-900">Report Cards</h2>
           <p className="text-xs text-gray-500 mt-0.5">Terminal report cards — manage, publish and download</p>
         </div>
         {/* Main view toggle */}
@@ -943,7 +943,7 @@ export default function ResultsSection({ profile }: Props) {
             {/* Subject visibility settings button */}
             {(selectedClassLevel === 'basic1' || selectedClassLevel === 'basic2' || selectedClassLevel === 'basic3' || selectedClassLevel === 'basic4' || selectedClassLevel === 'basic5' || selectedClassLevel === 'creche') && (
               <button onClick={() => setSubjectSettingsOpen(o => !o)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border shadow-sm ${subjectSettingsOpen ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border shadow-sm ${subjectSettingsOpen ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
                 <Settings className="w-3.5 h-3.5" /> Subject Visibility
               </button>
             )}
@@ -964,7 +964,7 @@ export default function ResultsSection({ profile }: Props) {
                   {isBulkLoading ? 'Loading…' : `Print (${selectedIds.size})`}
                 </button>
                 <button onClick={() => { setToast({ msg: 'In the print dialog, choose "Save as PDF" as the destination', type: 'success' }); printSelected(); }} disabled={isBulkLoading}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-60 shadow-sm">
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-60 shadow-sm">
                   <Download className="w-3.5 h-3.5" />
                   Export PDF ({selectedIds.size})
                 </button>
@@ -974,24 +974,24 @@ export default function ResultsSection({ profile }: Props) {
 
           {/* Subject Visibility Settings Panel */}
           {subjectSettingsOpen && (selectedClassLevel === 'creche' || ['basic1','basic2','basic3','basic4','basic5'].includes(selectedClassLevel)) && (
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-3">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-purple-900 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
                   <Settings className="w-4 h-4" /> Subject Visibility on Report Card
                 </h4>
-                <span className="text-xs text-purple-600">Toggles apply to all printed cards for this level</span>
+                <span className="text-xs text-indigo-600">Toggles apply to all printed cards for this level</span>
               </div>
               {(['basic1','basic2','basic3','basic4','basic5'].includes(selectedClassLevel)) && (
                 <div>
-                  <p className="text-xs font-medium text-purple-800 mb-2">Basic Subjects:</p>
+                  <p className="text-xs font-medium text-indigo-800 mb-2">Basic Subjects:</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {(BASIC_SUBJECTS as readonly string[]).map(subject => {
                       const key = `basic:${subject}`;
                       const visible = subjectVisibility[key] !== false;
                       return (
-                        <label key={subject} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer text-xs transition-all ${visible ? 'bg-white border-purple-300 text-gray-800' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`}>
+                        <label key={subject} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer text-xs transition-all ${visible ? 'bg-white border-indigo-300 text-gray-800' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`}>
                           <input type="checkbox" checked={visible} onChange={e => toggleSubjectVisibility('basic', subject, e.target.checked)}
-                            className="accent-purple-600 w-3.5 h-3.5 flex-shrink-0" />
+                            className="accent-indigo-600 w-3.5 h-3.5 flex-shrink-0" />
                           {subject}
                         </label>
                       );
@@ -1001,15 +1001,15 @@ export default function ResultsSection({ profile }: Props) {
               )}
               {selectedClassLevel === 'creche' && (
                 <div>
-                  <p className="text-xs font-medium text-purple-800 mb-2">Nursery Subjects:</p>
+                  <p className="text-xs font-medium text-indigo-800 mb-2">Nursery Subjects:</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {(NURSERY_SUBJECTS as readonly string[]).map(subject => {
                       const key = `nursery:${subject}`;
                       const visible = subjectVisibility[key] !== false;
                       return (
-                        <label key={subject} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer text-xs transition-all ${visible ? 'bg-white border-purple-300 text-gray-800' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`}>
+                        <label key={subject} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer text-xs transition-all ${visible ? 'bg-white border-indigo-300 text-gray-800' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`}>
                           <input type="checkbox" checked={visible} onChange={e => toggleSubjectVisibility('nursery', subject, e.target.checked)}
-                            className="accent-purple-600 w-3.5 h-3.5 flex-shrink-0" />
+                            className="accent-indigo-600 w-3.5 h-3.5 flex-shrink-0" />
                           {subject}
                         </label>
                       );

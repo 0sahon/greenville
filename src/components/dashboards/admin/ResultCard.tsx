@@ -1153,7 +1153,7 @@ function ResultCard({ data, onPrint }: Props) {
       <div className="flex justify-end mb-3 print:hidden">
         <button
           onClick={handlePrint}
-          className="flex items-center gap-2 px-5 py-2 bg-blue-900 text-white rounded-lg text-sm font-medium hover:bg-blue-800"
+          className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
         >
           <Printer className="w-4 h-4" /> Print / Save as PDF
         </button>

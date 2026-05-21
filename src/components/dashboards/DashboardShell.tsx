@@ -194,7 +194,7 @@ export default function DashboardShell({
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col bg-gradient-to-b ${gradientFrom} via-indigo-800 ${gradientTo} transition-all duration-300 flex-shrink-0 ${sidebarOpen ? 'w-60' : 'w-16'}`}>
+      <aside className={`hidden lg:flex flex-col bg-gradient-to-b ${gradientFrom} via-indigo-800 ${gradientTo} transition-all duration-300 flex-shrink-0 ${sidebarOpen ? 'w-60' : 'w-16'} h-full`}>
         <SidebarContent />
       </aside>
 

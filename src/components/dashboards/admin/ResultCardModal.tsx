@@ -93,7 +93,7 @@ export default function ResultCardModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
           <div>
             <h3 className="font-bold text-gray-900 text-base">
-              {student.profiles?.first_name} {student.profiles?.last_name} — Result Card
+              {student.profiles?.first_name} {student.profiles?.last_name} — Report Card
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">{term} · {academicYear} · {student.classes?.name}</p>
           </div>
@@ -120,7 +120,7 @@ export default function ResultCardModal({
                     onToast('Tip: In the print dialog, select "Save as PDF" as destination', 'success');
                     printResultCard(`${student?.profiles?.first_name} ${student?.profiles?.last_name}`, landscape);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700">
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700">
                   <Download className="w-3.5 h-3.5" /> Export as PDF
                 </button>
                 {metaForm.is_published && (
@@ -131,7 +131,7 @@ export default function ResultCardModal({
                 )}
                 {!metaForm.is_published && (
                   <span className="flex items-center gap-1 px-3 py-2 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
-                    <EyeOff className="w-3.5 h-3.5" /> Publish result to enable WhatsApp sharing
+                    <EyeOff className="w-3.5 h-3.5" /> Publish report card to enable WhatsApp sharing
                   </span>
                 )}
               </div>
@@ -317,6 +317,55 @@ export default function ResultCardModal({
                 </div>
               )}
 
+              {/* Behavior Ratings for Nursery/Basic */}
+              {(isNurseryStudent || isBasicStudent) && (
+                <div>
+                  <h4 className="font-semibold text-gray-800 text-sm mb-1">Behavior Ratings</h4>
+                  <p className="text-xs text-gray-400 mb-3">Rate student behaviors on a scale of 1-5 (1: Poor, 3: Good, 5: Excellent).</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'punctuality' as const, label: 'Punctuality' },
+                      { key: 'neatness' as const, label: 'Neatness' },
+                      { key: 'honesty' as const, label: 'Honesty' },
+                      { key: 'cooperation' as const, label: 'Cooperation' },
+                      { key: 'attentiveness' as const, label: 'Attentiveness' },
+                      { key: 'politeness' as const, label: 'Politeness' },
+                    ].map(({ key, label }) => {
+                      const val = metaForm[key] ?? 3;
+                      return (
+                        <div key={key} className="flex flex-col gap-1.5 p-3 bg-gray-50 border border-gray-100 rounded-xl">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-700">{label}</span>
+                            <span className="text-xs font-bold text-indigo-600">
+                              {val === 5 ? 'Excellent (5)' : val === 4 ? 'Very Good (4)' : val === 3 ? 'Good (3)' : val === 2 ? 'Fair (2)' : 'Poor (1)'}
+                            </span>
+                          </div>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map(score => {
+                              const active = val === score;
+                              return (
+                                <button
+                                  key={score}
+                                  type="button"
+                                  onClick={() => setMetaForm(f => ({ ...f, [key]: score }))}
+                                  className={`flex-1 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                                    active
+                                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm font-bold scale-[1.02]'
+                                      : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                  }`}
+                                >
+                                  {score}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Attendance */}
               <div>
                 <h4 className="font-semibold text-gray-800 text-sm mb-3">Attendance Record</h4>
@@ -376,7 +425,7 @@ export default function ResultCardModal({
                 <input type="checkbox" id="published" checked={metaForm.is_published} onChange={e => setMetaForm(f => ({ ...f, is_published: e.target.checked }))}
                   className="w-4 h-4 rounded accent-green-700 cursor-pointer" />
                 <label htmlFor="published" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  Publish result — visible to parents
+                  Publish report card — visible to parents
                 </label>
               </div>
 
@@ -387,7 +436,7 @@ export default function ResultCardModal({
                 </button>
                 <button onClick={onSave} disabled={saving} className="flex-1 min-w-[140px] py-2.5 bg-green-700 text-white rounded-xl text-sm font-medium hover:bg-green-800 disabled:opacity-50 flex items-center justify-center gap-2">
                   <Save className="w-4 h-4" />
-                  {saving ? 'Saving…' : 'Save Result Sheet'}
+                  {saving ? 'Saving…' : 'Save Report Card'}
                 </button>
 
                 {hasResultSheet && !deleteConfirm && (
@@ -399,7 +448,7 @@ export default function ResultCardModal({
                 {deleteConfirm && (
                   <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm w-full">
                     <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                    <span className="text-red-700 flex-1">Delete this result sheet permanently?</span>
+                    <span className="text-red-700 flex-1">Delete this report card permanently?</span>
                     <button onClick={onDelete} className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700">Yes, delete</button>
                     <button onClick={() => onDeleteConfirm(false)} className="px-3 py-1 border border-gray-200 rounded-lg text-xs hover:bg-white">Cancel</button>
                   </div>

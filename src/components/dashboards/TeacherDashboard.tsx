@@ -26,7 +26,7 @@ const teacherNav: NavItem[] = [
   { id: 'students',      label: 'My Students',    icon: Users,           color: 'text-indigo-400' },
   { id: 'attendance',    label: 'Attendance',     icon: ClipboardCheck,  color: 'text-cyan-400' },
   { id: 'grades',        label: 'Grades',         icon: BarChart3,       color: 'text-purple-400' },
-  { id: 'results',       label: 'Result Cards',   icon: FileText,        color: 'text-green-400' },
+  { id: 'results',       label: 'Report Cards',   icon: FileText,        color: 'text-green-400' },
   { id: 'lms',           label: 'LMS',            icon: Monitor,        color: 'text-pink-400' },
   { id: 'announcements', label: 'Announcements',  icon: Bell,            color: 'text-orange-400' },
   { id: 'calendar',      label: 'Calendar',       icon: Calendar,        color: 'text-teal-400' },

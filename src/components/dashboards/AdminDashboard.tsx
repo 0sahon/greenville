@@ -46,7 +46,7 @@ const adminNav: NavItem[] = [
   { id: 'lms',           label: 'LMS',            icon: Monitor,         color: 'text-pink-400' },
   { id: 'announcements', label: 'Announcements',  icon: Bell,            color: 'text-orange-400' },
   { id: 'calendar',      label: 'Calendar',       icon: Calendar,        color: 'text-teal-400' },
-  { id: 'results',       label: 'Result Sheets',  icon: FileText,        color: 'text-green-400' },
+  { id: 'results',       label: 'Report Cards',   icon: FileText,        color: 'text-green-400' },
   { id: 'cbt',           label: 'CBT Exams',      icon: MonitorCheck,    color: 'text-violet-400' },
   { id: 'timetable',    label: 'Timetable',      icon: Clock,           color: 'text-cyan-400' },
   { id: 'import',       label: 'Bulk Import',    icon: Upload,          color: 'text-indigo-400' },
