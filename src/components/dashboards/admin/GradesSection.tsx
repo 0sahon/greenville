@@ -21,9 +21,11 @@ interface StudentOption {
   profiles?: { first_name: string; last_name: string } | null;
 }
 
-const ASSESSMENT_TYPES = ['Home Work', '1st CA', '2nd CA', 'Project', 'Exam', 'Test', 'CA', 'Assignment', 'Quiz'];
+const ASSESSMENT_TYPES = ['Home Work', '1st CA', '2nd CA', 'Project', 'Exam', 'Test', 'CA', 'Assignment', 'Quiz', 'Pre-KG Rating'];
 // Montessori Greenville score limits: CA1/15, CA2/15, Project/10, HW/10, Exam/50
-const DEFAULT_MAX: Record<string, number> = { 'Home Work': 10, '1st CA': 15, '2nd CA': 15, 'Project': 10, 'Exam': 50, 'Test': 30 };
+const DEFAULT_MAX: Record<string, number> = { 'Home Work': 10, '1st CA': 15, '2nd CA': 15, 'Project': 10, 'Exam': 50, 'Test': 30, 'Pre-KG Rating': 5 };
+const PRE_KG_SKILLS_LIST = ['Literacy','Understanding','Obedience','Care of Self','Individual Behaviour','Punctuality','Numeracy','Bible Studies','Creative Play','Phonics','Scribbling','Social Habit'];
+const PRE_KG_RATING_LABELS: Record<number, string> = { 5: 'Excellent', 4: 'Very Good', 3: 'Good', 2: 'Fair', 1: 'Needs Improvement' };
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
@@ -47,7 +49,7 @@ function RecordsTab({
   search: string; setSearch: (s: string) => void;
   filterClass: string; setFilterClass: (s: string) => void;
   filterTerm: string; setFilterTerm: (s: string) => void;
-  classes: Pick<ClassRow, 'id' | 'name'>[];
+  classes: Pick<ClassRow, 'id' | 'name' | 'level'>[];
   onRefresh: () => void;
   onToast: (msg: string, type: 'success' | 'error') => void;
 }) {
@@ -193,14 +195,15 @@ function RecordsTab({
               </thead>
               <tbody>
                 {filtered.map(g => {
-                  const { label, color } = nigerianGrade(g.score, g.max_score);
+                  const isPreKg = g.assessment_type === 'pre_kg';
+                  const { label, color } = isPreKg ? { label: PRE_KG_RATING_LABELS[g.score] || String(g.score), color: 'text-indigo-700 bg-indigo-50' } : nigerianGrade(g.score, g.max_score);
                   return (
                     <tr key={g.id} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="py-3 px-4 font-medium text-gray-800">{g.students?.profiles?.first_name} {g.students?.profiles?.last_name}</td>
                       <td className="py-3 px-4 text-gray-600">{g.students?.classes?.name ?? '—'}</td>
                       <td className="py-3 px-4 text-gray-700">{g.subject}</td>
-                      <td className="py-3 px-4 text-gray-500 text-xs">{g.assessment_type}</td>
-                      <td className="py-3 px-4 font-semibold text-gray-800 tabular-nums">{g.score}/{g.max_score}</td>
+                      <td className="py-3 px-4 text-gray-500 text-xs">{isPreKg ? 'Pre-KG Rating' : g.assessment_type}</td>
+                      <td className="py-3 px-4 font-semibold text-gray-800 tabular-nums">{isPreKg ? `${g.score}/5` : `${g.score}/${g.max_score}`}</td>
                       <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span></td>
                       <td className="py-3 px-4 text-gray-500 text-xs">{g.term}</td>
                       <td className="py-3 px-4">
@@ -311,7 +314,7 @@ interface BulkRow { studentId: string; displayId: string; name: string; score: s
 
 function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
   profile: ProfileRow;
-  classes: Pick<ClassRow, 'id' | 'name'>[];
+  classes: Pick<ClassRow, 'id' | 'name' | 'level'>[];
   onRefresh: () => void;
   onToast: (msg: string, type: 'success' | 'error') => void;
 }) {
@@ -324,6 +327,12 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
   const [rows, setRows] = useState<BulkRow[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const selectedClassLevel = classes.find(c => c.id === classId)?.level ?? '';
+  const isToddlerClass = selectedClassLevel === 'toddler';
+
+  // Toddler mode: skill selector + word ratings
+  const [pkSkill, setPkSkill] = useState(PRE_KG_SKILLS_LIST[0]);
 
   const loadStudents = useCallback(async () => {
     if (!classId) { setRows([]); return; }
@@ -350,20 +359,30 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
   const filled = rows.filter(r => r.score !== '').length;
 
   const submit = async () => {
-    if (!subject.trim()) return onToast('Subject is required', 'error');
+    const effectiveSubject = isToddlerClass ? pkSkill : subject.trim();
+    if (!effectiveSubject) return onToast('Subject / skill is required', 'error');
     const validRows = rows.filter(r => r.score !== '' && !isNaN(parseFloat(r.score)));
-    if (validRows.length === 0) return onToast('Enter at least one score', 'error');
-    const outOfRange = validRows.find(r => { const s = parseFloat(r.score); return s < 0 || s > max; });
-    if (outOfRange) return onToast(`Score for ${outOfRange.name} is out of range (0–${max})`, 'error');
+    if (validRows.length === 0) return onToast('Enter at least one rating', 'error');
+    if (isToddlerClass) {
+      const bad = validRows.find(r => { const s = parseInt(r.score); return s < 1 || s > 5; });
+      if (bad) return onToast(`Rating for ${bad.name} must be 1–5`, 'error');
+    } else {
+      const outOfRange = validRows.find(r => { const s = parseFloat(r.score); return s < 0 || s > max; });
+      if (outOfRange) return onToast(`Score for ${outOfRange.name} is out of range (0–${max})`, 'error');
+    }
     setSaving(true);
     try {
       const payload = validRows.map(r => ({
-        student_id: r.studentId, subject: subject.trim(), assessment_type: assessmentType,
-        score: parseFloat(r.score), max_score: max, term, academic_year: academicYear, graded_by: profile.id,
+        student_id: r.studentId,
+        subject: effectiveSubject,
+        assessment_type: isToddlerClass ? 'pre_kg' : assessmentType,
+        score: isToddlerClass ? parseInt(r.score) : parseFloat(r.score),
+        max_score: isToddlerClass ? 5 : max,
+        term, academic_year: academicYear, graded_by: profile.id,
       }));
       const { error } = await supabase.from('grades').insert(payload);
       if (error) throw error;
-      onToast(`${payload.length} grade${payload.length !== 1 ? 's' : ''} saved`, 'success');
+      onToast(`${payload.length} rating${payload.length !== 1 ? 's' : ''} saved`, 'success');
       setRows(prev => prev.map(r => ({ ...r, score: '' })));
       onRefresh();
     } catch (e: unknown) {
@@ -374,9 +393,15 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
 
   return (
     <div className="space-y-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-        Select a class and subject, then enter scores for all students at once. Leave blank to skip a student.
-      </div>
+      {isToddlerClass ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-800">
+          <strong>Pre-KG / Toddler class</strong> — word-based skill evaluation. Select a skill area, then rate each student (Excellent · Very Good · Good · Fair · Needs Improvement).
+        </div>
+      ) : (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+          Select a class and subject, then enter scores for all students at once. Leave blank to skip a student.
+        </div>
+      )}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Class *</label>
@@ -386,27 +411,41 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Subject *</label>
-          <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Mathematics"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Type</label>
-          <select value={assessmentType}
-            onChange={e => {
-              const t = e.target.value; setAssessmentType(t);
-              if (DEFAULT_MAX[t]) setMaxScore(String(DEFAULT_MAX[t]));
-            }}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-            {ASSESSMENT_TYPES.map(t => <option key={t}>{t}{DEFAULT_MAX[t] ? ` (max ${DEFAULT_MAX[t]})` : ''}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
-          <input type="number" inputMode="numeric" autoComplete="off" min={1} value={maxScore} onChange={e => setMaxScore(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-        </div>
+
+        {isToddlerClass ? (
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Skill Area *</label>
+            <select value={pkSkill} onChange={e => { setPkSkill(e.target.value); setRows(prev => prev.map(r => ({ ...r, score: '' }))); }}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+              {PRE_KG_SKILLS_LIST.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+        ) : (
+          <>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Subject *</label>
+              <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Mathematics"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Type</label>
+              <select value={assessmentType}
+                onChange={e => {
+                  const t = e.target.value; setAssessmentType(t);
+                  if (DEFAULT_MAX[t]) setMaxScore(String(DEFAULT_MAX[t]));
+                }}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                {ASSESSMENT_TYPES.filter(t => t !== 'Pre-KG Rating').map(t => <option key={t}>{t}{DEFAULT_MAX[t] ? ` (max ${DEFAULT_MAX[t]})` : ''}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
+              <input type="number" inputMode="numeric" autoComplete="off" min={1} value={maxScore} onChange={e => setMaxScore(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            </div>
+          </>
+        )}
+
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Term</label>
           <select value={term} onChange={e => setTerm(e.target.value)}
@@ -428,10 +467,10 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
       ) : rows.length > 0 ? (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">{rows.length} students — <span className="font-medium text-purple-600">{filled} scores entered</span></p>
+            <p className="text-sm text-gray-600">{rows.length} students — <span className="font-medium text-purple-600">{filled} {isToddlerClass ? 'rated' : 'scores entered'}</span></p>
             <button onClick={submit} disabled={saving || filled === 0}
               className="flex items-center gap-1.5 px-5 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-40">
-              {saving ? 'Saving...' : `Save ${filled} Grade${filled !== 1 ? 's' : ''}`}
+              {saving ? 'Saving...' : `Save ${filled} ${isToddlerClass ? 'Rating' : 'Grade'}${filled !== 1 ? 's' : ''}`}
             </button>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
@@ -442,31 +481,48 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
                     <th className="py-3 px-4">#</th>
                     <th className="py-3 px-4">Student ID</th>
                     <th className="py-3 px-4">Name</th>
-                    <th className="py-3 px-4">Score (max {maxScore})</th>
-                    <th className="py-3 px-4">Grade</th>
+                    <th className="py-3 px-4">{isToddlerClass ? 'Skill Rating' : `Score (max ${maxScore})`}</th>
+                    <th className="py-3 px-4">{isToddlerClass ? 'Evaluation' : 'Grade'}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r, i) => {
                     const s = parseFloat(r.score);
-                    const grade = r.score !== '' && !isNaN(s) ? nigerianGrade(s, max) : null;
+                    const grade = !isToddlerClass && r.score !== '' && !isNaN(s) ? nigerianGrade(s, max) : null;
+                    const pkRating = isToddlerClass && r.score !== '' ? parseInt(r.score) : 0;
                     return (
                       <tr key={r.studentId} className="border-b border-gray-50 hover:bg-gray-50">
                         <td className="py-2.5 px-4 text-gray-400 text-xs">{i + 1}</td>
                         <td className="py-2.5 px-4 font-mono text-xs text-gray-500">{r.displayId}</td>
                         <td className="py-2.5 px-4 font-medium text-gray-800">{r.name}</td>
                         <td className="py-2.5 px-4">
-                          <input
-                            type="number" inputMode="numeric" autoComplete="off" min={0} max={max} step={0.5} value={r.score}
-                            onChange={e => setRows(prev => prev.map((row, idx) => idx === i ? { ...row, score: e.target.value } : row))}
-                            className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            placeholder="—"
-                          />
+                          {isToddlerClass ? (
+                            <div className="flex flex-wrap gap-1">
+                              {[5, 4, 3, 2, 1].map(rv => (
+                                <button key={rv} type="button"
+                                  onClick={() => setRows(prev => prev.map((row, idx) => idx === i ? { ...row, score: pkRating === rv ? '' : String(rv) } : row))}
+                                  className={`px-2 py-0.5 rounded-full text-xs font-medium border transition-all ${pkRating === rv ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'}`}>
+                                  {PRE_KG_RATING_LABELS[rv]}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <input
+                              type="number" inputMode="numeric" autoComplete="off" min={0} max={max} step={0.5} value={r.score}
+                              onChange={e => setRows(prev => prev.map((row, idx) => idx === i ? { ...row, score: e.target.value } : row))}
+                              className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              placeholder="—"
+                            />
+                          )}
                         </td>
                         <td className="py-2.5 px-4">
-                          {grade
-                            ? <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${grade.color}`}>{grade.label}</span>
-                            : <span className="text-gray-300 text-xs">—</span>}
+                          {isToddlerClass
+                            ? pkRating > 0
+                              ? <span className="px-2 py-0.5 rounded-full text-xs font-bold text-indigo-700 bg-indigo-50">{PRE_KG_RATING_LABELS[pkRating]}</span>
+                              : <span className="text-gray-300 text-xs">—</span>
+                            : grade
+                              ? <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${grade.color}`}>{grade.label}</span>
+                              : <span className="text-gray-300 text-xs">—</span>}
                         </td>
                       </tr>
                     );
@@ -746,12 +802,12 @@ export default function GradesSection({ profile }: Props) {
   const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [filterTerm, setFilterTerm] = useState('');
-  const [classes, setClasses] = useState<Pick<ClassRow, 'id' | 'name'>[]>([]);
+  const [classes, setClasses] = useState<Pick<ClassRow, 'id' | 'name' | 'level'>[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    supabase.from('classes').select('id, name').order('name')
-      .then(({ data }) => setClasses((data || []) as Pick<ClassRow, 'id' | 'name'>[]));
+    supabase.from('classes').select('id, name, level').order('name')
+      .then(({ data }) => setClasses((data || []) as Pick<ClassRow, 'id' | 'name' | 'level'>[]));
   }, []);
 
   const fetchGrades = useCallback(async () => {

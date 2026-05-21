@@ -143,7 +143,8 @@ export default function ResultCardModal({
                   </span>
                 )}
               </div>
-              {activeSubjects.length > 0 && (
+              {/* Toddler uses word-based skill ratings — percentage chart is meaningless */}
+              {!isToddlerStudent && activeSubjects.length > 0 && (
                 <PerformanceChart subjects={activeSubjects} title={`${student.profiles?.first_name} — ${term} Subject Performance`} />
               )}
             </div>
