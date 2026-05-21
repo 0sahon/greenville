@@ -126,7 +126,7 @@ export default function TeacherWeekGlanceSection({ profile, onToast }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-pink-600" /> Week at a glance
+            <CalendarDays className="w-5 h-5 text-indigo-600" /> Week at a glance
           </h3>
           <p className="text-xs text-gray-500 mt-0.5 max-w-2xl">
             Your teaching timetable for the selected term (Mon–Fri) alongside lesson plans dated in this calendar week.
@@ -152,7 +152,7 @@ export default function TeacherWeekGlanceSection({ profile, onToast }: Props) {
           </button>
           <button
             type="button"
-            className="text-xs px-3 py-1.5 rounded-lg border border-pink-200 text-pink-700 hover:bg-pink-50"
+            className="text-xs px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-700 hover:bg-indigo-50"
             onClick={() => setWeekStart(mondayOfDate(new Date()))}
           >
             This week
@@ -164,7 +164,7 @@ export default function TeacherWeekGlanceSection({ profile, onToast }: Props) {
         <select
           value={term}
           onChange={e => setTerm(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           {TERMS.map(t => (
             <option key={t} value={t}>
@@ -175,7 +175,7 @@ export default function TeacherWeekGlanceSection({ profile, onToast }: Props) {
         <select
           value={academicYear}
           onChange={e => setAcademicYear(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           {getAcademicYearOptions().map(y => (
             <option key={y} value={y}>
@@ -191,7 +191,7 @@ export default function TeacherWeekGlanceSection({ profile, onToast }: Props) {
         </div>
       ) : loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -205,9 +205,9 @@ export default function TeacherWeekGlanceSection({ profile, onToast }: Props) {
             return (
               <div
                 key={ymd}
-                className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isToday ? 'ring-2 ring-pink-200 border-pink-200' : 'border-gray-100'}`}
+                className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isToday ? 'ring-2 ring-indigo-200 border-indigo-200' : 'border-gray-100'}`}
               >
-                <div className={`px-3 py-2 flex justify-between items-center ${isToday ? 'bg-pink-600 text-white' : 'bg-gray-50 text-gray-700'}`}>
+                <div className={`px-3 py-2 flex justify-between items-center ${isToday ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-700'}`}>
                   <span className="text-xs font-bold uppercase">{dow}</span>
                   <span className="text-xs opacity-90">{d.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}</span>
                 </div>
@@ -219,10 +219,10 @@ export default function TeacherWeekGlanceSection({ profile, onToast }: Props) {
                     ) : (
                       <ul className="space-y-1">
                         {daySlots.map(s => (
-                          <li key={s.id} className="text-xs bg-blue-50 text-blue-900 rounded-lg px-2 py-1.5 border border-blue-100">
+                          <li key={s.id} className="text-xs bg-indigo-50 text-indigo-900 rounded-lg px-2 py-1.5 border border-indigo-100">
                             <span className="font-semibold">{s.subject}</span>
-                            <span className="text-blue-600"> · {s.classes?.name ?? 'Class'}</span>
-                            <span className="block text-blue-500 text-[10px]">
+                            <span className="text-indigo-600"> · {s.classes?.name ?? 'Class'}</span>
+                            <span className="block text-indigo-500 text-[10px]">
                               {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)} · P{s.period}
                             </span>
                           </li>
@@ -237,9 +237,9 @@ export default function TeacherWeekGlanceSection({ profile, onToast }: Props) {
                     ) : (
                       <ul className="space-y-1">
                         {dayPlans.map(p => (
-                          <li key={p.id} className="text-xs bg-pink-50 text-pink-900 rounded-lg px-2 py-1.5 border border-pink-100">
+                          <li key={p.id} className="text-xs bg-emerald-50 text-emerald-900 rounded-lg px-2 py-1.5 border border-emerald-100">
                             <span className="font-medium">{p.title}</span>
-                            <span className="block text-pink-700 text-[10px]">
+                            <span className="block text-emerald-700 text-[10px]">
                               {p.courses?.subject} · {p.status}
                             </span>
                           </li>

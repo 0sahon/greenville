@@ -190,7 +190,7 @@ export default function ParentGradesSection({ profile }: Props) {
   return (
     <div className="space-y-5">
       <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-        <BarChart3 className="w-6 h-6 text-purple-500" /> Academic Results
+        <BarChart3 className="w-6 h-6 text-indigo-600" /> Academic Results
       </h2>
 
       {/* Child selector */}
@@ -198,7 +198,7 @@ export default function ParentGradesSection({ profile }: Props) {
         <div className="flex gap-2 flex-wrap">
           {children.map(c => (
             <button key={c.id} onClick={() => setSelectedChild(c.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${selectedChild === c.id ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${selectedChild === c.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
               {childName(c)}
             </button>
           ))}
@@ -215,13 +215,13 @@ export default function ParentGradesSection({ profile }: Props) {
           <div className="flex rounded-xl overflow-hidden border border-gray-200 bg-white w-fit text-sm font-medium">
             <button
               onClick={() => setTab('grades')}
-              className={`px-4 py-2 ${tab === 'grades' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              className={`px-4 py-2 transition-all ${tab === 'grades' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
             >
               Grades & CBT
             </button>
             <button
               onClick={() => setTab('result')}
-              className={`px-4 py-2 ${tab === 'result' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              className={`px-4 py-2 transition-all ${tab === 'result' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
             >
               Result Card
             </button>
@@ -230,12 +230,12 @@ export default function ParentGradesSection({ profile }: Props) {
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
             <select value={filterTerm} onChange={e => setFilterTerm(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">All Terms</option>
               {TERMS.map(t => <option key={t}>{t}</option>)}
             </select>
             <select value={filterYear} onChange={e => setFilterYear(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
               {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
             </select>
           </div>
@@ -243,7 +243,7 @@ export default function ParentGradesSection({ profile }: Props) {
           {/* ─── Grades Tab ─── */}
           {tab === 'grades' && (
             loading ? (
-              <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin" /></div>
+              <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>
             ) : (
               <>
                 {/* Performance chart */}
@@ -264,12 +264,12 @@ export default function ParentGradesSection({ profile }: Props) {
                       const avg = subGrades.reduce((s, g) => s + Math.round((g.score / g.max_score) * 100), 0) / subGrades.length;
                       const open = expanded[subject];
                       return (
-                        <div key={subject} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div key={subject} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow transition-shadow">
                           <button onClick={() => setExpanded(e => ({ ...e, [subject]: !e[subject] }))}
-                            className="w-full flex items-center justify-between p-4 hover:bg-gray-50">
+                            className="w-full flex items-center justify-between p-4 hover:bg-gray-50/50 transition-colors">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <BarChart3 className="w-4 h-4 text-purple-600" />
+                              <div className="w-9 h-9 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center">
+                                <BarChart3 className="w-4 h-4 text-indigo-600" />
                               </div>
                               <div className="text-left">
                                 <p className="font-semibold text-gray-800">{subject}</p>
@@ -348,7 +348,7 @@ export default function ParentGradesSection({ profile }: Props) {
           {/* ─── Result Card Tab ─── */}
           {tab === 'result' && (
             loadingResult ? (
-              <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin" /></div>
+              <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>
             ) : !resultSheet ? (
               <div className="text-center py-16 text-gray-400">
                 <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />

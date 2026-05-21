@@ -111,17 +111,17 @@ Keep it extremely brief, simple, exciting, and child-friendly!`;
       <div className="flex flex-wrap gap-4 items-end">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
-          <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">Select class...</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
         {students.length > 0 && (
-          <button onClick={save} disabled={saving} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+          <button onClick={save} disabled={saving} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
             {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Attendance'}
           </button>
         )}
@@ -129,20 +129,20 @@ Keep it extremely brief, simple, exciting, and child-friendly!`;
 
       {/* ── Daily Morning Circle Warmup Card ── */}
       {selectedClass && (
-        <div className="relative overflow-hidden rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50/60 via-purple-50/40 to-indigo-50/50 p-5 shadow-sm">
+        <div className="relative overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-indigo-100/30 to-indigo-50/50 p-5 shadow-sm">
           {/* Subtle animated floating bubble decorations */}
-          <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-pink-300/10 blur-xl pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-28 h-28 rounded-full bg-purple-300/10 blur-xl pointer-events-none" />
+          <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-indigo-300/10 blur-xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-28 h-28 rounded-full bg-indigo-400/10 blur-xl pointer-events-none" />
 
           <div className="flex flex-col md:flex-row gap-5 items-center justify-between relative z-10">
             {/* Energizer content area */}
             <div className="flex-1 space-y-3.5">
               <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-pink-100 text-pink-600 rounded-lg">
+                <span className="p-1.5 bg-indigo-100 text-indigo-700 rounded-lg">
                   <Smile className="w-5 h-5 animate-pulse" />
                 </span>
                 <div>
-                  <h3 className="font-extrabold text-slate-800 text-sm sm:text-base flex items-center gap-1.5">
+                  <h3 className="font-extrabold text-indigo-950 text-sm sm:text-base flex items-center gap-1.5">
                     ☀️ Daily Morning Circle Warmup!
                   </h3>
                   <p className="text-[11px] text-gray-500 font-medium">Use these fun movements during roll call to energize the kids!</p>
@@ -151,16 +151,16 @@ Keep it extremely brief, simple, exciting, and child-friendly!`;
 
               {energizerLoading ? (
                 <div className="py-6 flex flex-col items-center justify-center gap-2">
-                  <RefreshCw className="w-6 h-6 text-pink-500 animate-spin" />
-                  <p className="text-xs font-bold text-pink-500 animate-pulse">Consulting the morning circle wizard...</p>
+                  <RefreshCw className="w-6 h-6 text-indigo-600 animate-spin" />
+                  <p className="text-xs font-bold text-indigo-600 animate-pulse">Consulting the morning circle wizard...</p>
                 </div>
               ) : energizer ? (
-                <div className="space-y-2.5 text-xs sm:text-sm font-semibold text-slate-700 bg-white/75 backdrop-blur-sm p-4 rounded-xl border border-slate-100/50 shadow-inner">
+                <div className="space-y-2.5 text-xs sm:text-sm font-semibold text-slate-700 bg-white/75 backdrop-blur-sm p-4 rounded-xl border border-indigo-50/50 shadow-inner">
                   {energizer.split('\n').map((line, lIdx) => {
                     if (line.toLowerCase().startsWith('theme:')) {
                       return (
-                        <p key={lIdx} className="text-sm font-black text-pink-600 flex items-center gap-1.5">
-                          <Compass className="w-4 h-4 text-pink-500 shrink-0" />
+                        <p key={lIdx} className="text-sm font-black text-indigo-700 flex items-center gap-1.5">
+                          <Compass className="w-4 h-4 text-indigo-600 shrink-0" />
                           <span>{line}</span>
                         </p>
                       );
@@ -168,7 +168,7 @@ Keep it extremely brief, simple, exciting, and child-friendly!`;
                     if (line.toLowerCase().startsWith('greeting:')) {
                       return (
                         <p key={lIdx} className="flex items-start gap-2">
-                          <span className="text-purple-500 shrink-0 text-sm">👋</span>
+                          <span className="text-indigo-600 shrink-0 text-sm">👋</span>
                           <span className="leading-relaxed">{line}</span>
                         </p>
                       );
@@ -176,7 +176,7 @@ Keep it extremely brief, simple, exciting, and child-friendly!`;
                     if (line.toLowerCase().startsWith('movement') || line.toLowerCase().startsWith('riddle')) {
                       return (
                         <p key={lIdx} className="flex items-start gap-2 border-t border-slate-100 pt-2 mt-2">
-                          <span className="text-indigo-500 shrink-0 text-sm">🦁</span>
+                          <span className="text-indigo-600 shrink-0 text-sm">🦁</span>
                           <span className="leading-relaxed font-bold bg-indigo-50/50 px-2 py-1 rounded-lg text-indigo-950">{line}</span>
                         </p>
                       );
@@ -204,7 +204,7 @@ Keep it extremely brief, simple, exciting, and child-friendly!`;
                 <button
                   onClick={generateMorningEnergizer}
                   disabled={energizerLoading}
-                  className="absolute bottom-1 right-1 p-1 bg-pink-600 hover:bg-pink-700 text-white rounded-lg shadow-md transition-all active:scale-90"
+                  className="absolute bottom-1 right-1 p-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md transition-all active:scale-90"
                   title="Generate a new warmup theme!"
                 >
                   <RefreshCw className="w-3 h-3" />
@@ -235,7 +235,7 @@ Keep it extremely brief, simple, exciting, and child-friendly!`;
             {students.map(s => (
               <div key={s.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-sm">{s.profiles?.first_name?.[0]}</div>
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-semibold text-sm">{s.profiles?.first_name?.[0]}</div>
                   <div><p className="font-medium text-gray-800 text-sm">{s.profiles?.first_name} {s.profiles?.last_name}</p><p className="text-xs text-gray-400 font-mono">{s.student_id}</p></div>
                 </div>
                 <div className="flex gap-1">

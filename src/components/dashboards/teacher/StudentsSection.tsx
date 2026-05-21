@@ -265,7 +265,7 @@ export default function TeacherStudentsSection({ profile }: Props) {
               >
                 {/* Avatar + Name */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {(s.profiles?.first_name?.[0] ?? '?')}{(s.profiles?.last_name?.[0] ?? '')}
                   </div>
                   <div className="min-w-0">
@@ -352,7 +352,7 @@ export default function TeacherStudentsSection({ profile }: Props) {
                   const currentClass = s.classes?.name ?? 'Unassigned';
                   return (
                     <div key={s.id} className="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50 transition-colors">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                         {(s.profiles?.first_name?.[0] ?? '?')}{(s.profiles?.last_name?.[0] ?? '')}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -381,8 +381,8 @@ export default function TeacherStudentsSection({ profile }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal header */}
-            <div className="flex items-center gap-4 p-5 border-b bg-gradient-to-r from-indigo-50 to-purple-50">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+            <div className="flex items-center gap-4 p-5 border-b bg-gradient-to-r from-indigo-50 to-indigo-100/40">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                 {(selected.profiles?.first_name?.[0] ?? '?')}{(selected.profiles?.last_name?.[0] ?? '')}
               </div>
               <div className="flex-1 min-w-0">
@@ -459,7 +459,7 @@ export default function TeacherStudentsSection({ profile }: Props) {
                               { label: 'Present', value: attSummary.present, color: 'text-green-600 bg-green-50 border-green-100' },
                               { label: 'Absent',  value: attSummary.absent,  color: 'text-red-600 bg-red-50 border-red-100' },
                               { label: 'Late',    value: attSummary.late,    color: 'text-yellow-600 bg-yellow-50 border-yellow-100' },
-                              { label: 'Excused', value: attSummary.excused, color: 'text-blue-600 bg-blue-50 border-blue-100' },
+                              { label: 'Excused', value: attSummary.excused, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
                             ].map(({ label, value, color }) => (
                               <div key={label} className={`rounded-xl border p-3 text-center ${color}`}>
                                 <p className="text-2xl font-bold">{value}</p>

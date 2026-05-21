@@ -12,7 +12,7 @@ export default function GradesSection({ profile }: Props) {
   const [filterTerm, setFilterTerm] = useState<string>('');
   const [filterYear, setFilterYear] = useState(getDefaultAcademicYear());
 
-  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-pink-300 border-t-pink-600 rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>;
   if (error) return (
     <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-start gap-3">
       <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
@@ -39,12 +39,12 @@ export default function GradesSection({ profile }: Props) {
         <h2 className="text-xl font-bold text-gray-900">My Grades</h2>
         <div className="flex gap-2">
           <select value={filterTerm} onChange={e => setFilterTerm(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">All Terms</option>
             {TERMS.map(t => <option key={t}>{t}</option>)}
           </select>
           <select value={filterYear} onChange={e => setFilterYear(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
           </select>
         </div>

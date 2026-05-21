@@ -23,12 +23,12 @@ function ScoreCell({ value, max, onChange, tabIndex }: { value: string; max: num
   const num = parseFloat(value);
   const over = !isNaN(num) && num > max;
   const filled = value !== '' && !isNaN(num);
-  return (
+    return (
     <input type="text" inputMode="numeric" tabIndex={tabIndex} value={value}
       onChange={e => { const v = e.target.value; if (v === '' || /^\d*\.?\d*$/.test(v)) onChange(v); }}
       onFocus={e => e.target.select()} placeholder="—"
       className={['w-14 text-center text-sm font-mono py-1.5 px-1 rounded focus:outline-none transition-colors border-b-2 bg-transparent',
-        over ? 'border-red-400 text-red-600' : filled ? 'border-green-400 text-gray-800' : 'border-gray-200 text-gray-400 focus:border-purple-400',
+        over ? 'border-red-400 text-red-600' : filled ? 'border-green-400 text-gray-800' : 'border-gray-200 text-gray-400 focus:border-indigo-400',
       ].join(' ')}
     />
   );
@@ -182,7 +182,7 @@ export default function GradeSheetTab({ profile }: { profile: ProfileRow }) {
         <div className="flex-1 min-w-36">
           <label className="block text-xs font-medium text-gray-500 mb-1">Class</label>
           <select value={classId} onChange={e => { setClassId(e.target.value); setLoaded(false); }}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white">
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
             <option value="">Select class…</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
@@ -190,19 +190,19 @@ export default function GradeSheetTab({ profile }: { profile: ProfileRow }) {
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Term</label>
           <select value={term} onChange={e => { setTerm(e.target.value); setLoaded(false); }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white">
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
             {TERMS.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Session</label>
           <select value={year} onChange={e => { setYear(e.target.value); setLoaded(false); }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white">
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
             {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
           </select>
         </div>
         <button onClick={loadSheet} disabled={!classId || loading}
-          className="flex items-center gap-2 px-5 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
+          className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
           {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TableProperties className="w-4 h-4" />}
           {loading ? 'Loading…' : loaded ? 'Reload' : 'Load Sheet'}
         </button>
@@ -214,14 +214,14 @@ export default function GradeSheetTab({ profile }: { profile: ProfileRow }) {
           <p className="text-sm font-medium">Select a class and click <strong>Load Sheet</strong></p>
         </div>
       )}
-      {loading && <div className="flex justify-center py-16"><div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" /></div>}
+      {loading && <div className="flex justify-center py-16"><div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>}
 
       {loaded && students.length > 0 && (
         <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5">
           <button onClick={prevStudent} disabled={studentIdx === 0}
             className="flex-shrink-0 w-10 h-10 flex items-center justify-center border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-30 active:scale-95 transition-transform">←</button>
           <select value={studentIdx} onChange={e => setStudentIdx(Number(e.target.value))}
-            className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white">
+            className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
             {students.map((s, i) => {
               const n = `${s.profiles?.first_name ?? ''} ${s.profiles?.last_name ?? ''}`.trim();
               return <option key={s.id} value={i}>{n} ({s.student_id}){saved.has(s.id) ? ' ✓' : ''}</option>;
@@ -235,9 +235,9 @@ export default function GradeSheetTab({ profile }: { profile: ProfileRow }) {
 
       {loaded && currentStudent && subjects.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-4 py-2 bg-purple-50 border-b border-purple-100 text-xs text-purple-700 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <div className="px-4 py-2 bg-indigo-50 border-b border-indigo-100 text-xs text-indigo-700 flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>Scores for <strong>{studentName}</strong></span>
-            <span className="hidden sm:inline text-purple-400">·</span>
+            <span className="hidden sm:inline text-indigo-400">·</span>
             <span className="hidden sm:inline"><strong>Tab</strong> = next cell · <strong>Enter</strong> = next row</span>
           </div>
           <div className="px-3 py-1.5 bg-gray-700 border-b border-gray-600 text-[10px] text-gray-300 flex flex-wrap gap-x-3 gap-y-0.5">
@@ -276,7 +276,7 @@ export default function GradeSheetTab({ profile }: { profile: ProfileRow }) {
                           value={sc[key] || ''} onChange={e => { const v = e.target.value; if (v === '' || /^\d*\.?\d*$/.test(v)) setScore(subject, key, v); }}
                           onFocus={e => e.target.select()} placeholder="—" tabIndex={si * 5 + fi + 1}
                           className={['w-full text-center text-sm font-mono py-2 rounded-lg border-2 bg-white focus:outline-none transition-colors',
-                            parseFloat(sc[key] || '0') > max ? 'border-red-400 text-red-600 bg-red-50' : sc[key] !== '' ? 'border-green-400 text-gray-800' : 'border-gray-200 text-gray-400 focus:border-purple-400',
+                            parseFloat(sc[key] || '0') > max ? 'border-red-400 text-red-600 bg-red-50' : sc[key] !== '' ? 'border-green-400 text-gray-800' : 'border-gray-200 text-gray-400 focus:border-indigo-400',
                           ].join(' ')}
                         />
                       </div>
@@ -342,7 +342,7 @@ export default function GradeSheetTab({ profile }: { profile: ProfileRow }) {
               </button>
               {studentIdx < students.length - 1 && (
                 <button onClick={nextStudent} disabled={saving}
-                  className="flex-1 sm:flex-none px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 active:scale-95 transition-transform">
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 active:scale-95 transition-transform">
                   Save &amp; Next →
                 </button>
               )}

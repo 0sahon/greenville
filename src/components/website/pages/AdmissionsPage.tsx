@@ -24,7 +24,7 @@ const PROGRAMS = [
 const STEPS = [
   { step: 1, title: 'Fill Application', desc: 'Complete our online registration form below', icon: '📝', color: 'from-blue-400 to-blue-500' },
   { step: 2, title: 'Visit Our School', desc: 'Tour our campus and meet our dedicated teachers', icon: '🏫', color: 'from-green-400 to-green-500' },
-  { step: 3, title: 'Assessment & Meet-Greet', desc: 'Your child gets to play and explore with us', icon: '🤝', color: 'from-purple-400 to-purple-500' },
+  { step: 3, title: 'Assessment & Meet-Greet', desc: 'Your child gets to play and explore with us', icon: '🤝', color: 'from-indigo-400 to-indigo-500' },
   { step: 4, title: 'Welcome Home!', desc: `Join our wonderful ${SCHOOL_NAME} family`, icon: '🎉', color: 'from-orange-400 to-orange-500' },
 ];
 
@@ -89,23 +89,23 @@ export default function AdmissionsPage() {
     }
   };
 
-  const inputCls = 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-sm';
+  const inputCls = 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm';
   const labelCls = 'block text-sm font-semibold text-gray-700 mb-1.5';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-indigo-100/35">
 
       {/* ── Hero ── */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-10 left-10 animate-bounce"><Star className="w-12 h-12 text-yellow-400 fill-current" /></div>
           <div className="absolute top-20 right-20 animate-pulse"><Heart className="w-8 h-8 text-pink-400 fill-current" /></div>
-          <div className="absolute bottom-20 left-1/4 animate-bounce" style={{ animationDelay: '1s' }}><Gift className="w-10 h-10 text-purple-400" /></div>
+          <div className="absolute bottom-20 left-1/4 animate-bounce" style={{ animationDelay: '1s' }}><Gift className="w-10 h-10 text-indigo-400" /></div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
           <h1 className="text-5xl md:text-7xl font-black text-gray-800 mb-6">
             Join Our Amazing
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500"> School Family! 🎒</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-500"> School Family! 🎒</span>
           </h1>
           <p className="text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
             Ready to start your child's incredible learning adventure?
@@ -128,7 +128,7 @@ export default function AdmissionsPage() {
                   <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r ${s.color} rounded-full shadow-lg`}>
                     <div className="text-3xl">{s.icon}</div>
                   </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-sm">{s.step}</span>
                   </div>
                 </div>
@@ -141,7 +141,7 @@ export default function AdmissionsPage() {
       </section>
 
       {/* ── Programs (no fees) ── */}
-      <section className="py-16 bg-gradient-to-br from-blue-50 to-purple-50">
+      <section className="py-16 bg-gradient-to-br from-indigo-50 to-indigo-100/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Programmes 🎓</h2>
@@ -161,8 +161,8 @@ export default function AdmissionsPage() {
                   </div>
                   <div className="p-6 text-center">
                     <p className="text-gray-600 mb-4">{prog.desc}</p>
-                    <div className="bg-orange-50 border border-orange-100 rounded-xl p-4">
-                      <p className="text-sm font-semibold text-orange-700">
+                    <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4">
+                      <p className="text-sm font-semibold text-indigo-700">
                         📞 Contact us for fees &amp; availability
                       </p>
                     </div>
@@ -173,7 +173,7 @@ export default function AdmissionsPage() {
           </div>
 
           {/* CTA to visit/call for fees */}
-          <div className="mt-12 max-w-3xl mx-auto bg-white rounded-3xl shadow-xl p-8 text-center border-2 border-orange-100">
+          <div className="mt-12 max-w-3xl mx-auto bg-white rounded-3xl shadow-xl p-8 text-center border-2 border-indigo-100">
             <div className="text-4xl mb-3">💰</div>
             <h3 className="text-2xl font-bold text-gray-800 mb-3">Fee Structure & Payment Plans</h3>
             <p className="text-gray-600 mb-6 leading-relaxed">
@@ -183,11 +183,11 @@ export default function AdmissionsPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a href={SCHOOL_PHONE_TEL_HREF}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-full font-bold hover:bg-orange-600 transition-colors shadow-lg">
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-full font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
                 <Phone className="w-5 h-5" /> Call: {SCHOOL_PHONE_DISPLAY}
               </a>
               <button onClick={() => navigate('/contact')}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-orange-400 text-orange-600 rounded-full font-bold hover:bg-orange-50 transition-colors">
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-indigo-500 text-indigo-700 rounded-full font-bold hover:bg-indigo-50 transition-colors">
                 <MessageSquare className="w-5 h-5" /> Chat with Admissions
               </button>
             </div>
@@ -230,7 +230,7 @@ export default function AdmissionsPage() {
           )}
 
           {status !== 'success' && (
-            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-3xl p-8 shadow-xl">
+            <div className="bg-gradient-to-br from-indigo-50/70 via-indigo-50/20 to-white rounded-3xl p-8 shadow-xl border border-indigo-100/50 animate-fade-in">
               {status === 'error' && (
                 <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
                   <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -299,7 +299,7 @@ export default function AdmissionsPage() {
                 {/* Additional */}
                 <div className="bg-white rounded-2xl p-6 shadow-lg">
                   <h3 className="text-xl font-bold text-gray-800 mb-5 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-purple-500" /> Additional Information
+                    <FileText className="w-5 h-5 text-indigo-600" /> Additional Information
                   </h3>
                   <label className={labelCls}>Questions or special information about your child</label>
                   <textarea rows={4} value={form.message} onChange={e => set('message', e.target.value)}
@@ -309,7 +309,7 @@ export default function AdmissionsPage() {
 
                 <div className="text-center">
                   <button type="submit" disabled={status === 'submitting'}
-                    className="bg-gradient-to-r from-orange-500 to-pink-500 text-white py-4 px-12 rounded-full font-bold text-xl hover:from-orange-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-xl inline-flex items-center gap-3">
+                    className="bg-gradient-to-r from-indigo-600 to-indigo-500 text-white py-4 px-12 rounded-full font-bold text-xl hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-xl shadow-indigo-600/20 inline-flex items-center gap-3">
                     {status === 'submitting' ? (
                       <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</>
                     ) : (
@@ -324,7 +324,7 @@ export default function AdmissionsPage() {
       </section>
 
       {/* ── Required Documents ── */}
-      <section className="py-16 bg-gradient-to-br from-green-50 to-blue-50">
+      <section className="py-16 bg-gradient-to-br from-indigo-50 to-indigo-100/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Documents You'll Need 📋</h2>
@@ -343,8 +343,13 @@ export default function AdmissionsPage() {
       </section>
 
       {/* ── Contact Banner ── */}
-      <section className="py-16 bg-gradient-to-r from-purple-500 to-pink-500">
-        <div className="max-w-4xl mx-auto px-4 text-center text-white">
+      <section className="py-16 bg-gradient-to-r from-indigo-950 via-indigo-900 to-indigo-950">
+        <div className="max-w-4xl mx-auto px-4 text-center text-white relative overflow-hidden">
+          
+          {/* Subtle Banner Background Orbs */}
+          <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
+          <div className="absolute bottom-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
+
           <div className="text-5xl mb-5">📞</div>
           <h2 className="text-4xl font-bold mb-4">Questions? We're Here to Help!</h2>
           <p className="text-xl mb-8 opacity-90">Our admissions team is happy to guide you through the process.</p>
@@ -354,15 +359,15 @@ export default function AdmissionsPage() {
               { icon: Mail, label: 'Email Us', value: SCHOOL_EMAIL_ADMISSIONS },
               { icon: MapPin, label: 'Visit Us', value: SCHOOL_ADDRESS_SINGLE },
             ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className="bg-white/20 backdrop-blur-sm rounded-2xl p-5">
-                <Icon className="w-7 h-7 mx-auto mb-2" />
+              <div key={label} className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/15 transition-all duration-300">
+                <Icon className="w-7 h-7 mx-auto mb-2 text-indigo-400" />
                 <p className="font-bold mb-1">{label}</p>
                 <p className="text-sm opacity-90">{value}</p>
               </div>
             ))}
           </div>
           <button onClick={() => navigate('/contact')}
-            className="bg-white text-purple-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors transform hover:scale-105 shadow-lg">
+            className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-2 border-indigo-400/30 px-8 py-4 rounded-full font-bold text-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-xl shadow-indigo-600/35">
             Schedule a School Visit 🏫
           </button>
         </div>

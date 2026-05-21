@@ -7,6 +7,7 @@ import ProgramsPage from './pages/ProgramsPage';
 import AcademicsPage from './pages/AcademicsPage';
 import AdmissionsPage from './pages/AdmissionsPage';
 import NewsEventsPage from './pages/NewsEventsPage';
+import GalleryPage from './pages/GalleryPage';
 import ContactPage from './pages/ContactPage';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,6 +33,7 @@ export default function MainWebsite({ onLoginClick, onKidsZoneClick }: MainWebsi
         <Route path="/academics" element={<AcademicsPage />} />
         <Route path="/admissions" element={<AdmissionsPage />} />
         <Route path="/news-events" element={<NewsEventsPage />} />
+        <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/contact" element={<ContactPage />} />
       </Routes>
       <Footer />

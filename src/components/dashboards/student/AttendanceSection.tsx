@@ -9,7 +9,7 @@ export default function AttendanceSection({ profile }: Props) {
   const attColor: Record<string, string> = { present: 'bg-green-100 text-green-700', absent: 'bg-red-100 text-red-700', late: 'bg-yellow-100 text-yellow-700', excused: 'bg-blue-100 text-blue-700' };
   const rate = attendance.length ? Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100) : 0;
 
-  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-pink-300 border-t-pink-600 rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>;
   if (error) return (
     <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-start gap-3">
       <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />

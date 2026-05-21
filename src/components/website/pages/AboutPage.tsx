@@ -1,4 +1,5 @@
-import { Users, Award, Globe, Heart, BookOpen, Star, Sparkles } from 'lucide-react';
+import React from 'react';
+import { Users, Award, Globe, Heart, BookOpen, Star, Sparkles, Camera, Check } from 'lucide-react';
 import { SCHOOL_NAME } from '../../../config/schoolBrand';
 
 export default function AboutPage() {
@@ -7,28 +8,28 @@ export default function AboutPage() {
       icon: Heart,
       title: 'Love for Learning',
       description: 'We nurture each child\'s natural curiosity and joy in discovering new things!',
-      color: 'from-pink-400 to-red-400',
+      color: 'from-pink-400 to-rose-500',
       emoji: '💖'
     },
     {
       icon: Star,
       title: 'Individual Growth',
       description: 'Every child is unique and special, growing at their own perfect pace!',
-      color: 'from-yellow-400 to-orange-400',
+      color: 'from-amber-400 to-orange-500',
       emoji: '⭐'
     },
     {
       icon: Users,
       title: 'Community Spirit',
       description: 'We learn together, help each other, and celebrate our differences!',
-      color: 'from-blue-400 to-purple-400',
+      color: 'from-indigo-400 to-indigo-500',
       emoji: '🤝'
     },
     {
       icon: Globe,
       title: 'Global Citizens',
       description: 'We explore the world while building confidence and respect for others!',
-      color: 'from-green-400 to-teal-400',
+      color: 'from-emerald-400 to-emerald-500',
       emoji: '🌍'
     }
   ];
@@ -73,18 +74,18 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-blue-50 to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-emerald-50 to-amber-50">
       {/* Hero Section */}
       <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-10 left-10 animate-bounce">
-            <Sparkles className="w-12 h-12 text-yellow-400" />
+            <Sparkles className="w-12 h-12 text-amber-400" />
           </div>
           <div className="absolute top-20 right-20 animate-pulse">
-            <Heart className="w-8 h-8 text-pink-400 fill-current" />
+            <Heart className="w-8 h-8 text-rose-400 fill-current" />
           </div>
           <div className="absolute bottom-20 left-1/4 animate-bounce" style={{ animationDelay: '1s' }}>
-            <Star className="w-10 h-10 text-purple-400 fill-current" />
+            <Star className="w-10 h-10 text-indigo-400 fill-current" />
           </div>
         </div>
 
@@ -92,60 +93,65 @@ export default function AboutPage() {
           <div className="text-center">
             <h1 className="text-5xl md:text-7xl font-black text-gray-800 mb-6">
               About Our Amazing 
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-green-500"> School! 🏫</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-500"> School! 🏫</span>
             </h1>
-            <p className="text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-              Welcome to the {SCHOOL_NAME} family! We're not just a school - 
-              we're a magical place where children discover, explore, and grow into confident, 
-              caring, and creative individuals! ✨
+            <p className="text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed font-medium">
+              Welcome to the {SCHOOL_NAME} family! We are a prepared Montessori environment where children explore, discover, and grow into confident, independent, and creative individuals. ✨
             </p>
           </div>
         </div>
       </section>
 
       {/* Our Story */}
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-white border-t border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-gray-800 mb-6">
-                Our Wonderful Story 📚
+              <h2 className="text-4xl font-black text-gray-800 mb-6 flex items-center gap-3">
+                Our Story & Philosophy 📚
               </h2>
-              <div className="space-y-6 text-lg text-gray-700 leading-relaxed">
+              <div className="space-y-6 text-lg text-gray-600 leading-relaxed font-medium">
                 <p>
-                  In 2021, a group of passionate educators had a big dream — to create
-                  a warm Montessori community in Benin City where every child could shine
-                  like the bright star they are! 🌟
+                  Greenville Montessori Schools was founded on the vision of offering high-standard Montessori education in Benin City. We provide a prepared environment that honors the natural developmental stages of young children. 🌟
                 </p>
                 <p>
-                  We believe in a learner-centered, teacher-guided approach where children
-                  are active participants in their own education. Teachers guide, support, and
-                  inspire — while every child explores at their own pace and discovers what
-                  makes them truly unique!
+                  We operate a child-centered, guide-facilitated curriculum where students are active agents in their own learning. Our classrooms are fully equipped with specialized Montessori didactic materials that build concrete understanding of language, mathematics, sensory concepts, and practical life.
                 </p>
                 <p>
-                  Today, we're proud to be home to over 100 happy children who come to school
-                  excited to learn, play, and grow together. Our school family includes amazing
-                  teachers, supportive parents, and the most wonderful students in Greenville!
+                  Today, we support a vibrant community of early learners who step into school each day eager to collaborate, investigate, and excel. Our experienced guides, child development specialists, and supportive families work hand-in-hand to build an exceptional learning environment.
                 </p>
               </div>
             </div>
             
-            <div className="relative">
-              <div className="bg-gradient-to-br from-yellow-200 to-orange-300 rounded-3xl p-8 shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
-                <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
-                  <div className="text-6xl mb-4">🎓</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                    "Learner-centered, Teacher-guided"
-                  </h3>
-                  <p className="text-gray-600 italic text-lg">
-                    Every child is a capable learner.
-                  </p>
-                  <p className="text-sm text-gray-500 mt-4">
-                    Our approach puts children at the heart of learning
-                    with teachers who guide, inspire, and nurture every step of the way!
-                  </p>
+            {/* Overlapping Premium Polaroid Photos from real scraped school photos */}
+            <div className="relative h-[400px] w-full flex items-center justify-center">
+              {/* Photo 1: Practical Life Work */}
+              <div className="absolute top-4 left-4 w-2/3 aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border-8 border-white rotate-[-6deg] hover:rotate-0 hover:scale-105 transition-all duration-300 z-10 bg-gray-100">
+                <img 
+                  src="/images/3.jpg" 
+                  alt="Students engaged in Practical Life Montessori exercise" 
+                  className="w-full h-full object-cover object-center"
+                />
+                <div className="absolute bottom-2 left-2 bg-indigo-600 text-white font-bold text-xs px-3 py-1 rounded-full shadow">
+                  Montessori Materials
                 </div>
+              </div>
+              
+              {/* Photo 2: Happy Student Activity */}
+              <div className="absolute bottom-4 right-4 w-2/3 aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border-8 border-white rotate-[4deg] hover:rotate-0 hover:scale-105 transition-all duration-300 z-20 bg-gray-100">
+                <img 
+                  src="/images/2.jpg" 
+                  alt="Smiling student doing classroom activities at Greenville" 
+                  className="w-full h-full object-cover object-center"
+                />
+                <div className="absolute bottom-2 right-2 bg-amber-500 text-white font-bold text-xs px-3 py-1 rounded-full shadow">
+                  Active Learning
+                </div>
+              </div>
+
+              {/* Floating Shield Accent */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-indigo-600 text-white rounded-full p-4 shadow-2xl z-30 animate-pulse border-4 border-white">
+                <span className="text-xl font-black">GMS</span>
               </div>
             </div>
           </div>
@@ -153,14 +159,17 @@ export default function AboutPage() {
       </section>
 
       {/* Our Values */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
+      <section className="py-20 bg-gradient-to-br from-indigo-50/50 to-emerald-50/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-6">
+            <span className="inline-block bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full text-sm font-bold mb-4 border border-indigo-100">
+              🔑 Core Values
+            </span>
+            <h2 className="text-4xl font-black text-gray-800 mb-6">
               What Makes Us Special? 🌈
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              These are the super important values that guide everything we do at our school!
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto font-medium">
+              These fundamental principles guide every decision we make and shape our prepared classrooms.
             </p>
           </div>
 
@@ -170,19 +179,21 @@ export default function AboutPage() {
               return (
                 <div
                   key={index}
-                  className="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                  className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl hover:bg-indigo-50/10 transition-all duration-300 border border-gray-100"
                 >
-                  <div className="text-center">
-                    <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r ${value.color} rounded-full mb-6 shadow-lg`}>
-                      <IconComponent className="w-10 h-10 text-white" />
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6">
+                    <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br ${value.color} rounded-2xl shadow-lg text-white flex-shrink-0`}>
+                      <IconComponent className="w-8 h-8" />
                     </div>
-                    <div className="text-4xl mb-4">{value.emoji}</div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                      {value.title}
-                    </h3>
-                    <p className="text-gray-600 text-lg leading-relaxed">
-                      {value.description}
-                    </p>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center sm:justify-start gap-2">
+                        {value.title}
+                        <span className="text-xl">{value.emoji}</span>
+                      </h3>
+                      <p className="text-gray-600 text-lg leading-relaxed font-medium">
+                        {value.description}
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
@@ -191,15 +202,18 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Meet Our Amazing Teachers */}
+      {/* Meet Our Prepared Guides */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-800 mb-6">
-              Meet Our Amazing Teachers! 👩‍🏫👨‍🏫
+            <span className="inline-block bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full text-sm font-bold mb-4 border border-indigo-100">
+              👩‍🏫 Our Educators
+            </span>
+            <h2 className="text-4xl font-black text-gray-800 mb-6">
+              Meet Our Prepared Guides! 🌟
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our teachers are like superheroes who help children learn and grow every day!
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto font-medium">
+              Montessori teachers are called "Guides" because they observe, facilitate, and support your child's innate drive to learn.
             </p>
           </div>
 
@@ -207,29 +221,31 @@ export default function AboutPage() {
             {faculty.map((teacher, index) => (
               <div
                 key={index}
-                className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                className="bg-gradient-to-br from-indigo-50/30 to-indigo-100/20 hover:bg-indigo-50 rounded-3xl p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-indigo-100/50"
               >
                 <div className="text-center">
-                  <div className="text-6xl mb-4">{teacher.image}</div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-5xl mx-auto mb-4 shadow-md border-2 border-indigo-200">
+                    {teacher.image}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-1">
                     {teacher.name}
                   </h3>
-                  <p className="text-purple-600 font-semibold mb-3">{teacher.role}</p>
+                  <p className="text-indigo-600 font-bold text-sm mb-3">{teacher.role}</p>
                   
-                  <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
-                    <div className="space-y-2 text-sm">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 mb-4 shadow-inner border border-indigo-50">
+                    <div className="space-y-2 text-sm text-left font-medium">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Experience:</span>
-                        <span className="font-semibold text-blue-600">{teacher.experience}</span>
+                        <span className="text-gray-500">Experience:</span>
+                        <span className="font-extrabold text-indigo-600">{teacher.experience}</span>
                       </div>
-                      <div className="text-gray-600">
-                        <span className="font-semibold">Specialty:</span> {teacher.specialty}
+                      <div className="text-gray-600 leading-tight">
+                        <span className="font-bold text-gray-500">Specialty:</span> {teacher.specialty}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-yellow-100 rounded-xl p-3">
-                    <p className="text-sm text-gray-700 italic">"{teacher.quote}"</p>
+                  <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 italic text-sm text-gray-700 font-medium relative">
+                    "{teacher.quote}"
                   </div>
                 </div>
               </div>
@@ -239,34 +255,34 @@ export default function AboutPage() {
       </section>
 
       {/* Fun Facts */}
-      <section className="py-16 bg-gradient-to-r from-green-400 to-blue-400">
+      <section className="py-20 bg-gradient-to-r from-indigo-700 to-indigo-500 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-white">
-            <h2 className="text-4xl font-bold mb-12">Amazing School Facts! 🎉</h2>
+          <div className="text-center">
+            <h2 className="text-4xl font-black mb-16">Amazing School Facts! 🎉</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
-                <div className="text-4xl mb-2">🎂</div>
-                <div className="text-3xl font-bold mb-2">4+</div>
-                <div className="text-lg">Years of Fun Learning</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 transform hover:-translate-y-2 transition-transform duration-300">
+                <div className="text-4xl mb-3">🎂</div>
+                <div className="text-3xl font-black mb-2">5+</div>
+                <div className="text-base text-indigo-100 font-bold">Years of Fun Learning</div>
               </div>
 
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
-                <div className="text-4xl mb-2">👨‍👩‍👧‍👦</div>
-                <div className="text-3xl font-bold mb-2">100+</div>
-                <div className="text-lg">Happy Students</div>
+              <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 transform hover:-translate-y-2 transition-transform duration-300">
+                <div className="text-4xl mb-3">👶</div>
+                <div className="text-3xl font-black mb-2">200+</div>
+                <div className="text-base text-indigo-100 font-bold">Happy Students</div>
               </div>
               
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
-                <div className="text-4xl mb-2">📚</div>
-                <div className="text-3xl font-bold mb-2">1000+</div>
-                <div className="text-lg">Books in Our Library</div>
+              <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 transform hover:-translate-y-2 transition-transform duration-300">
+                <div className="text-4xl mb-3">🏫</div>
+                <div className="text-3xl font-black mb-2">100%</div>
+                <div className="text-base text-indigo-100 font-bold">Prepared Classrooms</div>
               </div>
               
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
-                <div className="text-4xl mb-2">🌟</div>
-                <div className="text-3xl font-bold mb-2">98%</div>
-                <div className="text-lg">Happy Families</div>
+              <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 transform hover:-translate-y-2 transition-transform duration-300">
+                <div className="text-4xl mb-3">🌟</div>
+                <div className="text-3xl font-black mb-2">98%</div>
+                <div className="text-base text-indigo-100 font-bold">Parent Satisfaction</div>
               </div>
             </div>
           </div>

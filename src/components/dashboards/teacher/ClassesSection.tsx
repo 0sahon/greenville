@@ -144,7 +144,7 @@ export default function ClassesSection({ profile }: Props) {
     return !q || name.includes(q) || id.includes(q);
   });
 
-  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-blue-300 border-t-blue-600 rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" /></div>;
 
   return (
     <div className="space-y-6">
@@ -154,15 +154,15 @@ export default function ClassesSection({ profile }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {classes.map(cls => (
           <div key={cls.id}
-            className={`bg-white rounded-xl shadow-sm border-2 p-5 cursor-pointer transition-all ${selectedClass?.id === cls.id ? 'border-blue-500 shadow-md' : 'border-gray-100 hover:border-blue-200'}`}
+            className={`bg-white rounded-xl shadow-sm border-2 p-5 cursor-pointer transition-all ${selectedClass?.id === cls.id ? 'border-indigo-600 shadow-md ring-1 ring-indigo-600' : 'border-gray-100 hover:border-indigo-200'}`}
             onClick={() => loadStudents(cls)}>
             <div className="flex items-start justify-between mb-3">
               <div><h3 className="font-bold text-gray-800">{cls.name}</h3><p className="text-sm text-gray-500">{LEVEL_LABELS[cls.level] || cls.level}</p></div>
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">{cls.academic_year}</span>
+              <span className="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs rounded-full font-medium border border-indigo-100">{cls.academic_year}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-1 text-gray-600"><Users className="w-4 h-4" /> {cls.students?.[0]?.count || 0} students</span>
-              <span className="text-blue-600 text-xs font-medium">Click to view →</span>
+              <span className="text-indigo-600 text-xs font-semibold">Click to view →</span>
             </div>
           </div>
         ))}
@@ -189,7 +189,7 @@ export default function ClassesSection({ profile }: Props) {
               )}
               <button
                 onClick={openAddModal}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 font-medium"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 font-medium"
               >
                 <UserPlus className="w-4 h-4" /> Add Student
               </button>
@@ -326,7 +326,7 @@ export default function ClassesSection({ profile }: Props) {
                   placeholder="Search name or student ID…"
                   value={addSearch}
                   onChange={e => setAddSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                   autoFocus
                 />
               </div>
@@ -344,9 +344,9 @@ export default function ClassesSection({ profile }: Props) {
                 const isAssigning = assigning === s.id;
                 const alreadyHere = s.class_id === selectedClass?.id;
                 return (
-                  <div key={s.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${alreadyHere ? 'border-green-200 bg-green-50' : 'border-gray-100 hover:border-blue-200 hover:bg-blue-50'}`}>
+                  <div key={s.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${alreadyHere ? 'border-green-200 bg-green-50' : 'border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/50'}`}>
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                         {(s.profiles?.first_name?.[0] ?? '?')}{(s.profiles?.last_name?.[0] ?? '')}
                       </div>
                       <div>
@@ -360,7 +360,7 @@ export default function ClassesSection({ profile }: Props) {
                       <button
                         onClick={() => assignStudent(s.id)}
                         disabled={isAssigning}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-medium disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-lg font-medium disabled:opacity-50"
                       >
                         {isAssigning ? (
                           <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />

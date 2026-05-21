@@ -221,7 +221,7 @@ export default function ProgramsSection() {
               Ready to Enrol Your Child?
             </h3>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Registration forms are now available for the 2025/2026 session.
+              Registration forms are now available for the 2026/2027 session.
               Visit us or call today to secure your child's place.
             </p>
             <button className="bg-gradient-to-r from-orange-500 to-blue-700 text-white px-8 py-4 rounded-full font-semibold text-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105">

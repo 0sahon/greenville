@@ -11,6 +11,7 @@ import CalendarSection from './student/CalendarSection';
 import StudentCBTSection from './student/CBTSection';
 import StudentTimetableSection from './student/TimetableSection';
 import LearningResourcesSection from './student/LearningResourcesSection';
+import ErrorBoundary from '../ErrorBoundary';
 
 const studentNav: NavItem[] = [
   { id: 'overview',    label: 'Overview',     icon: LayoutDashboard, color: 'text-pink-400' },
@@ -60,7 +61,9 @@ export default function StudentDashboard({ profile }: { profile: ProfileRow }) {
       gradientFrom="from-pink-600"
       gradientTo="to-rose-900"
     >
-      {renderSection()}
+      <ErrorBoundary label={`${section.charAt(0).toUpperCase() + section.slice(1)} Section`}>
+        {renderSection()}
+      </ErrorBoundary>
     </DashboardShell>
   );
 }

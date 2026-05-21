@@ -91,10 +91,13 @@ export function printResultCard(studentName: string, landscape = false) {
   win.document.write(`<!DOCTYPE html><html><head>
 <meta charset="utf-8"/>
 <title>Result Sheet – ${studentName}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&display=swap" rel="stylesheet">
 <style>
   @page { size: ${pageSize}; margin: 6mm 8mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; background: #fff; }
+  body { font-family: 'Fredoka', Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; background: #fff; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #ccc; padding: 3px 5px; }
   img { max-width: 100%; }
@@ -742,16 +745,33 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
     ['#FFD8E8', '#FF99BB', '#BB2255'],  // 11 Soft Pink     — Social Habit
   ];
 
+  const SKILL_EMOJIS: Record<string, string> = {
+    'Literacy':             '📚',
+    'Understanding':        '🧠',
+    'Obedience':            '🤝',
+    'Care of Self':         '🧼',
+    'Individual Behaviour': '🌟',
+    'Punctuality':          '⏰',
+    'Numeracy':             '🔢',
+    'Bible Studies':        '⛪',
+    'Creative Play':        '🎨',
+    'Phonics':              '🗣️',
+    'Scribbling':           '✏️',
+    'Social Habit':         '🤗',
+  };
+
   const Balloon = ({ skillName, colorIdx }: { skillName: string; colorIdx: number }) => {
     const [hi, mid, dark] = BALLOON_COLORS[colorIdx % BALLOON_COLORS.length];
     const comment = getRating(skillName);
+    const emoji = SKILL_EMOJIS[skillName] || '🎈';
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {/* Balloon body — teardrop oval taller than wide */}
         <div style={{
           position: 'relative',
-          width: '86px',
-          height: '104px',
+          width: '90px',
+          height: '110px',
           borderRadius: '50% 50% 45% 45% / 55% 55% 48% 48%',
           background: `radial-gradient(ellipse at 36% 26%, ${hi} 0%, ${mid} 50%, ${dark} 100%)`,
           boxShadow: `2px 5px 12px rgba(0,0,0,0.18), inset -3px -4px 8px rgba(0,0,0,0.09)`,
@@ -759,7 +779,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '14px 8px 18px',
+          padding: '12px 6px 16px',
           overflow: 'hidden',
         }}>
           {/* Primary shine spot */}
@@ -779,20 +799,28 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
             background: 'rgba(255,255,255,0.45)',
             pointerEvents: 'none',
           }} />
+
+          {/* Emoji */}
+          <div style={{ fontSize: '15pt', marginBottom: '2px', zIndex: 1, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.25))' }}>
+            {emoji}
+          </div>
+
           {/* Skill label */}
           <div style={{
             fontWeight: 'bold', fontSize: '7.5pt', color: '#fff',
-            textAlign: 'center', lineHeight: 1.25, zIndex: 1,
+            fontFamily: "'Fredoka', sans-serif",
+            textAlign: 'center', lineHeight: 1.2, zIndex: 1,
             textShadow: '0 1px 3px rgba(0,0,0,0.55)',
-            marginBottom: comment ? '4px' : 0,
+            marginBottom: comment ? '2px' : 0,
           }}>
             {skillName}
           </div>
           {comment && (
             <div style={{
-              fontSize: '5.5pt', color: 'rgba(255,255,255,0.93)',
+              fontSize: '5.5pt', color: 'rgba(255,255,255,0.95)',
+              fontFamily: "'Fredoka', sans-serif",
               textAlign: 'center', fontStyle: 'italic',
-              lineHeight: 1.25, zIndex: 1,
+              lineHeight: 1.15, zIndex: 1,
               textShadow: '0 1px 2px rgba(0,0,0,0.45)',
             }}>
               {comment}
@@ -819,33 +847,72 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
   const RAINBOW = ['#ffaad4', '#ffbb88', '#ffee88', '#aaddaa', '#99bbee', '#cc99ee'];
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '10pt', color: '#000', background: '#fff', border: `2px solid ${NAVY}` }}>
+    <div style={{
+      fontFamily: "'Fredoka', 'Arial', sans-serif",
+      fontSize: '10pt',
+      color: '#000',
+      background: '#fff',
+      border: `3px solid ${NAVY}`,
+      borderRadius: '12px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Background clouds and sun */}
+      <div style={{ position: 'absolute', top: '10px', right: '110px', opacity: 0.12, pointerEvents: 'none' }}>
+        <svg width="70" height="70" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="25" fill="#FFD700" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <line
+              key={i}
+              x1="50"
+              y1="15"
+              x2="50"
+              y2="5"
+              stroke="#FFD700"
+              strokeWidth="6"
+              strokeLinecap="round"
+              transform={`rotate(${i * 45} 50 50)`}
+            />
+          ))}
+        </svg>
+      </div>
+      <div style={{ position: 'absolute', top: '160px', left: '40px', opacity: 0.08, pointerEvents: 'none' }}>
+        <svg width="85" height="50" viewBox="0 0 120 80">
+          <path d="M 20 60 A 20 20 0 0 1 30 20 A 25 25 0 0 1 70 10 A 25 25 0 0 1 95 35 A 20 20 0 0 1 100 60 Z" fill="#0288d1" />
+        </svg>
+      </div>
+      <div style={{ position: 'absolute', top: '220px', right: '60px', opacity: 0.08, pointerEvents: 'none' }}>
+        <svg width="95" height="55" viewBox="0 0 120 80">
+          <path d="M 20 60 A 20 20 0 0 1 30 20 A 25 25 0 0 1 70 10 A 25 25 0 0 1 95 35 A 20 20 0 0 1 100 60 Z" fill="#0288d1" />
+        </svg>
+      </div>
 
       {/* Header — white background matching the original physical card */}
-      <div style={{ background: '#fff', padding: '6px 12px 4px', borderBottom: `1px solid #ddd` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ background: '#fff', padding: '10px 14px 6px', borderBottom: `1px solid #ddd` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Logo — LEFT only, as on the original card */}
           <img src={SCHOOL_LOGO_PATH} alt={displaySchool}
-            style={{ width: 62, height: 62, objectFit: 'contain', flexShrink: 0 }} />
+            style={{ width: 68, height: 68, objectFit: 'contain', flexShrink: 0 }} />
 
           {/* School info — centred */}
-          <div style={{ flex: 1, textAlign: 'center', lineHeight: 1.25 }}>
-            <div style={{ fontSize: '17pt', fontWeight: 'bold', color: NAVY, letterSpacing: '0.5px' }}>
+          <div style={{ flex: 1, textAlign: 'center', lineHeight: 1.3 }}>
+            <div style={{ fontSize: '19pt', fontWeight: 'bold', color: NAVY, letterSpacing: '0.5px' }}>
               {displaySchool.toUpperCase()}
             </div>
-            <div style={{ fontSize: '8pt', color: '#333', marginTop: '1px', letterSpacing: '0.5px' }}>
+            <div style={{ fontSize: '8.5pt', fontWeight: 'bold', color: '#444', marginTop: '2px', letterSpacing: '1px' }}>
               &#9670;DAY CARE &#9670;PRE-SCHOOL &#9670;NURSERY &#9670;PRIMARY
             </div>
-            <div style={{ fontSize: '7pt', color: '#555', marginTop: '2px' }}>
+            <div style={{ fontSize: '7.5pt', color: '#555', marginTop: '2px' }}>
               {displayAddr}
             </div>
           </div>
 
           {/* Card serial number — top-right, as on the physical card */}
           <div style={{
-            border: `1px solid #bbb`, borderRadius: '3px',
-            padding: '2px 8px', fontSize: '10pt', fontWeight: 'bold',
-            color: NAVY, minWidth: '48px', textAlign: 'center', flexShrink: 0,
+            border: `2px solid ${NAVY}`, borderRadius: '6px',
+            padding: '3px 10px', fontSize: '11pt', fontWeight: 'bold',
+            color: NAVY, minWidth: '55px', textAlign: 'center', flexShrink: 0,
+            background: '#fff',
           }}>
             {student.studentId || ''}
           </div>
@@ -853,55 +920,55 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
       </div>
 
       {/* Rainbow stripe */}
-      <div style={{ display: 'flex', height: '5px' }}>
+      <div style={{ display: 'flex', height: '6px' }}>
         {RAINBOW.map(c => <div key={c} style={{ flex: 1, background: c }} />)}
       </div>
 
       {/* Title Banner — matches "TODDLERS'S PRE-KG REPORT" on the physical card */}
       <div style={{
         background: 'linear-gradient(90deg, #fff0f8 0%, #fff9e6 50%, #f0f4ff 100%)',
-        textAlign: 'center', padding: '4px 0',
-        fontSize: '12pt', fontWeight: 'bold', letterSpacing: '3px',
+        textAlign: 'center', padding: '6px 0',
+        fontSize: '13pt', fontWeight: 'bold', letterSpacing: '3px',
         color: NAVY, borderBottom: `2px solid ${GOLD}`,
       }}>
-        &#127880; TODDLERS&apos;S PRE-KG REPORT &#127880;
+        🎈 TODDLERS&apos;S PRE-KG REPORT 🎈
       </div>
 
       {/* Student Info — matches original: row 1: TERM | CLASS | RESUMPTION DATE | ADMISSION NO, row 2: NAME | AGE */}
-      <div style={{ background: '#fffde7', padding: '5px 14px', borderBottom: `1px solid ${GOLD}` }}>
+      <div style={{ background: '#fffde7', padding: '6px 16px', borderBottom: `1px solid ${GOLD}` }}>
         {/* Row 1 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr 1fr', gap: '4px 14px', marginBottom: '4px' }}>
-          {([
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr 1fr', gap: '6px 16px', marginBottom: '5px' }}>
+          {[
             ['TERM',            term],
             ['CLASS',           `${student.className}${kgColorName(student.className) ? ` · ${kgColorName(student.className)}` : ''}`],
-            ['RESUMPTION DATE', ''],
+            ['RESUMPTION DATE', nextTerm.begins ? fmtDate(nextTerm.begins) : ''],
             ['ADMISSION NO.',   student.studentId],
-          ] as [string, string][]).map(([label, val]) => (
-            <div key={label}>
-              <span style={{ fontSize: '6pt', fontWeight: 'bold', color: NAVY, textTransform: 'uppercase' }}>{label} </span>
-              <span style={{ borderBottom: `1px solid ${NAVY}`, fontSize: '8.5pt', fontWeight: 600, paddingLeft: '2px', display: 'inline-block', minWidth: '60px' }}>{val}</span>
+          ].map(([label, val]) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+              <span style={{ fontSize: '6.5pt', fontWeight: 'bold', color: NAVY, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</span>
+              <span style={{ flex: 1, borderBottom: `1px solid ${NAVY}`, fontSize: '9pt', fontWeight: 'bold', color: '#111', paddingLeft: '4px', minWidth: '40px' }}>{val}</span>
             </div>
           ))}
         </div>
         {/* Row 2 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '4px 14px' }}>
-          {([
+        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '6px 16px' }}>
+          {[
             ['NAME', student.name],
             ['AGE',  ageYears !== null ? `${ageYears} yr${ageYears !== 1 ? 's' : ''}` : ''],
-          ] as [string, string][]).map(([label, val]) => (
-            <div key={label}>
-              <span style={{ fontSize: '6pt', fontWeight: 'bold', color: NAVY, textTransform: 'uppercase' }}>{label} </span>
-              <span style={{ borderBottom: `1px solid ${NAVY}`, fontSize: '8.5pt', fontWeight: 600, paddingLeft: '2px', display: 'inline-block', minWidth: '80px' }}>{val}</span>
+          ].map(([label, val]) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+              <span style={{ fontSize: '6.5pt', fontWeight: 'bold', color: NAVY, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</span>
+              <span style={{ flex: 1, borderBottom: `1px solid ${NAVY}`, fontSize: '9pt', fontWeight: 'bold', color: '#111', paddingLeft: '4px', minWidth: '60px' }}>{val}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* ── Balloon Section — 3 rows matching physical Yellow Class card ── */}
-      <div style={{ background: 'linear-gradient(160deg, #FFF0F5 0%, #FFE8F2 50%, #FEF5F8 100%)', padding: '6px 14px 4px' }}>
+      <div style={{ background: 'linear-gradient(160deg, #FFF5F9 0%, #FFEBF4 50%, #FFF9FC 100%)', padding: '10px 16px 6px' }}>
 
         {/* Row 1 — 5 balloons across the top: Literacy, Understanding, Obedience, Care of Self, Individual Behaviour */}
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '2px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '4px' }}>
           <Balloon skillName={PRE_KG_SKILLS[0].name} colorIdx={0} />
           <Balloon skillName={PRE_KG_SKILLS[1].name} colorIdx={1} />
           <Balloon skillName={PRE_KG_SKILLS[2].name} colorIdx={2} />
@@ -910,28 +977,45 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
         </div>
 
         {/* Row 2 — Punctuality, Numeracy | child figure | Bible Studies, Creative Play */}
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '2px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '4px' }}>
           <Balloon skillName={PRE_KG_SKILLS[5].name} colorIdx={5} />
           <Balloon skillName={PRE_KG_SKILLS[6].name} colorIdx={6} />
 
-          {/* SVG stick figure child holding balloon strings */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '4px' }}>
-            <svg width="50" height="66" viewBox="0 0 50 66" style={{ display: 'block' }}>
+          {/* Cute cartoon child figure */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '4px', position: 'relative' }}>
+            <svg width="70" height="85" viewBox="0 0 80 100" style={{ display: 'block', overflow: 'visible' }}>
               {/* Head */}
-              <circle cx="25" cy="9.5" r="8.5" fill={NAVY} />
-              {/* Body */}
-              <line x1="25" y1="18" x2="25" y2="42" stroke={NAVY} strokeWidth="3" strokeLinecap="round" />
-              {/* Arms raised — holding balloon strings */}
-              <line x1="25" y1="26" x2="4"  y2="14" stroke={NAVY} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1="25" y1="26" x2="46" y2="14" stroke={NAVY} strokeWidth="2.5" strokeLinecap="round" />
-              <circle cx="4"  cy="14" r="2.5" fill={NAVY} />
-              <circle cx="46" cy="14" r="2.5" fill={NAVY} />
-              {/* Legs */}
-              <line x1="25" y1="42" x2="12" y2="60" stroke={NAVY} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1="25" y1="42" x2="38" y2="60" stroke={NAVY} strokeWidth="2.5" strokeLinecap="round" />
+              <circle cx="40" cy="22" r="13" fill="#ffdbb5" />
+              {/* Hair */}
+              <path d="M 23 22 Q 40 5 57 22 Q 40 10 23 22" fill="#5c2e0b" />
+              <circle cx="28" cy="14" r="5" fill="#5c2e0b" />
+              <circle cx="52" cy="14" r="5" fill="#5c2e0b" />
+              {/* Eyes */}
+              <circle cx="35" cy="20" r="1.5" fill="#333" />
+              <circle cx="45" cy="20" r="1.5" fill="#333" />
+              {/* Smiling mouth */}
+              <path d="M 36 26 Q 40 31 44 26" stroke="#cc3300" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+              {/* Rosy cheeks */}
+              <circle cx="31" cy="23" r="2.5" fill="#ff9999" opacity="0.75" />
+              <circle cx="49" cy="23" r="2.5" fill="#ff9999" opacity="0.75" />
+              {/* Dress */}
+              <path d="M 32 35 L 18 70 L 62 70 L 48 35 Z" fill="#ff4081" />
+              {/* White collar */}
+              <path d="M 32 35 Q 40 40 48 35 Q 40 37 32 35" fill="#fff" />
+              {/* Star emblem on dress */}
+              <path d="M 40 46 L 42 51 L 47 51 L 43 54 L 45 59 L 40 56 L 35 59 L 37 54 L 33 51 L 38 51 Z" fill="#ffeb3b" />
+              {/* Arms holding strings */}
+              <line x1="28" y1="42" x2="6" y2="30" stroke="#ffdbb5" strokeWidth="3.5" strokeLinecap="round" />
+              <line x1="52" y1="42" x2="74" y2="30" stroke="#ffdbb5" strokeWidth="3.5" strokeLinecap="round" />
+              {/* Legs and shoes */}
+              <line x1="33" y1="70" x2="33" y2="88" stroke="#ffdbb5" strokeWidth="4" strokeLinecap="round" />
+              <line x1="47" y1="70" x2="47" y2="88" stroke="#ffdbb5" strokeWidth="4" strokeLinecap="round" />
+              {/* Shoes */}
+              <path d="M 28 88 C 28 84, 38 84, 38 88 Z" fill="#c2185b" />
+              <path d="M 42 88 C 42 84, 52 84, 52 88 Z" fill="#c2185b" />
             </svg>
-            <div style={{ fontSize: '5.5pt', color: NAVY, fontWeight: 'bold', textAlign: 'center', marginTop: '1px', lineHeight: 1.2 }}>
-              {SCHOOL_CITY_TAGLINE}
+            <div style={{ fontSize: '6.5pt', color: NAVY, fontWeight: 'bold', fontFamily: "'Fredoka', sans-serif", textAlign: 'center', marginTop: '3px', lineHeight: 1.2 }}>
+              🌟 {SCHOOL_CITY_TAGLINE} 🌟
             </div>
           </div>
 
@@ -943,7 +1027,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
         <div style={{ display: 'flex', alignItems: 'flex-end' }}>
           <Balloon skillName={PRE_KG_SKILLS[9].name} colorIdx={9} />
           <div style={{ flex: 1 }} />
-          <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
             <Balloon skillName={PRE_KG_SKILLS[10].name} colorIdx={10} />
             <Balloon skillName={PRE_KG_SKILLS[11].name} colorIdx={11} />
           </div>
@@ -951,29 +1035,29 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
       </div>
 
       {/* Rating Key */}
-      <div style={{ background: '#fdf0f7', padding: '3px 14px', borderTop: `1px solid #e8d0e0`, borderBottom: `2px solid ${NAVY}`, display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '6.5pt', alignItems: 'center' }}>
-        <strong style={{ color: NAVY }}>RATING KEY:</strong>
-        {([
+      <div style={{ background: '#fdf0f7', padding: '4px 16px', borderTop: `1px solid #e8d0e0`, borderBottom: `2px solid ${NAVY}`, display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '7pt', alignItems: 'center' }}>
+        <strong style={{ color: NAVY, fontFamily: "'Fredoka', sans-serif" }}>RATING KEY:</strong>
+        {[
           ['5 — Excellent',         '#FF80B3', '#fff'],
           ['4 — Very Good',         '#5B9BD5', '#fff'],
           ['3 — Good',              '#44AAAA', '#fff'],
           ['2 — Fair',              '#FFCC44', '#222'],
           ['1 — Needs Improvement', '#FF8866', '#fff'],
-        ] as [string, string, string][]).map(([label, bg, color]) => (
-          <span key={label} style={{ background: bg, color, padding: '1px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
+        ].map(([label, bg, color]) => (
+          <span key={label} style={{ background: bg, color, padding: '2px 10px', borderRadius: '12px', fontWeight: 'bold', fontFamily: "'Fredoka', sans-serif" }}>
             {label}
           </span>
         ))}
       </div>
 
       {/* Footer — matches physical card: Teacher | Attendance | Proprietress | Total/Average */}
-      <div style={{ padding: '7px 14px 8px', background: '#fff' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 1fr', gap: '14px', alignItems: 'start' }}>
+      <div style={{ padding: '8px 16px 10px', background: '#fff' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 1fr', gap: '16px', alignItems: 'start' }}>
 
           {/* Teacher Comment */}
           <div>
-            <div style={{ fontWeight: 'bold', color: NAVY, fontSize: '7.5pt', marginBottom: '3px' }}>Class Teacher&apos;s Comment:</div>
-            <div style={{ borderBottom: '1px dotted #888', minHeight: '20px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', lineHeight: '20px' }}>
+            <div style={{ fontWeight: 'bold', color: NAVY, fontSize: '8pt', marginBottom: '4px', fontFamily: "'Fredoka', sans-serif" }}>Class Teacher&apos;s Comment:</div>
+            <div style={{ borderBottom: '1px dotted #888', minHeight: '22px', fontSize: '9pt', fontStyle: 'italic', paddingLeft: '4px', lineHeight: '22px' }}>
               {comments.teacher}
             </div>
             <div style={{ marginTop: '16px' }}>
@@ -985,25 +1069,25 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
           <div style={{ fontSize: '7.5pt' }}>
             <div style={{ marginBottom: '6px' }}>
               <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>No. of times school opened:</div>
-              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '8.5pt', paddingLeft: '4px' }}>
+              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}>
                 {attendance.totalDays || ''}
               </div>
             </div>
             <div>
               <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>No. of times absent:</div>
-              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '8.5pt', paddingLeft: '4px' }}>
+              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}>
                 {attendance.daysAbsent || ''}
               </div>
             </div>
             {attendancePct !== null && (
-              <div style={{ marginTop: '4px', fontSize: '7pt', color: '#555' }}>Attendance: {attendancePct}%</div>
+              <div style={{ marginTop: '4px', fontSize: '7.5pt', color: '#555', fontWeight: 'bold' }}>Attendance: {attendancePct}%</div>
             )}
           </div>
 
           {/* Proprietress Comment */}
           <div>
-            <div style={{ fontWeight: 'bold', color: NAVY, fontSize: '7.5pt', marginBottom: '3px' }}>Proprietress Comment:</div>
-            <div style={{ borderBottom: '1px dotted #888', minHeight: '20px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', lineHeight: '20px' }}>
+            <div style={{ fontWeight: 'bold', color: NAVY, fontSize: '8pt', marginBottom: '4px', fontFamily: "'Fredoka', sans-serif" }}>Proprietress Comment:</div>
+            <div style={{ borderBottom: '1px dotted #888', minHeight: '22px', fontSize: '9pt', fontStyle: 'italic', paddingLeft: '4px', lineHeight: '22px' }}>
               {comments.principal}
             </div>
             <div style={{ marginTop: '16px' }}>
@@ -1015,21 +1099,21 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
           <div style={{ fontSize: '7.5pt' }}>
             <div style={{ marginBottom: '6px' }}>
               <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Total</div>
-              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '8.5pt', paddingLeft: '4px' }}></div>
+              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}></div>
             </div>
             <div>
               <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Average</div>
-              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '8.5pt', paddingLeft: '4px' }}></div>
+              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}></div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Bottom rainbow stripe */}
-      <div style={{ display: 'flex', height: '4px' }}>
+      <div style={{ display: 'flex', height: '5px' }}>
         {RAINBOW.map(c => <div key={c} style={{ flex: 1, background: c }} />)}
       </div>
-      <div style={{ background: '#fdf0f7', padding: '2px 14px', fontSize: '6.5pt', color: '#888', textAlign: 'right', fontStyle: 'italic' }}>
+      <div style={{ background: '#fdf0f7', padding: '3px 16px', fontSize: '7pt', color: '#777', textAlign: 'right', fontStyle: 'italic' }}>
         Computer-generated — {displaySchool}, {SCHOOL_CITY_TAGLINE}
       </div>
     </div>

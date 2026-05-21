@@ -12,6 +12,7 @@ import ParentGradesSection from './parent/GradesSection';
 import ParentAttendanceSection from './parent/AttendanceSection';
 import MessagesSection from './shared/MessagesSection';
 import ProfileEditSection from './shared/ProfileEditSection';
+import ErrorBoundary from '../ErrorBoundary';
 
 const parentNav: NavItem[] = [
   { id: 'overview',      label: 'Overview',       icon: LayoutDashboard, color: 'text-purple-400' },
@@ -63,7 +64,9 @@ export default function ParentDashboard({ profile }: { profile: ProfileRow }) {
       gradientFrom="from-purple-700"
       gradientTo="to-purple-900"
     >
-      {renderSection()}
+      <ErrorBoundary label={`${section.charAt(0).toUpperCase() + section.slice(1)} Section`}>
+        {renderSection()}
+      </ErrorBoundary>
     </DashboardShell>
   );
 }

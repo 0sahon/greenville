@@ -28,6 +28,7 @@ import HealthRecordsSection from './admin/HealthRecordsSection';
 import SubjectsSection from './admin/SubjectsSection';
 import AdmissionsSection from './admin/AdmissionsSection';
 import AdminAuditSection from './admin/AdminAuditSection';
+import ErrorBoundary from '../ErrorBoundary';
 
 const adminNav: NavItem[] = [
   { id: 'overview',      label: 'Overview',      icon: LayoutDashboard, color: 'text-indigo-400' },
@@ -113,7 +114,9 @@ export default function AdminDashboard({ profile }: { profile: ProfileRow }) {
       gradientFrom="from-indigo-700"
       gradientTo="to-indigo-900"
     >
-      {renderSection()}
+      <ErrorBoundary label={`${section.charAt(0).toUpperCase() + section.slice(1)} Section`}>
+        {renderSection()}
+      </ErrorBoundary>
     </DashboardShell>
   );
 }

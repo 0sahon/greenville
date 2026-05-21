@@ -30,8 +30,8 @@ function DatasheetInputCell({ value, max, onChange, rowIndex, colIndex, handleKe
       onKeyDown={e => handleKeyDown(e, rowIndex, colIndex)} onFocus={e => e.target.select()} placeholder="—"
       className={['w-14 text-center text-sm font-mono py-1.5 px-2 rounded-lg focus:outline-none transition-all duration-200 border-2',
         over ? 'border-rose-300 bg-rose-50 text-rose-700 animate-pulse focus:border-rose-500 focus:ring-1 focus:ring-rose-500'
-          : filled ? 'border-purple-200 bg-purple-50/40 text-purple-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-semibold'
-          : 'border-gray-100 bg-gray-50/50 text-gray-400 focus:border-purple-400 focus:bg-white focus:text-gray-800',
+          : filled ? 'border-indigo-200 bg-indigo-50/40 text-indigo-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-semibold'
+          : 'border-gray-100 bg-gray-50/50 text-gray-400 focus:border-indigo-400 focus:bg-white focus:text-gray-800',
       ].join(' ')}
     />
   );
@@ -199,53 +199,53 @@ export default function DatasheetEntryTab({ profile }: { profile: ProfileRow }) 
     <div className="space-y-6">
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div className="bg-gradient-to-br from-purple-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden border border-purple-500/20">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl" />
+      <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden border border-indigo-500/20">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl" />
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
-              <span className="text-xs font-semibold tracking-wider text-purple-300 uppercase">Premium Matrix Mode</span>
+              <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
+              <span className="text-xs font-semibold tracking-wider text-indigo-300 uppercase">Premium Matrix Mode</span>
             </div>
             <h3 className="text-2xl font-black tracking-tight">Datasheet Entry</h3>
-            <p className="text-xs text-purple-200/70 max-w-xl">
+            <p className="text-xs text-indigo-200/70 max-w-xl">
               Enter subject grades concurrently. Move quickly with <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[10px]">Arrow Keys</kbd> &amp; <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[10px]">Enter</kbd>. Saves automatically override existing records.
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-3 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
             <div className="flex-1 min-w-[140px]">
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-purple-300 mb-1">Class</label>
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-indigo-300 mb-1">Class</label>
               <select value={classId} onChange={e => { setClassId(e.target.value); setLoaded(false); }}
-                className="w-full border border-purple-800/40 bg-purple-950/65 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 text-white">
-                <option value="" className="bg-purple-950 text-white">Select Class</option>
-                {classes.map(c => <option key={c.id} value={c.id} className="bg-purple-950 text-white">{c.name}</option>)}
+                className="w-full border border-indigo-800/40 bg-indigo-950/65 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 text-white">
+                <option value="" className="bg-indigo-950 text-white">Select Class</option>
+                {classes.map(c => <option key={c.id} value={c.id} className="bg-indigo-950 text-white">{c.name}</option>)}
               </select>
             </div>
             <div className="flex-1 min-w-[140px]">
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-purple-300 mb-1">Subject</label>
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-indigo-300 mb-1">Subject</label>
               <select value={selectedSubject} onChange={e => { setSelectedSubject(e.target.value); setLoaded(false); }}
-                className="w-full border border-purple-800/40 bg-purple-950/65 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 text-white" disabled={!classId || subjects.length === 0}>
-                <option value="" className="bg-purple-950 text-white">Select Subject</option>
-                {subjects.map(sub => <option key={sub} value={sub} className="bg-purple-950 text-white">{sub}</option>)}
+                className="w-full border border-indigo-800/40 bg-indigo-950/65 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 text-white" disabled={!classId || subjects.length === 0}>
+                <option value="" className="bg-indigo-950 text-white">Select Subject</option>
+                {subjects.map(sub => <option key={sub} value={sub} className="bg-indigo-950 text-white">{sub}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-purple-300 mb-1">Term</label>
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-indigo-300 mb-1">Term</label>
               <select value={term} onChange={e => { setTerm(e.target.value); setLoaded(false); }}
-                className="border border-purple-800/40 bg-purple-950/65 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 text-white">
-                {TERMS.map(t => <option key={t} value={t} className="bg-purple-950 text-white">{t}</option>)}
+                className="border border-indigo-800/40 bg-indigo-950/65 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 text-white">
+                {TERMS.map(t => <option key={t} value={t} className="bg-indigo-950 text-white">{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[10px] uppercase font-bold tracking-wider text-purple-300 mb-1">Session</label>
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-indigo-300 mb-1">Session</label>
               <select value={year} onChange={e => { setYear(e.target.value); setLoaded(false); }}
-                className="border border-purple-800/40 bg-purple-950/65 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 text-white">
-                {getAcademicYearOptions().map(y => <option key={y} value={y} className="bg-purple-950 text-white">{y}</option>)}
+                className="border border-indigo-800/40 bg-indigo-950/65 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 text-white">
+                {getAcademicYearOptions().map(y => <option key={y} value={y} className="bg-indigo-950 text-white">{y}</option>)}
               </select>
             </div>
             <button onClick={loadDatasheet} disabled={!classId || !selectedSubject || loading}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 shadow-lg shadow-purple-500/20 active:scale-95 h-[38px]">
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 shadow-lg shadow-indigo-500/20 active:scale-95 h-[38px]">
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
               {loading ? 'Loading…' : 'Load Grid'}
             </button>
@@ -255,7 +255,7 @@ export default function DatasheetEntryTab({ profile }: { profile: ProfileRow }) 
 
       {!loaded && !loading && (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400 bg-white border border-gray-100 rounded-3xl shadow-sm">
-          <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-400 mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-400 mb-4">
             <FileSpreadsheet size={32} className="opacity-80" />
           </div>
           <p className="text-sm font-semibold text-gray-700">Datasheet is ready to load</p>
@@ -264,7 +264,7 @@ export default function DatasheetEntryTab({ profile }: { profile: ProfileRow }) 
       )}
       {loading && (
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-4" />
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
           <span className="text-sm text-gray-500 font-medium">Fetching students and matching records…</span>
         </div>
       )}
@@ -276,7 +276,7 @@ export default function DatasheetEntryTab({ profile }: { profile: ProfileRow }) 
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Subject</span>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-gray-800 text-lg">{selectedSubject}</span>
-                <span className="px-2 py-0.5 rounded bg-purple-50 text-[10px] font-bold text-purple-700 border border-purple-100 uppercase">{term}</span>
+                <span className="px-2 py-0.5 rounded bg-indigo-50 text-[10px] font-bold text-indigo-700 border border-indigo-100 uppercase">{term}</span>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-white border border-gray-100 rounded-2xl p-2.5 px-4 shadow-sm">
@@ -285,7 +285,7 @@ export default function DatasheetEntryTab({ profile }: { profile: ProfileRow }) 
                   <span>Entry Progress</span><span>{percentComplete}%</span>
                 </div>
                 <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-purple-50 to-indigo-600 h-full rounded-full transition-all duration-300" style={{ width: `${percentComplete}%` }} />
+                  <div className="bg-gradient-to-r from-indigo-50 to-indigo-600 h-full rounded-full transition-all duration-300" style={{ width: `${percentComplete}%` }} />
                 </div>
               </div>
               <div className="text-right whitespace-nowrap">
@@ -295,18 +295,94 @@ export default function DatasheetEntryTab({ profile }: { profile: ProfileRow }) 
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile Roster Cards */}
+          <div className="md:hidden divide-y divide-gray-150">
+            {students.map((student, ri) => {
+              const sScores = scores[student.id] ?? { hw: '', ca1: '', ca2: '', project: '', exam: '' };
+              const name = `${student.profiles?.first_name ?? ''} ${student.profiles?.last_name ?? ''}`.trim();
+              const { total, grade } = computeStudentTotalAndGrade(sScores);
+              return (
+                <div key={student.id} className="p-4 space-y-4 bg-white hover:bg-indigo-50/10 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-gray-800 text-sm sm:text-base">{name}</h4>
+                      <p className="text-[10px] text-gray-400 font-mono tracking-wider">{student.student_id}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <span className="text-[10px] text-gray-400 block font-semibold uppercase leading-none">Total</span>
+                        <span className="font-extrabold text-base text-indigo-700 tabular-nums">
+                          {total !== null ? `${total}/100` : '—'}
+                        </span>
+                      </div>
+                      {grade && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide border ${getGradePillClass(grade)}`}>
+                          {grade}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-5 gap-1.5 pt-1">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[9px] font-bold text-gray-400 mb-1 leading-none">HW (10)</span>
+                      <input type="text" inputMode="numeric" value={sScores.hw}
+                        onChange={e => { const v = e.target.value; if (v === '' || /^\d*\.?\d*$/.test(v)) handleScoreChange(student.id, 'hw', v); }}
+                        placeholder="—"
+                        className="w-full text-center text-sm font-semibold py-2 px-1 rounded-xl border-2 border-gray-200 bg-gray-50/50 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-gray-800"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[9px] font-bold text-gray-400 mb-1 leading-none">1st CA (15)</span>
+                      <input type="text" inputMode="numeric" value={sScores.ca1}
+                        onChange={e => { const v = e.target.value; if (v === '' || /^\d*\.?\d*$/.test(v)) handleScoreChange(student.id, 'ca1', v); }}
+                        placeholder="—"
+                        className="w-full text-center text-sm font-semibold py-2 px-1 rounded-xl border-2 border-gray-200 bg-gray-50/50 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-gray-800"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[9px] font-bold text-gray-400 mb-1 leading-none">2nd CA (15)</span>
+                      <input type="text" inputMode="numeric" value={sScores.ca2}
+                        onChange={e => { const v = e.target.value; if (v === '' || /^\d*\.?\d*$/.test(v)) handleScoreChange(student.id, 'ca2', v); }}
+                        placeholder="—"
+                        className="w-full text-center text-sm font-semibold py-2 px-1 rounded-xl border-2 border-gray-200 bg-gray-50/50 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-gray-800"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[9px] font-bold text-gray-400 mb-1 leading-none">Proj (10)</span>
+                      <input type="text" inputMode="numeric" value={sScores.project}
+                        onChange={e => { const v = e.target.value; if (v === '' || /^\d*\.?\d*$/.test(v)) handleScoreChange(student.id, 'project', v); }}
+                        placeholder="—"
+                        className="w-full text-center text-sm font-semibold py-2 px-1 rounded-xl border-2 border-gray-200 bg-gray-50/50 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-gray-800"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[9px] font-bold text-gray-400 mb-1 leading-none">Exam (50)</span>
+                      <input type="text" inputMode="numeric" value={sScores.exam}
+                        onChange={e => { const v = e.target.value; if (v === '' || /^\d*\.?\d*$/.test(v)) handleScoreChange(student.id, 'exam', v); }}
+                        placeholder="—"
+                        className="w-full text-center text-sm font-semibold py-2 px-1 rounded-xl border-2 border-gray-200 bg-gray-50/50 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-gray-800"
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-gray-800 text-white text-xs border-b border-gray-700 uppercase tracking-wider font-semibold">
                   <th className="text-left px-6 py-3.5 w-1/4">Student Info</th>
-                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">Homework</span><span className="text-purple-300 font-bold text-[9px]">Max: 10</span></th>
-                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">1st CA</span><span className="text-purple-300 font-bold text-[9px]">Max: 15</span></th>
-                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">2nd CA</span><span className="text-purple-300 font-bold text-[9px]">Max: 15</span></th>
-                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">Project</span><span className="text-purple-300 font-bold text-[9px]">Max: 10</span></th>
-                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">Exam</span><span className="text-purple-300 font-bold text-[9px]">Max: 50</span></th>
-                  <th className="text-center px-4 py-3.5 w-24"><span className="block text-gray-200">Total</span><span className="text-purple-300 font-bold text-[9px]">/100</span></th>
-                  <th className="text-center px-4 py-3.5 w-24"><span className="block text-gray-200">Grade</span><span className="text-purple-300 font-bold text-[9px]">Letter</span></th>
+                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">Homework</span><span className="text-indigo-300 font-bold text-[9px]">Max: 10</span></th>
+                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">1st CA</span><span className="text-indigo-300 font-bold text-[9px]">Max: 15</span></th>
+                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">2nd CA</span><span className="text-indigo-300 font-bold text-[9px]">Max: 15</span></th>
+                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">Project</span><span className="text-indigo-300 font-bold text-[9px]">Max: 10</span></th>
+                  <th className="text-center px-3 py-3.5"><span className="block text-gray-200">Exam</span><span className="text-indigo-300 font-bold text-[9px]">Max: 50</span></th>
+                  <th className="text-center px-4 py-3.5 w-24"><span className="block text-gray-200">Total</span><span className="text-indigo-300 font-bold text-[9px]">/100</span></th>
+                  <th className="text-center px-4 py-3.5 w-24"><span className="block text-gray-200">Grade</span><span className="text-indigo-300 font-bold text-[9px]">Letter</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -315,7 +391,7 @@ export default function DatasheetEntryTab({ profile }: { profile: ProfileRow }) 
                   const name = `${student.profiles?.first_name ?? ''} ${student.profiles?.last_name ?? ''}`.trim();
                   const { total, grade } = computeStudentTotalAndGrade(sScores);
                   return (
-                    <tr key={student.id} className={['border-b border-gray-100 hover:bg-purple-50/20 transition-colors', ri % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'].join(' ')}>
+                    <tr key={student.id} className={['border-b border-gray-100 hover:bg-indigo-50/20 transition-colors', ri % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'].join(' ')}>
                       <td className="px-6 py-3">
                         <div className="font-semibold text-gray-800 text-xs sm:text-sm">{name}</div>
                         <div className="text-[10px] text-gray-400 font-mono tracking-wider mt-0.5">{student.student_id}</div>

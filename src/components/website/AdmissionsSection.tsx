@@ -29,7 +29,7 @@ export default function AdmissionsSection() {
       title: 'Enrollment',
       description: 'Complete enrollment paperwork and secure your child\'s place.',
       icon: CheckCircle,
-      color: 'from-purple-400 to-purple-600'
+      color: 'from-indigo-500 to-indigo-700'
     }
   ];
 
@@ -75,7 +75,7 @@ export default function AdmissionsSection() {
             Admissions
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Registration forms are now available for the 2025/2026 academic session.
+            Registration forms are now available for the 2026/2027 academic session.
             We welcome all families who want the best start for their children.
           </p>
         </div>
@@ -147,7 +147,7 @@ export default function AdmissionsSection() {
           </div>
 
           <div className="mt-12 text-center">
-            <div className="bg-blue-50 rounded-2xl p-8 max-w-4xl mx-auto">
+            <div className="bg-indigo-50 rounded-2xl p-8 max-w-4xl mx-auto">
               <h4 className="text-2xl font-bold text-gray-800 mb-4">
                 Financial Aid Available
               </h4>
@@ -155,7 +155,7 @@ export default function AdmissionsSection() {
                 We believe every child deserves a quality education.
                 Contact us to discuss our fee schedule and available support options.
               </p>
-              <button className="bg-blue-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-blue-600 transition-colors duration-200">
+              <button className="bg-indigo-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-indigo-700 transition-colors duration-200">
                 Learn About Financial Aid
               </button>
             </div>
@@ -192,7 +192,7 @@ export default function AdmissionsSection() {
                   <Calendar className="w-5 h-5 text-orange-500" />
                   <div>
                     <h4 className="font-semibold text-gray-800">Registration Open</h4>
-                    <p className="text-gray-600">Now – for September 2025/2026</p>
+                    <p className="text-gray-600">Now – for September 2026/2027</p>
                   </div>
                 </div>
               </div>
@@ -202,17 +202,17 @@ export default function AdmissionsSection() {
                   <Clock className="w-5 h-5 text-green-500" />
                   <div>
                     <h4 className="font-semibold text-gray-800">Session Resumes</h4>
-                    <p className="text-gray-600">September 2025</p>
+                    <p className="text-gray-600">September 2026</p>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-blue-50 rounded-xl p-4 border-l-4 border-blue-400">
+              <div className="bg-indigo-50 rounded-xl p-4 border-l-4 border-indigo-400">
                 <div className="flex items-center gap-3">
-                  <Users className="w-5 h-5 text-blue-500" />
+                  <Users className="w-5 h-5 text-indigo-600" />
                   <div>
                     <h4 className="font-semibold text-gray-800">New Family Orientation</h4>
-                    <p className="text-gray-600">August 2025 (date to be confirmed)</p>
+                    <p className="text-gray-600">August 2026 (date to be confirmed)</p>
                   </div>
                 </div>
               </div>
@@ -222,7 +222,7 @@ export default function AdmissionsSection() {
 
         {/* Call to Action */}
         <div className="mt-20 text-center">
-          <div className="bg-gradient-to-r from-orange-500 to-green-500 rounded-3xl p-12 text-white">
+          <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-indigo-500 rounded-3xl p-12 text-white">
             <h3 className="text-3xl font-bold mb-6">
               Ready to Start Your Application?
             </h3>
@@ -230,10 +230,10 @@ export default function AdmissionsSection() {
               Take the first step towards your child's bright future at {SCHOOL_NAME}.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-orange-500 px-8 py-4 rounded-full font-semibold text-lg hover:bg-gray-100 transition-colors duration-200">
+              <button className="bg-white text-indigo-700 px-8 py-4 rounded-full font-semibold text-lg hover:bg-gray-100 transition-colors duration-200">
                 Apply Online Now
               </button>
-              <button className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-white hover:text-orange-500 transition-all duration-200 flex items-center justify-center gap-2">
+              <button className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-white hover:text-indigo-700 transition-all duration-200 flex items-center justify-center gap-2">
                 <Phone className="w-5 h-5" />
                 Call to Schedule Tour
               </button>

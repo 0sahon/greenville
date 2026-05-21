@@ -79,8 +79,8 @@ export default function ContactSection() {
             {/* Contact Details */}
             <div className="space-y-6 mb-8">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-6 h-6 text-orange-500" />
+                <div className="w-12 h-12 bg-indigo-100/70 rounded-full flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-6 h-6 text-indigo-600" />
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-800 mb-1">Address</h4>
@@ -92,8 +92,8 @@ export default function ContactSection() {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Phone className="w-6 h-6 text-green-500" />
+                <div className="w-12 h-12 bg-indigo-100/70 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Phone className="w-6 h-6 text-indigo-600" />
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-800 mb-1">Phone</h4>
@@ -102,8 +102,8 @@ export default function ContactSection() {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-6 h-6 text-blue-500" />
+                <div className="w-12 h-12 bg-indigo-100/70 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-6 h-6 text-indigo-600" />
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-800 mb-1">Email</h4>
@@ -112,8 +112,8 @@ export default function ContactSection() {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-6 h-6 text-purple-500" />
+                <div className="w-12 h-12 bg-indigo-100/70 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-6 h-6 text-indigo-600" />
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-800 mb-1">Office Hours</h4>
@@ -140,7 +140,7 @@ export default function ContactSection() {
               href={SCHOOL_MAP_EXTERNAL_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-orange-500 hover:underline mt-2"
+              className="inline-flex items-center gap-1.5 text-sm text-indigo-600 font-bold hover:underline mt-2"
             >
               <MapPin className="w-4 h-4" />
               View larger map
@@ -156,7 +156,7 @@ export default function ContactSection() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
                     Parent/Guardian Name *
                   </label>
                   <input
@@ -164,13 +164,13 @@ export default function ContactSection() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50/50 text-sm font-medium"
                     required
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
                     Email Address *
                   </label>
                   <input
@@ -178,7 +178,7 @@ export default function ContactSection() {
                     id="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50/50 text-sm font-medium"
                     required
                   />
                 </div>
@@ -186,7 +186,7 @@ export default function ContactSection() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
                     Phone Number
                   </label>
                   <input
@@ -194,13 +194,13 @@ export default function ContactSection() {
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50/50 text-sm font-medium animate-fade-in"
                     placeholder="+234 XXX XXX XXXX"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="childAge" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="childAge" className="block text-sm font-semibold text-gray-700 mb-2">
                     Child's Age
                   </label>
                   <input
@@ -208,21 +208,21 @@ export default function ContactSection() {
                     id="childAge"
                     value={formData.childAge}
                     onChange={(e) => handleInputChange('childAge', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50/50 text-sm font-medium"
                     placeholder="e.g., 4 years old"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="program" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="program" className="block text-sm font-semibold text-gray-700 mb-2">
                   Program of Interest
                 </label>
                 <select
                   id="program"
                   value={formData.program}
                   onChange={(e) => handleInputChange('program', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50/50 text-sm font-medium"
                 >
                   <option value="">Select a program</option>
                   <option value="toddler">Toddler (12–24 months)</option>
@@ -233,7 +233,7 @@ export default function ContactSection() {
               </div>
 
               <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="message" className="block text-sm font-semibold text-gray-700 mb-2">
                   Message
                 </label>
                 <textarea
@@ -241,7 +241,7 @@ export default function ContactSection() {
                   rows={5}
                   value={formData.message}
                   onChange={(e) => handleInputChange('message', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50/50 text-sm font-medium resize-none"
                   placeholder="Tell us about your child and any questions you have..."
                 ></textarea>
               </div>
@@ -249,7 +249,7 @@ export default function ContactSection() {
               <button
                 type="submit"
                 disabled={isSubmitted || loading}
-                className="w-full bg-gradient-to-r from-orange-500 to-green-500 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:from-orange-600 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-indigo-700 hover:to-indigo-600 shadow-lg shadow-indigo-600/25 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 transform active:scale-[0.98] hover:scale-[1.01]"
               >
                 {isSubmitted ? (
                   <>
@@ -271,15 +271,15 @@ export default function ContactSection() {
             </form>
 
             {/* Additional Info */}
-            <div className="mt-8 p-6 bg-blue-50 rounded-2xl">
-              <h4 className="font-semibold text-gray-800 mb-3">
+            <div className="mt-8 p-6 bg-indigo-50 rounded-2xl border border-indigo-100">
+              <h4 className="font-bold text-indigo-950 mb-3">
                 🏫 Schedule a Campus Tour
               </h4>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-4 leading-relaxed text-sm">
                 The best way to experience {SCHOOL_NAME} is to see it in action. 
                 We offer guided tours every Tuesday and Thursday at 10:00 AM.
               </p>
-              <button className="bg-blue-500 text-white px-6 py-2 rounded-full font-medium hover:bg-blue-600 transition-colors duration-200">
+              <button className="bg-indigo-600 text-white px-6 py-2 rounded-full font-bold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20 duration-200 text-sm">
                 Book Your Tour
               </button>
             </div>

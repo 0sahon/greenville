@@ -178,7 +178,7 @@ export default function AcademicsPage() {
   const IconComponent = currentSubject.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-emerald-50 to-amber-50">
       {/* Hero Section */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0">
@@ -243,7 +243,7 @@ export default function AcademicsPage() {
 
             <div 
               onClick={() => navigate('/about')}
-              className="text-center p-8 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl shadow-lg cursor-pointer transform hover:scale-105 transition-all duration-300"
+              className="text-center p-8 bg-gradient-to-br from-indigo-100 to-indigo-200/40 rounded-3xl shadow-lg cursor-pointer transform hover:scale-105 transition-all duration-300"
             >
               <div className="text-6xl mb-4">👥</div>
               <h3 className="text-2xl font-bold text-gray-800 mb-4">Learn Together</h3>
@@ -315,7 +315,7 @@ export default function AcademicsPage() {
               </h3>
               <div className="space-y-4">
                 {currentSubject.activities.map((activity, index) => (
-                  <div key={index} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100 hover:shadow-md transition-shadow">
+                  <div key={index} className="p-4 bg-gradient-to-r from-indigo-50 to-emerald-50 rounded-xl border border-indigo-100 hover:shadow-md transition-shadow">
                     <div className="flex items-start gap-3">
                       <div className="text-2xl">{activity.icon}</div>
                       <div>
@@ -380,7 +380,7 @@ export default function AcademicsPage() {
       </section>
 
       {/* Call to Action */}
-      <section className="py-16 bg-gradient-to-r from-purple-400 to-pink-400">
+      <section className="py-16 bg-gradient-to-r from-indigo-700 to-indigo-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
           <h2 className="text-4xl font-bold mb-6">Ready to Start Your Learning Adventure? 🚀</h2>
           <p className="text-xl mb-8">
@@ -390,13 +390,13 @@ export default function AcademicsPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
               onClick={() => navigate('/contact')}
-              className="bg-white text-purple-500 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors transform hover:scale-105 shadow-lg"
+              className="bg-white text-indigo-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors transform hover:scale-105 shadow-lg"
             >
               Visit Our School! 🏫
             </button>
             <button 
               onClick={() => navigate('/about')}
-              className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-purple-500 transition-all transform hover:scale-105"
+              className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-indigo-700 transition-all transform hover:scale-105"
             >
               Meet Our Teachers! 👩‍🏫
             </button>

@@ -18,6 +18,7 @@ import MessagesSection from './shared/MessagesSection';
 import ProfileEditSection from './shared/ProfileEditSection';
 import TeacherResultsSection from './teacher/ResultsSection';
 import TeacherStudentsSection from './teacher/StudentsSection';
+import ErrorBoundary from '../ErrorBoundary';
 
 const teacherNav: NavItem[] = [
   { id: 'overview',      label: 'Overview',       icon: LayoutDashboard, color: 'text-blue-400' },
@@ -72,8 +73,8 @@ export default function TeacherDashboard({ profile }: { profile: ProfileRow }) {
       navItems={teacherNav}
       activeSection={section}
       onSectionChange={setSection}
-      gradientFrom="from-blue-700"
-      gradientTo="to-blue-900"
+      gradientFrom="from-indigo-700"
+      gradientTo="to-indigo-900"
       onInboxOpenLms={() => {
         try {
           sessionStorage.setItem('teacher-lms-tab', 'lessonplans');
@@ -83,7 +84,9 @@ export default function TeacherDashboard({ profile }: { profile: ProfileRow }) {
         setSection('lms');
       }}
     >
-      {renderSection()}
+      <ErrorBoundary label={`${section.charAt(0).toUpperCase() + section.slice(1)} Section`}>
+        {renderSection()}
+      </ErrorBoundary>
     </DashboardShell>
   );
 }

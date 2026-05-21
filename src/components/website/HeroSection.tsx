@@ -40,8 +40,8 @@ export default function HeroSection({ onScheduleTour }: HeroSectionProps) {
               At {SCHOOL_NAME}, we create a safe, fun, and stimulating environment
               where every child discovers the joy of learning from Crèche through Kindergarten.
             </p>
-            <p className="text-base text-orange-600 font-semibold mb-8">
-              Registration forms now available — Crèche, Prenursery, Nursery 1 &amp; 2, Kindergarten · 2025/2026
+            <p className="text-base text-indigo-600 font-semibold mb-8">
+              Registration forms now available — Crèche, Prenursery, Nursery 1 &amp; 2, Kindergarten · 2026/2027
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -89,9 +89,9 @@ export default function HeroSection({ onScheduleTour }: HeroSectionProps) {
             <div className="absolute -top-4 -right-4 w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center animate-bounce shadow-lg">
               <span className="text-2xl">⭐</span>
             </div>
-            <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl px-4 py-2 shadow-lg border border-orange-100 animate-pulse">
-              <p className="text-xs font-bold text-orange-600">Enrolling Now!</p>
-              <p className="text-xs text-gray-500">2025/2026 Session</p>
+            <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl px-4 py-2 shadow-lg border border-indigo-100 animate-pulse">
+              <p className="text-xs font-bold text-indigo-600">Enrolling Now!</p>
+              <p className="text-xs text-gray-500">2026/2027 Session</p>
             </div>
           </div>
         </div>

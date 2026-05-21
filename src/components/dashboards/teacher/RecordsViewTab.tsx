@@ -147,17 +147,17 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 w-52" />
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-52" />
           </div>
-          <select value={filterClass} onChange={e => setFilterClass(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+          <select value={filterClass} onChange={e => setFilterClass(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
             <option value="">All classes</option>
             {myClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+          <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
             <option value="">All subjects</option>
             {subjects.map(s => <option key={s}>{s}</option>)}
           </select>
-          <select value={filterTerm} onChange={e => setFilterTerm(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+          <select value={filterTerm} onChange={e => setFilterTerm(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
             <option value="">All terms</option>
             {TERMS.map(t => <option key={t}>{t}</option>)}
           </select>
@@ -166,7 +166,7 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
             <Download className="w-4 h-4" /> CSV
           </button>
-          <button onClick={openAdd} className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700">
+          <button onClick={openAdd} className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
             <Plus className="w-4 h-4" /> Add
           </button>
         </div>
@@ -174,7 +174,7 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
-          <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -207,7 +207,7 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
                       <td className="py-2.5 px-4 text-gray-400 text-xs">{g.term}</td>
                       <td className="py-2.5 px-4">
                         <div className="flex gap-1">
-                          <button onClick={() => openEdit(g)} className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500"><Edit2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => openEdit(g)} className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-600"><Edit2 className="w-3.5 h-3.5" /></button>
                           <button onClick={() => deleteGrade(g.id)} disabled={deleting === g.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400 disabled:opacity-40">
                             {deleting === g.id ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                           </button>
@@ -232,7 +232,7 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b">
               <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-purple-500" /> {editing ? 'Edit Grade' : 'Add Grade'}
+                <BarChart3 className="w-5 h-5 text-indigo-600" /> {editing ? 'Edit Grade' : 'Add Grade'}
               </h3>
               <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
             </div>
@@ -240,7 +240,7 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Student *</label>
                 <select value={form.student_id} onChange={e => setForm(f => ({ ...f, student_id: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
                   <option value="">Select student…</option>
                   {students.map(s => <option key={s.id} value={s.id}>{s.profiles?.first_name} {s.profiles?.last_name} ({s.student_id})</option>)}
                 </select>
@@ -249,20 +249,20 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Subject *</label>
                 {subjects.length > 0 ? (
                   <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
                     <option value="">Select subject…</option>
                     {subjects.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 ) : (
                   <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="e.g. Mathematics"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Type</label>
                 <select value={form.assessment_type}
                   onChange={e => { const t = e.target.value; setForm(f => ({ ...f, assessment_type: t, ...(DEFAULT_MAX[t] ? { max_score: String(DEFAULT_MAX[t]) } : {}) })); }}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
                   {ASSESSMENT_TYPES.map(t => <option key={t}>{t}{DEFAULT_MAX[t] ? ` (max ${DEFAULT_MAX[t]})` : ''}</option>)}
                 </select>
               </div>
@@ -270,26 +270,26 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Score *</label>
                   <input type="number" inputMode="numeric" autoComplete="off" min={0} step={0.5} value={form.score} onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
                   <input type="number" inputMode="numeric" autoComplete="off" min={1} value={form.max_score} onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Term</label>
                   <select value={form.term} onChange={e => setForm(f => ({ ...f, term: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
                     {TERMS.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Academic Year</label>
                   <select value={form.academic_year} onChange={e => setForm(f => ({ ...f, academic_year: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
                     {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
                   </select>
                 </div>
@@ -297,7 +297,7 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
             </div>
             <div className="flex gap-3 p-5 border-t">
               <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button onClick={save} disabled={saving} className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
+              <button onClick={save} disabled={saving} className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
                 {saving ? 'Saving…' : editing ? 'Update' : 'Save'}
               </button>
             </div>

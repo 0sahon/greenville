@@ -152,9 +152,9 @@ export default function AboutSection() {
                   className="w-full h-64 sm:h-80 object-cover object-top"
                 />
               </div>
-              <div className="absolute -bottom-4 -right-4 bg-orange-500 text-white rounded-2xl px-5 py-3 shadow-lg">
+              <div className="absolute -bottom-4 -right-4 bg-indigo-600 text-white rounded-2xl px-5 py-3 shadow-lg border-2 border-indigo-500">
                 <p className="text-sm font-bold">Enrolling Now!</p>
-                <p className="text-xs opacity-90">2025/2026 Session</p>
+                <p className="text-xs opacity-90">2026/2027 Session</p>
               </div>
             </div>
           </div>

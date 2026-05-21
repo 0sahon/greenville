@@ -58,7 +58,7 @@ function App() {
         <div className="text-center mb-4">
           <button
             onClick={() => setShowMainWebsite(true)}
-            className="text-orange-600 hover:text-orange-700 text-sm font-medium underline"
+            className="text-indigo-600 hover:text-indigo-800 text-sm font-bold transition-colors"
           >
             ← Back to Main Website
           </button>

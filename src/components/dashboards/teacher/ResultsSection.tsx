@@ -504,7 +504,7 @@ export default function TeacherResultsSection({ profile }: Props) {
             <label className="block text-xs text-gray-500 mb-1">Class</label>
             <div className="relative">
               <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 {myClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -514,7 +514,7 @@ export default function TeacherResultsSection({ profile }: Props) {
             <label className="block text-xs text-gray-500 mb-1">Term</label>
             <div className="relative">
               <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 {TERMS.map(t => <option key={t}>{t}</option>)}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -523,7 +523,7 @@ export default function TeacherResultsSection({ profile }: Props) {
           <div className="flex-1 min-w-28">
             <label className="block text-xs text-gray-500 mb-1">Academic Year</label>
             <select value={academicYear} onChange={e => setAcademicYear(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
               {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
             </select>
           </div>
@@ -535,13 +535,13 @@ export default function TeacherResultsSection({ profile }: Props) {
           <div className="relative max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input placeholder="Search students…" value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
 
           {/* Stats bar */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Total Students', value: students.length, color: 'text-blue-700' },
+              { label: 'Total Students', value: students.length, color: 'text-indigo-600' },
               { label: 'Sheets Created', value: Object.keys(resultSheets).length, color: 'text-yellow-700' },
               { label: 'Published', value: Object.values(resultSheets).filter(r => r.is_published).length, color: 'text-green-700' },
             ].map(({ label, value, color }) => (
@@ -555,7 +555,7 @@ export default function TeacherResultsSection({ profile }: Props) {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             {loading ? (
               <div className="flex justify-center items-center py-16">
-                <div className="w-8 h-8 border-4 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -578,7 +578,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                         <td className="py-3 px-4 text-gray-400 text-xs">{idx + 1}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs flex-shrink-0">
                               {s.profiles?.first_name?.[0]}{s.profiles?.last_name?.[0]}
                             </div>
                             <div>
@@ -599,7 +599,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                         </td>
                         <td className="py-3 px-4">
                           <button onClick={() => openCard(s)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-700 text-white rounded-lg text-xs font-medium hover:bg-blue-800 transition-colors">
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors">
                             <Eye className="w-3.5 h-3.5" />
                             {sheet ? 'View / Edit' : 'Create Sheet'}
                           </button>
@@ -641,10 +641,10 @@ export default function TeacherResultsSection({ profile }: Props) {
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
-                  <button onClick={() => setModalTab('preview')} className={`px-3 py-1.5 ${modalTab === 'preview' ? 'bg-blue-700 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                  <button onClick={() => setModalTab('preview')} className={`px-3 py-1.5 ${modalTab === 'preview' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
                     Preview
                   </button>
-                  <button onClick={() => setModalTab('edit')} className={`px-3 py-1.5 ${modalTab === 'edit' ? 'bg-blue-700 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                  <button onClick={() => setModalTab('edit')} className={`px-3 py-1.5 ${modalTab === 'edit' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
                     Edit
                   </button>
                 </div>
@@ -657,7 +657,7 @@ export default function TeacherResultsSection({ profile }: Props) {
             <div className="p-4 sm:p-6">
               {loadingCard ? (
                 <div className="flex justify-center py-16">
-                  <div className="w-8 h-8 border-4 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
                 </div>
               ) : (
                 <>
@@ -669,7 +669,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                           <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
                           <p className="font-medium">No result data yet</p>
                           <p className="text-xs mt-1">Switch to "Edit Sheet" to fill in attendance and comments.</p>
-                          <button onClick={() => setModalTab('edit')} className="mt-4 px-4 py-2 bg-blue-700 text-white rounded-lg text-sm font-medium hover:bg-blue-800">
+                          <button onClick={() => setModalTab('edit')} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
                             Open Edit Sheet
                           </button>
                         </div>
@@ -691,7 +691,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                                 const landscape = lvl === 'creche' || lvl === 'toddler';
                                 printResultCard(`${activeStudent.profiles?.first_name} ${activeStudent.profiles?.last_name}`, landscape);
                               }}
-                              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700">
+                              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700">
                               <Download className="w-3.5 h-3.5" /> Export as PDF
                             </button>
                             {metaForm.is_published ? (
@@ -749,7 +749,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                                   const homework = s.homework && s.homework > 0 ? Math.round((s.homework / 10) * 10) : 0;
                                   const total = ca1 + ca2 + project + homework + exam;
                                   const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
-                                  const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                                  const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-indigo-600' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
                                   return (
                                     <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
                                       <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
@@ -760,7 +760,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                                             max={field === 'exam' ? BASIC_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? BASIC_CA_MAX : 10}
                                             value={s[field] || ''}
                                             onChange={e => updateBasicScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? BASIC_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? BASIC_CA_MAX : 10))}
-                                            className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                           />
                                         </td>
                                       ))}
@@ -810,7 +810,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                                   const homework = s.homework && s.homework > 0 ? Math.round((s.homework / 10) * 10) : 0;
                                   const total = ca1 + ca2 + project + homework + exam;
                                   const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
-                                  const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                                  const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-indigo-600' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
                                   return (
                                     <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
                                       <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
@@ -821,7 +821,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                                             max={field === 'exam' ? NURSERY_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? NURSERY_CA_MAX : 10}
                                             value={s[field] || ''}
                                             onChange={e => updateNurseryScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? NURSERY_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? NURSERY_CA_MAX : 10))}
-                                            className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                           />
                                         </td>
                                       ))}
@@ -861,7 +861,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                                   <div className="flex flex-wrap gap-1.5 mb-2">
                                     {[
                                       { r: 5, label: 'Excellent',         cls: 'bg-green-100 text-green-800 border-green-300' },
-                                      { r: 4, label: 'Very Good',         cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+                                      { r: 4, label: 'Very Good',         cls: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
                                       { r: 3, label: 'Good',              cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
                                       { r: 2, label: 'Fair',              cls: 'bg-orange-100 text-orange-800 border-orange-300' },
                                       { r: 1, label: 'Needs Improvement', cls: 'bg-red-100 text-red-800 border-red-300' },
@@ -883,7 +883,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                                   <select
                                     value={current}
                                     onChange={e => updatePreKgRating(skill.name, Number(e.target.value))}
-                                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                                   >
                                     <option value={0}>— Not rated —</option>
                                     {[5, 4, 3, 2, 1].map(r => (
@@ -907,19 +907,19 @@ export default function TeacherResultsSection({ profile }: Props) {
                             <label className="block text-xs font-medium text-gray-600 mb-1">Total School Days</label>
                             <input type="number" min={0} value={metaForm.total_school_days}
                               onChange={e => updateMeta({ total_school_days: Number(e.target.value) })}
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Days Present</label>
                             <input type="number" min={0} value={metaForm.days_present}
                               onChange={e => updateMeta({ days_present: Number(e.target.value) })}
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Days Absent</label>
                             <input type="number" min={0} value={metaForm.days_absent}
                               onChange={e => updateMeta({ days_absent: Number(e.target.value) })}
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                           </div>
                         </div>
                       </div>
@@ -933,14 +933,14 @@ export default function TeacherResultsSection({ profile }: Props) {
                             <textarea rows={2} value={metaForm.teacher_comment}
                               onChange={e => updateMeta({ teacher_comment: e.target.value })}
                               placeholder="e.g. A diligent student who shows great potential…"
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Principal's / Proprietress' Remark</label>
                             <textarea rows={2} value={metaForm.principal_comment}
                               onChange={e => updateMeta({ principal_comment: e.target.value })}
                               placeholder="e.g. Excellent performance. Keep it up!"
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
                           </div>
                         </div>
                       </div>
@@ -953,14 +953,14 @@ export default function TeacherResultsSection({ profile }: Props) {
                             <label className="block text-xs font-medium text-gray-600 mb-1">Next Term Begins</label>
                             <input type="date" value={metaForm.next_term_begins}
                               onChange={e => updateMeta({ next_term_begins: e.target.value })}
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Fees for Next Term</label>
                             <input value={metaForm.next_term_fees}
                               onChange={e => updateMeta({ next_term_fees: e.target.value })}
                               placeholder="₦150,000"
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                           </div>
                         </div>
                       </div>
@@ -982,7 +982,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                           Preview Card
                         </button>
                         <button onClick={saveMeta} disabled={saving}
-                          className="flex-1 min-w-[140px] py-2.5 bg-blue-700 text-white rounded-xl text-sm font-medium hover:bg-blue-800 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
+                          className="flex-1 min-w-[140px] py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
                           <Save className="w-4 h-4" />
                           {saving ? 'Saving…' : 'Save Sheet'}
                         </button>

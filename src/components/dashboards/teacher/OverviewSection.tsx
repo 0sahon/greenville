@@ -117,12 +117,12 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-blue-300 border-t-blue-600 rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" /></div>;
 
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-5 text-white">
+      <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 rounded-2xl p-5 text-white">
         <p className="text-white/80 text-sm font-medium">{greeting},</p>
         <h2 className="text-2xl font-bold mt-0.5">{profile.first_name} {profile.last_name}</h2>
         <p className="text-white/70 text-sm mt-1">
@@ -135,8 +135,8 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'My Classes', value: data.classes.length, icon: BookOpen, color: 'text-blue-600 bg-blue-50 border-blue-100' },
-          { label: 'My Students', value: data.totalStudents, icon: Users, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+          { label: 'My Classes', value: data.classes.length, icon: BookOpen, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+          { label: 'My Students', value: data.totalStudents, icon: Users, color: 'text-indigo-650 bg-indigo-50 border-indigo-100' },
           { label: 'Present Today', value: data.presentToday, icon: ClipboardCheck, color: 'text-green-600 bg-green-50 border-green-100' },
           { label: 'Absent Today', value: data.absentToday, icon: AlertCircle, color: data.absentToday > 0 ? 'text-red-600 bg-red-50 border-red-100' : 'text-gray-400 bg-gray-50 border-gray-100' },
         ].map(({ label, value, icon: Icon, color }) => (
@@ -158,9 +158,9 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: 'Take Attendance', icon: ClipboardCheck, color: 'bg-green-50 border-green-200 hover:bg-green-100 text-green-700', section: 'attendance' },
-            { label: 'Enter Grades', icon: Plus, color: 'bg-blue-50 border-blue-200 hover:bg-blue-100 text-blue-700', section: 'grades' },
+            { label: 'Enter Grades', icon: Plus, color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100 text-indigo-700', section: 'grades' },
             { label: 'View Classes', icon: BookOpen, color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100 text-indigo-700', section: 'classes' },
-            { label: 'View Students', icon: Users, color: 'bg-purple-50 border-purple-200 hover:bg-purple-100 text-purple-700', section: 'students' },
+            { label: 'View Students', icon: Users, color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100 text-indigo-700', section: 'students' },
           ].map(({ label, icon: Icon, color, section }) => (
             <button
               key={label}
@@ -182,7 +182,7 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
         {/* Classes */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-blue-500" /> My Classes
+            <BookOpen className="w-4 h-4 text-indigo-600" /> My Classes
           </h3>
           {data.classes.length === 0 ? (
             <p className="text-gray-400 text-sm text-center py-6">No classes assigned yet</p>
@@ -192,15 +192,15 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
                 <button
                   key={cls.id}
                   onClick={() => onNavigate?.('classes')}
-                  className="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 transition-colors text-left"
+                  className="w-full flex items-center justify-between p-3 bg-indigo-50 hover:bg-indigo-100/70 rounded-lg border border-indigo-100 transition-colors text-left"
                 >
                   <div>
                     <p className="font-medium text-gray-800">{cls.name}</p>
                     <p className="text-xs text-gray-500">{LEVEL_LABELS[cls.level]} · {cls.academic_year}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-blue-600">{cls.students?.[0]?.count || 0} students</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-sm font-semibold text-indigo-600">{cls.students?.[0]?.count || 0} students</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
                 </button>
               ))}
@@ -248,12 +248,12 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
                       </p>
                       <p className="text-xs text-gray-500">{g.subject} · {g.assessment_type}</p>
                     </div>
-                    <span className="text-sm font-bold text-blue-600">{g.score}/{g.max_score}</span>
+                    <span className="text-sm font-bold text-indigo-600">{g.score}/{g.max_score}</span>
                   </div>
                 ))}
                 <button
                   onClick={() => onNavigate?.('grades')}
-                  className="w-full text-center text-xs text-blue-600 hover:underline font-medium pt-1"
+                  className="w-full text-center text-xs text-indigo-600 hover:underline font-semibold pt-1"
                 >
                   View all grades →
                 </button>

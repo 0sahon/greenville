@@ -190,7 +190,7 @@ export default function StudentCBTSection({ profile }: Props) {
           <div className="flex justify-between"><span className="text-gray-500">Correct</span><span className="font-medium text-green-600">{finalScore.correctCount}</span></div>
           <div className="flex justify-between"><span className="text-gray-500">Wrong / Skipped</span><span className="font-medium text-red-500">{finalScore.totalQuestions - finalScore.correctCount}</span></div>
         </div>
-        <button onClick={backToList} className="w-full py-3 bg-pink-600 text-white rounded-xl font-medium hover:bg-pink-700">Back to Exams</button>
+        <button onClick={backToList} className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all duration-150">Back to Exams</button>
       </div>
     );
   }
@@ -207,8 +207,8 @@ export default function StudentCBTSection({ profile }: Props) {
           <p className="text-sm text-gray-500 mb-2">You have answered <strong>{answered}</strong> of <strong>{questions.length}</strong> questions.</p>
           {unanswered > 0 && <p className="text-sm text-yellow-600 mb-4">{unanswered} question{unanswered > 1 ? 's' : ''} unanswered.</p>}
           <div className="flex gap-3 mt-4">
-            <button onClick={() => setExamView('taking')} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm">Continue</button>
-            <button onClick={() => submitExam(false)} disabled={submitting} className="flex-1 py-2.5 bg-pink-600 text-white rounded-xl text-sm font-medium hover:bg-pink-700 disabled:opacity-50">{submitting ? 'Submitting...' : 'Submit'}</button>
+            <button onClick={() => setExamView('taking')} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm hover:bg-gray-50 transition-colors">Continue</button>
+            <button onClick={() => submitExam(false)} disabled={submitting} className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-all duration-150 shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/20">{submitting ? 'Submitting...' : 'Submit'}</button>
           </div>
         </div>
       </div>
@@ -239,7 +239,7 @@ export default function StudentCBTSection({ profile }: Props) {
           <div className="flex flex-wrap gap-1.5">
             {questions.map((_, i) => (
               <button key={i} onClick={() => setCurrentIdx(i)}
-                className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${i === currentIdx ? 'bg-pink-600 text-white' : answers[questions[i].id] ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${i === currentIdx ? 'bg-indigo-600 text-white shadow-sm' : answers[questions[i].id] ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                 {i + 1}
               </button>
             ))}
@@ -249,7 +249,7 @@ export default function StudentCBTSection({ profile }: Props) {
         {/* Current question */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-4">
-            <span className="px-2.5 py-1 bg-pink-100 text-pink-700 text-xs font-bold rounded-lg">Q{currentIdx + 1}</span>
+            <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-100">Q{currentIdx + 1}</span>
             <span className="text-xs text-gray-400">{q.marks} mark{q.marks !== 1 ? 's' : ''}</span>
           </div>
           <p className="text-gray-800 font-medium mb-6 leading-relaxed">{q.question_text}</p>
@@ -259,10 +259,10 @@ export default function StudentCBTSection({ profile }: Props) {
               const selected = answers[q.id] === opt;
               return (
                 <button key={opt} onClick={() => selectAnswer(q.id, opt)}
-                  className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${selected ? 'border-pink-500 bg-pink-50 text-pink-800' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'}`}>
-                  <span className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${selected ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-600'}`}>{opt.toUpperCase()}</span>
-                  <span className="flex-1">{text}</span>
-                  {selected && <CheckCircle2 className="w-5 h-5 text-pink-500 flex-shrink-0" />}
+                  className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${selected ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-medium' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'}`}>
+                  <span className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${selected ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'}`}>{opt.toUpperCase()}</span>
+                  <span className="flex-1 text-sm">{text}</span>
+                  {selected && <CheckCircle2 className="w-5 h-5 text-indigo-600 flex-shrink-0" />}
                 </button>
               );
             })}
@@ -271,15 +271,15 @@ export default function StudentCBTSection({ profile }: Props) {
 
         {/* Navigation */}
         <div className="flex items-center justify-between">
-          <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40">
+          <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors">
             <ChevronLeft className="w-4 h-4" /> Previous
           </button>
           {currentIdx < questions.length - 1 ? (
-            <button onClick={() => setCurrentIdx(i => i + 1)} className="flex items-center gap-1.5 px-4 py-2.5 bg-pink-600 text-white rounded-xl text-sm font-medium hover:bg-pink-700">
+            <button onClick={() => setCurrentIdx(i => i + 1)} className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/20 transition-all">
               Next <ChevronRight className="w-4 h-4" />
             </button>
           ) : (
-            <button onClick={() => setExamView('confirm_submit')} className="flex items-center gap-1.5 px-6 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">
+            <button onClick={() => setExamView('confirm_submit')} className="flex items-center gap-1.5 px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 shadow-md shadow-emerald-600/10 hover:shadow-emerald-600/20 transition-all">
               Submit Exam
             </button>
           )}
@@ -292,11 +292,11 @@ export default function StudentCBTSection({ profile }: Props) {
   return (
     <div className="space-y-5">
       <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-        <MonitorCheck className="w-6 h-6 text-pink-500" /> CBT Exams
+        <MonitorCheck className="w-6 h-6 text-indigo-600" /> CBT Exams
       </h2>
 
       {loading ? (
-        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-pink-300 border-t-pink-600 rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>
       ) : exams.length === 0 ? (
         <div className="text-center py-16 text-gray-400">No exams available.</div>
       ) : (
@@ -304,7 +304,7 @@ export default function StudentCBTSection({ profile }: Props) {
           {exams.map(exam => {
             const status = getExamStatus(exam);
             return (
-              <div key={exam.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <div key={exam.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-all duration-200">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900">{exam.title}</h3>
@@ -321,12 +321,12 @@ export default function StudentCBTSection({ profile }: Props) {
                       </>
                     )}
                     {status === 'in_progress' && (
-                      <button onClick={() => startExam(exam)} className="flex items-center gap-1.5 px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600">
+                      <button onClick={() => startExam(exam)} className="flex items-center gap-1.5 px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors shadow-sm shadow-yellow-500/10">
                         <RotateCcw className="w-4 h-4" /> Resume
                       </button>
                     )}
                     {status === 'available' && (
-                      <button onClick={() => startExam(exam)} className="flex items-center gap-1.5 px-4 py-2 bg-pink-600 text-white rounded-lg text-sm font-medium hover:bg-pink-700">
+                      <button onClick={() => startExam(exam)} className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/20">
                         Start Exam
                       </button>
                     )}

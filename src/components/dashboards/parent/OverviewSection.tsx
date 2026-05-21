@@ -71,7 +71,7 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
     })();
   }, [profile.id]);
 
-  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>;
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -79,10 +79,10 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
   return (
     <div className="space-y-6">
       {/* Welcome header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-5 text-white">
-        <p className="text-white/80 text-sm font-medium">{greeting},</p>
-        <h2 className="text-2xl font-bold mt-0.5">{profile.first_name} {profile.last_name}</h2>
-        <p className="text-white/70 text-sm mt-1">
+      <div className="bg-gradient-to-r from-indigo-700 to-indigo-600 rounded-2xl p-6 text-white shadow-md shadow-indigo-700/10">
+        <p className="text-white/80 text-xs font-semibold uppercase tracking-wider">{greeting},</p>
+        <h2 className="text-2xl font-bold mt-1">{profile.first_name} {profile.last_name}</h2>
+        <p className="text-white/70 text-sm mt-1.5 leading-relaxed">
           {data.children.length > 0
             ? `You have ${data.children.length} child${data.children.length > 1 ? 'ren' : ''} enrolled at ${SCHOOL_NAME}`
             : `Welcome to the ${SCHOOL_NAME} portal`}
@@ -97,8 +97,8 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
             value: data.children.length,
             sub: data.children.length === 1 ? 'enrolled' : 'enrolled',
             icon: Users,
-            color: 'text-purple-600 bg-purple-50 border-purple-100',
-            iconBg: 'bg-purple-100',
+            color: 'text-indigo-600 bg-indigo-50 border-indigo-100',
+            iconBg: 'bg-indigo-100',
           },
           {
             label: 'Attendance',
@@ -121,8 +121,8 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
             value: data.announcements.length,
             sub: 'recent',
             icon: Bell,
-            color: 'text-blue-600 bg-blue-50 border-blue-100',
-            iconBg: 'bg-blue-100',
+            color: 'text-amber-600 bg-amber-50 border-amber-100',
+            iconBg: 'bg-amber-100',
           },
         ].map(({ label, value, sub, icon: Icon, color, iconBg }) => (
           <div key={label} className={`bg-white rounded-xl border p-4 flex items-center gap-3 shadow-sm ${color}`}>
@@ -144,10 +144,10 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-              <Heart className="w-4 h-4 text-pink-500" /> My Children
+              <Heart className="w-4 h-4 text-indigo-600 animate-pulse" /> My Children
             </h3>
             {onNavigate && data.children.length > 0 && (
-              <button onClick={() => onNavigate('children')} className="text-xs text-purple-600 hover:underline font-medium">View details →</button>
+              <button onClick={() => onNavigate('children')} className="text-xs text-indigo-600 hover:underline font-bold">View details →</button>
             )}
           </div>
 
@@ -156,15 +156,15 @@ export default function OverviewSection({ profile, onNavigate }: Props) {
           ) : (
             <div className="space-y-3">
               {data.children.map(c => (
-                <div key={c.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
-                  <div className="w-11 h-11 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0">
+                <div key={c.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-indigo-50 to-indigo-50/20 rounded-xl border border-indigo-100 shadow-sm">
+                  <div className="w-11 h-11 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow">
                     {c.profiles?.first_name?.[0]}{c.profiles?.last_name?.[0]}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-800 truncate">{c.profiles?.first_name} {c.profiles?.last_name}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <GraduationCap className="w-3 h-3 text-purple-500 flex-shrink-0" />
-                      <p className="text-xs text-gray-500 truncate">
+                      <GraduationCap className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />
+                      <p className="text-xs text-gray-500 truncate font-medium">
                         {c.classes?.name
                           ? `${c.classes.name}${c.classes.level != null ? ` · ${LEVEL_LABELS[c.classes.level]}` : ''}`
                           : 'No class assigned'}

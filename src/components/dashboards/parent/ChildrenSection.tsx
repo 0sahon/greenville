@@ -65,7 +65,7 @@ export default function ChildrenSection({ profile }: Props) {
   const attPresent = attendance.filter(a => a.status === 'present').length;
   const attRate = attendance.length > 0 ? Math.round((attPresent / attendance.length) * 100) : null;
 
-  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center items-center h-40"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>;
 
   return (
     <div className="space-y-5">
@@ -83,8 +83,8 @@ export default function ChildrenSection({ profile }: Props) {
           <div className="flex gap-2 overflow-x-auto pb-1">
             {children.map(c => (
               <button key={c.id} onClick={() => loadChildDetails(c)}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${selected?.id === c.id ? 'bg-purple-600 text-white shadow-md' : 'bg-white border border-gray-200 text-gray-700 hover:border-purple-300 hover:bg-purple-50'}`}>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${selected?.id === c.id ? 'bg-white/30 text-white' : 'bg-purple-100 text-purple-700'}`}>
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${selected?.id === c.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' : 'bg-white border border-gray-200 text-gray-700 hover:border-indigo-300 hover:bg-indigo-50'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${selected?.id === c.id ? 'bg-white/30 text-white' : 'bg-indigo-100 text-indigo-700'}`}>
                   {c.profiles?.first_name?.[0]}
                 </div>
                 {c.profiles?.first_name} {c.profiles?.last_name}
@@ -96,9 +96,9 @@ export default function ChildrenSection({ profile }: Props) {
           {selected && (
             <>
               {/* Child info card */}
-              <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-5 text-white">
+              <div className="bg-gradient-to-r from-indigo-700 to-indigo-600 rounded-2xl p-5 text-white shadow-md shadow-indigo-700/10">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
+                  <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-white font-bold text-2xl flex-shrink-0 shadow">
                     {selected.profiles?.first_name?.[0]}{selected.profiles?.last_name?.[0]}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -121,7 +121,7 @@ export default function ChildrenSection({ profile }: Props) {
                       <div className={`text-2xl font-bold ${attRate >= 90 ? 'text-green-300' : attRate >= 75 ? 'text-yellow-300' : 'text-red-300'}`}>
                         {attRate}%
                       </div>
-                      <div className="text-white/70 text-xs">Attendance</div>
+                      <div className="text-white/70 text-xs font-medium">Attendance</div>
                     </div>
                   )}
                 </div>
@@ -129,14 +129,14 @@ export default function ChildrenSection({ profile }: Props) {
 
               {detailLoading ? (
                 <div className="flex justify-center py-10">
-                  <div className="w-7 h-7 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+                  <div className="w-7 h-7 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {/* Academic Performance */}
                   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
                     <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-purple-500" /> Academic Performance
+                      <TrendingUp className="w-4 h-4 text-indigo-600" /> Academic Performance
                     </h4>
                     {Object.keys(gradesBySubject).length === 0 ? (
                       <p className="text-gray-400 text-sm text-center py-6">No grades recorded yet</p>

@@ -31,7 +31,12 @@ interface CourseWithClass extends CourseRow { classes?: { name: string; level: C
 interface AssignmentWithCourse extends AssignmentRow { courses?: { title: string; subject: string } | null; }
 interface SubmissionWithStudent extends SubmissionRow {
   students?: { student_id: string; profiles?: { first_name: string; last_name: string } | null } | null;
-  assignments?: { title: string; max_score: number; course_id: string; courses?: { subject: string } | null } | null;
+  assignments?: {
+    title: string;
+    max_score: number;
+    course_id: string;
+    courses?: { subject: string; term: string; academic_year: string } | null;
+  } | null;
 }
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
@@ -180,7 +185,7 @@ Keep the language visual and exciting! Do not use complex jargon.`;
         if (assignIds.length > 0) {
           const { data: subData } = await supabase
             .from('submissions')
-            .select('*, students:student_id(student_id, profiles:profile_id(first_name, last_name)), assignments:assignment_id(title, max_score, course_id, courses:course_id(subject))')
+            .select('*, students:student_id(student_id, profiles:profile_id(first_name, last_name)), assignments:assignment_id(title, max_score, course_id, courses:course_id(subject, term, academic_year))')
             .in('assignment_id', assignIds)
             .order('submitted_at', { ascending: false });
           setSubmissions((subData || []) as SubmissionWithStudent[]);
@@ -393,14 +398,16 @@ Keep the language visual and exciting! Do not use complex jargon.`;
       // Also write/update a grade record so it appears in the result card
       if (gradeTarget.student_id) {
         const subject = gradeTarget.assignments?.courses?.subject || gradeTarget.assignments?.title || 'General';
+        const term = gradeTarget.assignments?.courses?.term || 'First Term';
+        const academic_year = gradeTarget.assignments?.courses?.academic_year || getDefaultAcademicYear();
         const { error: gErr } = await supabase.from('grades').upsert({
           student_id: gradeTarget.student_id,
           subject,
           assessment_type: 'Home Work',
           score,
           max_score: maxScore,
-          term: topicForm.term || 'First Term',
-          academic_year: topicForm.academic_year || getDefaultAcademicYear(),
+          term,
+          academic_year,
           graded_by: profile.id,
         }, { onConflict: 'student_id,subject,assessment_type,term,academic_year' });
         if (gErr) throw gErr;
