@@ -678,18 +678,18 @@ export const PRE_KG_SKILLS = [
 ] as const;
 
 export const PRE_KG_COMMENTS: Record<string, Record<number, string>> = {
-  'Literacy':             { 5: 'Reads and writes confidently', 4: 'Shows good reading skills', 3: 'Making progress in reading', 2: 'Needs more reading practice', 1: 'Struggles with basic literacy' },
-  'Understanding':        { 5: 'Grasps new concepts quickly', 4: 'Understands lessons very well', 3: 'Shows fair understanding', 2: 'Needs concept reinforcement', 1: 'Finds comprehension difficult' },
-  'Obedience':            { 5: 'Always follows instructions well', 4: 'Usually obeys class rules', 3: 'Generally obedient in class', 2: 'Sometimes needs correction', 1: 'Needs discipline improvement' },
-  'Care of Self':         { 5: 'Excellent personal hygiene always', 4: 'Keeps self neat and tidy', 3: 'Manages self-care fairly well', 2: 'Needs reminders for hygiene', 1: 'Requires help with self-care' },
-  'Individual Behaviour': { 5: 'Outstanding conduct at all times', 4: 'Behaves very well in class', 3: 'Generally good behaviour shown', 2: 'Behaviour needs improvement', 1: 'Conduct requires close attention' },
-  'Punctuality':          { 5: 'Always arrives on time', 4: 'Mostly punctual and ready', 3: 'Usually arrives on time', 2: 'Occasionally late to school', 1: 'Frequently late to school' },
-  'Numeracy':             { 5: 'Counts and solves with ease', 4: 'Good number recognition shown', 3: 'Developing number concepts', 2: 'Needs more numeracy practice', 1: 'Struggles with basic numbers' },
-  'Bible Studies':        { 5: 'Excellent knowledge of Bible', 4: 'Good understanding of Bible', 3: 'Learning Bible stories well', 2: 'Needs more Bible engagement', 1: 'Limited Bible knowledge shown' },
-  'Creative Play':        { 5: 'Highly creative and imaginative', 4: 'Engages creatively in play', 3: 'Participates in creative play', 2: 'Needs more creative engagement', 1: 'Limited creative participation' },
-  'Phonics':              { 5: 'Excellent phonics and sounds', 4: 'Good phonics understanding', 3: 'Developing phonics knowledge', 2: 'Needs phonics reinforcement', 1: 'Struggles with letter sounds' },
-  'Scribbling':           { 5: 'Excellent pencil control shown', 4: 'Good hand-eye coordination', 3: 'Developing fine motor skills', 2: 'Needs more writing practice', 1: 'Limited pencil grip control' },
-  'Social Habit':         { 5: 'Excellent social interactions', 4: 'Interacts very well with peers', 3: 'Good social skills developing', 2: 'Needs social skills improvement', 1: 'Struggles to interact socially' },
+  'Literacy':             { 5: 'Reads & writes with great confidence', 4: 'Recognises words & letters well', 3: 'Progressing steadily in reading', 2: 'Needs more reading practice', 1: 'Beginning to recognise letters' },
+  'Understanding':        { 5: 'Grasps new ideas exceptionally fast', 4: 'Follows and applies lessons well', 3: 'Shows satisfactory comprehension', 2: 'Needs concept reinforcement', 1: 'Requires guided concept support' },
+  'Obedience':            { 5: 'Follows every instruction promptly', 4: 'Respects rules consistently', 3: 'Generally cooperative in class', 2: 'Needs reminders to follow rules', 1: 'Requires consistent redirection' },
+  'Care of Self':         { 5: 'Impeccably neat and well-groomed', 4: 'Keeps self clean and tidy daily', 3: 'Manages personal care fairly well', 2: 'Needs reminders for cleanliness', 1: 'Requires support with hygiene' },
+  'Individual Behaviour': { 5: 'Exemplary conduct every single day', 4: 'Displays very commendable behaviour', 3: 'Mostly well-behaved in class', 2: 'Behaviour improving with support', 1: 'Needs closer behavioural guidance' },
+  'Punctuality':          { 5: 'Always early and ready to learn', 4: 'Consistently prompt and prepared', 3: 'Usually arrives on time', 2: 'Occasionally comes in late', 1: 'Punctuality needs improvement' },
+  'Numeracy':             { 5: 'Counts, sorts & adds brilliantly', 4: 'Recognises numbers with ease', 3: 'Developing good number sense', 2: 'Needs extra numeracy practice', 1: 'Beginning to identify numbers' },
+  'Bible Studies':        { 5: 'Recalls Bible verses & stories eagerly', 4: 'Participates actively in Bible time', 3: 'Learning Bible lessons steadily', 2: 'Needs more engagement in Bible', 1: 'Beginning to engage with Bible' },
+  'Creative Play':        { 5: 'Imaginative, inventive & enthusiastic', 4: 'Engages creatively with great joy', 3: 'Participates well in creative play', 2: 'Needs more creative exploration', 1: 'Beginning to explore creative play' },
+  'Phonics':              { 5: 'Blends sounds & reads fluently', 4: 'Identifies letter sounds accurately', 3: 'Building phonics skills steadily', 2: 'Needs phonics reinforcement daily', 1: 'Beginning to learn letter sounds' },
+  'Scribbling':           { 5: 'Excellent pencil grip & control', 4: 'Traces and draws with confidence', 3: 'Developing fine motor skills well', 2: 'Needs more pencil practice', 1: 'Still developing pencil grip' },
+  'Social Habit':         { 5: 'Shares, cooperates & leads peers', 4: 'Relates very well with classmates', 3: 'Gets along well with others', 2: 'Needs support in peer relations', 1: 'Still adjusting to group play' },
 };
 
 export function preKgTotalToRating(total: number): number {
@@ -735,20 +735,20 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
     ? new Date().getFullYear() - new Date(student.dob).getFullYear()
     : null;
 
-  // Soft pastel balloon colors — matching the physical Yellow Class card [highlight, mid, dark]
+  // Vivid modern balloon colors [highlight, main, dark-accent]
   const BALLOON_COLORS: [string, string, string][] = [
-    ['#FFD0E5', '#FF80B3', '#CC1166'],  // 0 Rose Pink      — Literacy
-    ['#C8E4FF', '#5B9BD5', '#1A4488'],  // 1 Sky Blue       — Understanding
-    ['#FFD5C5', '#FF8866', '#CC3300'],  // 2 Soft Coral     — Obedience
-    ['#C0EAFF', '#44BBEE', '#0055AA'],  // 3 Light Blue     — Care of Self
-    ['#FFF5C0', '#FFCC44', '#AA8800'],  // 4 Pale Yellow    — Individual Behaviour
-    ['#FFDDEF', '#FF99CC', '#CC3377'],  // 5 Blush Pink     — Punctuality
-    ['#D5E0FF', '#7788CC', '#2233AA'],  // 6 Periwinkle     — Numeracy
-    ['#FFD0DC', '#FF9999', '#CC2244'],  // 7 Soft Rose      — Bible Studies
-    ['#FFE8C8', '#FFBB66', '#BB6600'],  // 8 Soft Peach     — Creative Play
-    ['#FFCCEC', '#FF88CC', '#BB0077'],  // 9 Soft Magenta   — Phonics
-    ['#BCEAEA', '#44AAAA', '#006677'],  // 10 Soft Teal     — Scribbling
-    ['#FFD8E8', '#FF99BB', '#BB2255'],  // 11 Soft Pink     — Social Habit
+    ['#FFB3D9', '#FF3399', '#99004D'],  // 0 Hot Pink        — Literacy
+    ['#99CCFF', '#1177EE', '#003A99'],  // 1 Electric Blue   — Understanding
+    ['#FFAA88', '#FF5500', '#993300'],  // 2 Vivid Coral     — Obedience
+    ['#66DDFF', '#00AADD', '#005577'],  // 3 Cyan            — Care of Self
+    ['#FFE566', '#FFCC00', '#886600'],  // 4 Golden Yellow   — Individual Behaviour
+    ['#FF99DD', '#EE44AA', '#880055'],  // 5 Magenta         — Punctuality
+    ['#AABBFF', '#4455DD', '#111A88'],  // 6 Indigo          — Numeracy
+    ['#FF9999', '#EE2222', '#880000'],  // 7 Red             — Bible Studies
+    ['#FFCC77', '#FF9900', '#885500'],  // 8 Amber           — Creative Play
+    ['#CC99FF', '#9933EE', '#550099'],  // 9 Purple          — Phonics
+    ['#66DDBB', '#00BB88', '#006644'],  // 10 Emerald        — Scribbling
+    ['#FF99AA', '#FF2255', '#880022'],  // 11 Crimson        — Social Habit
   ];
 
   const SKILL_EMOJIS: Record<string, string> = {
@@ -773,76 +773,84 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {/* Balloon body — teardrop oval taller than wide */}
+        {/* Balloon body — modern sharp teardrop */}
         <div style={{
           position: 'relative',
-          width: '90px',
-          height: '110px',
-          borderRadius: '50% 50% 45% 45% / 55% 55% 48% 48%',
-          background: `radial-gradient(ellipse at 36% 26%, ${hi} 0%, ${mid} 50%, ${dark} 100%)`,
-          boxShadow: `2px 5px 12px rgba(0,0,0,0.18), inset -3px -4px 8px rgba(0,0,0,0.09)`,
+          width: '108px',
+          height: '118px',
+          borderRadius: '50% 50% 44% 44% / 56% 56% 47% 47%',
+          background: `radial-gradient(ellipse at 34% 24%, #fff 0%, ${hi} 12%, ${mid} 48%, ${dark} 100%)`,
+          boxShadow: `0 6px 18px rgba(0,0,0,0.28), 0 2px 4px rgba(0,0,0,0.18), inset 0 -4px 8px rgba(0,0,0,0.12)`,
+          border: `1.5px solid ${dark}22`,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '12px 6px 16px',
+          padding: '13px 8px 17px',
           overflow: 'hidden',
         }}>
-          {/* Primary shine spot */}
+          {/* Sharp bright specular highlight */}
           <div style={{
-            position: 'absolute', top: '10px', left: '16px',
-            width: '24px', height: '15px',
+            position: 'absolute', top: '9px', left: '17px',
+            width: '30px', height: '18px',
             borderRadius: '50%',
-            background: 'rgba(255,255,255,0.75)',
-            transform: 'rotate(-22deg)',
+            background: 'rgba(255,255,255,0.92)',
+            transform: 'rotate(-20deg)',
             pointerEvents: 'none',
+            filter: 'blur(1px)',
           }} />
-          {/* Secondary shine dot */}
+          {/* Small secondary glint */}
           <div style={{
-            position: 'absolute', top: '21px', left: '25px',
-            width: '9px', height: '6px',
+            position: 'absolute', top: '22px', left: '28px',
+            width: '11px', height: '7px',
             borderRadius: '50%',
-            background: 'rgba(255,255,255,0.45)',
+            background: 'rgba(255,255,255,0.60)',
             pointerEvents: 'none',
           }} />
 
           {/* Emoji */}
-          <div style={{ fontSize: '15pt', marginBottom: '2px', zIndex: 1, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.25))' }}>
+          <div style={{ fontSize: '17pt', marginBottom: '3px', zIndex: 1, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.25))' }}>
             {emoji}
           </div>
 
-          {/* Skill label */}
+          {/* Skill label — white pill with balloon's own dark color text (alternating per balloon) */}
           <div style={{
-            fontWeight: 'bold', fontSize: '7.5pt', color: '#fff',
+            background: 'rgba(255,255,255,0.88)',
+            borderRadius: '8px',
+            padding: '1px 5px',
+            fontWeight: 'bold', fontSize: '7.5pt', color: dark,
             fontFamily: "'Fredoka', sans-serif",
             textAlign: 'center', lineHeight: 1.2, zIndex: 1,
-            textShadow: '0 1px 3px rgba(0,0,0,0.55)',
-            marginBottom: comment ? '2px' : 0,
+            maxWidth: '92px',
+            marginBottom: comment ? '3px' : 0,
           }}>
             {skillName}
           </div>
+
+          {/* Comment — italic white text */}
           {comment && (
             <div style={{
-              fontSize: '5.5pt', color: 'rgba(255,255,255,0.95)',
+              fontSize: '6pt', color: 'rgba(255,255,255,0.97)',
               fontFamily: "'Fredoka', sans-serif",
               textAlign: 'center', fontStyle: 'italic',
               lineHeight: 1.15, zIndex: 1,
-              textShadow: '0 1px 2px rgba(0,0,0,0.45)',
+              textShadow: '0 1px 3px rgba(0,0,0,0.55)',
+              maxWidth: '92px',
             }}>
               {comment}
             </div>
           )}
         </div>
-        {/* Knot — small triangle at balloon tip */}
+        {/* Knot */}
         <div style={{
           width: 0, height: 0,
-          borderLeft: '4px solid transparent',
-          borderRight: '4px solid transparent',
-          borderTop: `7px solid ${dark}`,
+          borderLeft: '4.5px solid transparent',
+          borderRight: '4.5px solid transparent',
+          borderTop: `8px solid ${dark}`,
         }} />
-        {/* Curvy string using SVG */}
-        <svg width="16" height="22" viewBox="0 0 16 22" style={{ display: 'block', overflow: 'visible' }}>
-          <path d="M8,0 Q3,7 8,14 Q13,21 8,22" stroke={dark} strokeWidth="1.3" fill="none" opacity="0.55" />
+        {/* Shorter curvy string */}
+        <svg width="16" height="14" viewBox="0 0 16 14" style={{ display: 'block', overflow: 'visible' }}>
+          <path d="M8,0 Q3,4 8,8 Q13,12 8,14" stroke={dark} strokeWidth="1.3" fill="none" opacity="0.55" />
         </svg>
       </div>
     );
@@ -894,7 +902,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
       </div>
 
       {/* Header — white background matching the original physical card */}
-      <div style={{ background: '#fff', padding: '10px 14px 6px', borderBottom: `1px solid #ddd` }}>
+      <div style={{ background: '#fff', padding: '7px 14px 4px', borderBottom: `1px solid #ddd` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Logo — LEFT only, as on the original card */}
           <img src={SCHOOL_LOGO_PATH} alt={displaySchool}
@@ -934,16 +942,16 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
       <div style={{
         background: 'linear-gradient(90deg, #fff0f8 0%, #fff9e6 50%, #f0f4ff 100%)',
         textAlign: 'center', padding: '6px 0',
-        fontSize: '13pt', fontWeight: 'bold', letterSpacing: '3px',
+        fontSize: '12pt', fontWeight: 'bold', letterSpacing: '3px',
         color: NAVY, borderBottom: `2px solid ${GOLD}`,
       }}>
         🎈 TODDLERS&apos;S PRE-KG REPORT 🎈
       </div>
 
-      {/* Student Info — matches original: row 1: TERM | CLASS | RESUMPTION DATE | ADMISSION NO, row 2: NAME | AGE */}
-      <div style={{ background: '#fffde7', padding: '6px 16px', borderBottom: `1px solid ${GOLD}` }}>
+      {/* Student Info */}
+      <div style={{ background: '#fffde7', padding: '4px 14px', borderBottom: `1px solid ${GOLD}` }}>
         {/* Row 1 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr 1fr', gap: '6px 16px', marginBottom: '5px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr 1fr', gap: '4px 14px', marginBottom: '3px' }}>
           {[
             ['TERM',            term],
             ['CLASS',           `${student.className}${kgColorName(student.className) ? ` · ${kgColorName(student.className)}` : ''}`],
@@ -970,11 +978,11 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
         </div>
       </div>
 
-      {/* ── Balloon Section — 3 rows matching physical Yellow Class card ── */}
-      <div style={{ background: 'linear-gradient(160deg, #FFF5F9 0%, #FFEBF4 50%, #FFF9FC 100%)', padding: '10px 16px 6px' }}>
+      {/* ── Balloon Section ── */}
+      <div style={{ background: 'linear-gradient(160deg, #FFF5F9 0%, #FFEBF4 50%, #FFF9FC 100%)', padding: '5px 12px 2px' }}>
 
-        {/* Row 1 — 5 balloons across the top: Literacy, Understanding, Obedience, Care of Self, Individual Behaviour */}
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '4px' }}>
+        {/* Row 1 */}
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '1px' }}>
           <Balloon skillName={PRE_KG_SKILLS[0].name} colorIdx={0} />
           <Balloon skillName={PRE_KG_SKILLS[1].name} colorIdx={1} />
           <Balloon skillName={PRE_KG_SKILLS[2].name} colorIdx={2} />
@@ -982,8 +990,8 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
           <Balloon skillName={PRE_KG_SKILLS[4].name} colorIdx={4} />
         </div>
 
-        {/* Row 2 — Punctuality, Numeracy | child figure | Bible Studies, Creative Play */}
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '4px' }}>
+        {/* Row 2 */}
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '1px' }}>
           <Balloon skillName={PRE_KG_SKILLS[5].name} colorIdx={5} />
           <Balloon skillName={PRE_KG_SKILLS[6].name} colorIdx={6} />
 
@@ -1041,7 +1049,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
       </div>
 
       {/* Rating Key */}
-      <div style={{ background: '#fdf0f7', padding: '4px 16px', borderTop: `1px solid #e8d0e0`, borderBottom: `2px solid ${NAVY}`, display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '7pt', alignItems: 'center' }}>
+      <div style={{ background: '#fdf0f7', padding: '3px 12px', borderTop: `1px solid #e8d0e0`, borderBottom: `2px solid ${NAVY}`, display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '7pt', alignItems: 'center' }}>
         <strong style={{ color: NAVY, fontFamily: "'Fredoka', sans-serif" }}>RATING KEY:</strong>
         {[
           ['5 — Excellent',         '#FF80B3', '#fff'],
@@ -1056,8 +1064,8 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
         ))}
       </div>
 
-      {/* Footer — matches physical card: Teacher | Attendance | Proprietress | Total/Average */}
-      <div style={{ padding: '8px 16px 10px', background: '#fff' }}>
+      {/* Footer */}
+      <div style={{ padding: '5px 14px 6px', background: '#fff' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 1fr', gap: '16px', alignItems: 'start' }}>
 
           {/* Teacher Comment */}
@@ -1066,12 +1074,12 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
             <div style={{ borderBottom: '1px dotted #888', minHeight: '22px', fontSize: '9pt', fontStyle: 'italic', paddingLeft: '4px', lineHeight: '22px' }}>
               {comments.teacher}
             </div>
-            <div style={{ marginTop: '16px' }}>
+            <div style={{ marginTop: '10px' }}>
               <div style={{ borderTop: `1px solid ${NAVY}`, paddingTop: '2px', fontSize: '7pt', fontWeight: 'bold', color: NAVY }}>Signature &amp; Date</div>
             </div>
           </div>
 
-          {/* Attendance — labels matching physical card exactly */}
+          {/* Attendance */}
           <div style={{ fontSize: '7.5pt' }}>
             <div style={{ marginBottom: '6px' }}>
               <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>No. of times school opened:</div>
@@ -1096,12 +1104,12 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
             <div style={{ borderBottom: '1px dotted #888', minHeight: '22px', fontSize: '9pt', fontStyle: 'italic', paddingLeft: '4px', lineHeight: '22px' }}>
               {comments.principal}
             </div>
-            <div style={{ marginTop: '16px' }}>
+            <div style={{ marginTop: '10px' }}>
               <div style={{ borderTop: `1px solid ${NAVY}`, paddingTop: '2px', fontSize: '7pt', fontWeight: 'bold', color: NAVY }}>Signature &amp; Date</div>
             </div>
           </div>
 
-          {/* Total / Average — matches physical card right column */}
+          {/* Total / Average */}
           <div style={{ fontSize: '7.5pt' }}>
             <div style={{ marginBottom: '6px' }}>
               <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Total</div>
