@@ -11,8 +11,8 @@ import {
   SCHOOL_NAME,
   SCHOOL_PHONE_DISPLAY,
 } from '../../../config/schoolBrand';
-import { getNigerianGrade } from '../../../lib/grading';
-export { getNigerianGrade, GRADING_KEY } from '../../../lib/grading';
+import { getNigerianGrade, GRADING_KEY } from '../../../lib/grading';
+export { getNigerianGrade, GRADING_KEY };
 
 function gradeColor(grade: string): React.CSSProperties {
   if (grade === 'A+') return { background: '#bbf7d0', color: '#14532d', fontWeight: 'bold' };
