@@ -72,6 +72,7 @@ interface Props {
   hasResultSheet: boolean;
   onShareWhatsApp: () => void;
   onToast: (msg: string, type: 'success' | 'error') => void;
+  activeCardError?: string | null;
 }
 
 export default function ResultCardModal({
@@ -85,6 +86,7 @@ export default function ResultCardModal({
   saving, onSave,
   deleteConfirm, onDeleteConfirm, onDelete,
   hasResultSheet, onShareWhatsApp, onToast,
+  activeCardError,
 }: Props) {
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto">
@@ -109,8 +111,16 @@ export default function ResultCardModal({
 
         <div className="p-6">
 
-          {/* Preview tab — show spinner while cardData loads */}
-          {modalTab === 'preview' && !cardData && (
+          {/* Preview tab — show error or spinner while cardData loads */}
+          {modalTab === 'preview' && !cardData && activeCardError && (
+            <div className="flex flex-col items-center justify-center py-16 gap-4 text-red-700">
+              <AlertTriangle className="w-10 h-10 text-red-400" />
+              <p className="text-sm font-semibold">Failed to load report card</p>
+              <pre className="text-xs bg-red-50 border border-red-200 rounded-xl px-4 py-3 max-w-lg w-full whitespace-pre-wrap break-words text-red-800">{activeCardError}</pre>
+              <p className="text-xs text-gray-500">Close this dialog and try again, or check your connection.</p>
+            </div>
+          )}
+          {modalTab === 'preview' && !cardData && !activeCardError && (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
               <div className="w-8 h-8 border-4 border-green-300 border-t-green-600 rounded-full animate-spin" />
               <p className="text-sm">Loading result card…</p>

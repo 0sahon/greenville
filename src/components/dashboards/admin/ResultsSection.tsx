@@ -80,6 +80,7 @@ export default function ResultsSection({ profile }: Props) {
   const [preKgRatings, setPreKgRatings] = useState<Partial<Record<string, number>>>({});
   const [nurseryScores, setNurseryScores] = useState<NurseryScores>({});
   const [basicScores, setBasicScores] = useState<BasicScores>({});
+  const [activeCardError, setActiveCardError] = useState<string | null>(null);
 
   const isToddlerStudent = activeStudent?.classes?.level === 'toddler';
   const isNurseryStudent = activeStudent?.classes?.level === 'creche';
@@ -287,23 +288,32 @@ export default function ResultsSection({ profile }: Props) {
   // Open result for a student
   const openResult = async (student: StudentInfo) => {
     setActiveStudent(student);
+    setActiveCardError(null);
     setModalTab('preview');
     setDeleteConfirm(false);
 
     try {
       const isToddler = student.classes?.level === 'toddler';
       const isNursery = student.classes?.level === 'creche';
+      console.log('[openResult] student:', student.profiles?.first_name, '| level:', student.classes?.level, '| isToddler:', isToddler);
       const dateRange = getTermDateRange(selectedTerm, academicYear);
-      
+
+      const classStudentIds = students.map(s => s.id);
+      console.log('[openResult] fetching grades. class student count:', classStudentIds.length);
+
       const [myGradesRes, classGradesRes, attDataRes] = await Promise.all([
         supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear),
-        supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').in('student_id', students.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
+        classStudentIds.length > 0
+          ? supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').in('student_id', classStudentIds).eq('term', selectedTerm).eq('academic_year', academicYear)
+          : Promise.resolve({ data: [], error: null }),
         supabase.from('attendance').select('status').eq('student_id', student.id).gte('date', dateRange.start).lte('date', dateRange.end),
       ]);
 
-      if (myGradesRes.error) throw myGradesRes.error;
-      if (classGradesRes.error) throw classGradesRes.error;
-      if (attDataRes.error) throw attDataRes.error;
+      if (myGradesRes.error) throw new Error(`Grades fetch failed: ${myGradesRes.error.message}`);
+      if (classGradesRes.error) throw new Error(`Class grades fetch failed: ${classGradesRes.error.message}`);
+      if (attDataRes.error) throw new Error(`Attendance fetch failed: ${attDataRes.error.message}`);
+
+      console.log('[openResult] my grades:', myGradesRes.data?.length, '| class grades:', classGradesRes.data?.length);
 
       const myGrades = myGradesRes.data;
       const classGrades = classGradesRes.data;
@@ -402,9 +412,8 @@ export default function ResultsSection({ profile }: Props) {
         setMetaForm({ ...defaultMeta, ...autoAtt });
       }
     } catch (err: any) {
-      console.error("Error loading report card:", err);
-      setToast({ msg: err.message || 'Failed to load report card', type: 'error' });
-      closeModal();
+      console.error('[openResult] ERROR:', err);
+      setActiveCardError(err.message || String(err) || 'Unknown error loading report card');
     }
   };
 
@@ -434,6 +443,7 @@ export default function ResultsSection({ profile }: Props) {
   const closeModal = () => {
     setActiveStudent(null); setActiveSubjects([]); setActiveClassStats(null);
     setDeleteConfirm(false); setPreKgRatings({}); setNurseryScores({}); setBasicScores({});
+    setActiveCardError(null);
   };
 
   const buildCardData = (): ResultCardData | null => {
@@ -1236,6 +1246,7 @@ export default function ResultsSection({ profile }: Props) {
           hasResultSheet={!!resultSheets[activeStudent.id]}
           onShareWhatsApp={shareViaWhatsApp}
           onToast={(msg, type) => setToast({ msg, type })}
+          activeCardError={activeCardError}
         />
       )}
 
