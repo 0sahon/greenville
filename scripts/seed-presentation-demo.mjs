@@ -120,13 +120,25 @@ const { data: demoTeacherProfiles } = await supabase
   .select('id, first_name, last_name, email')
   .like('email', 'teacher.%@greenvillemontessorischools.ng');
 
-
 const t1Profile = demoTeacherProfiles?.find(p => p.email.includes('adaeze')) ?? demoTeacherProfiles?.[0];
 const t2Profile = demoTeacherProfiles?.find(p => p.email.includes('emeka'))  ?? demoTeacherProfiles?.[1] ?? t1Profile;
 const t3Profile = demoTeacherProfiles?.find(p => p.email.includes('ifeoma')) ?? demoTeacherProfiles?.[2] ?? t1Profile;
+// Profile IDs — used for LMS courses, lesson plans, assignments (teacher_id → profiles.id)
 const t1Id = t1Profile?.id ?? null;
 const t2Id = t2Profile?.id ?? null;
 const t3Id = t3Profile?.id ?? null;
+
+// teachers.id — used for timetable (teacher_id → teachers.id, NOT profiles.id)
+let t1TeacherId = null, t2TeacherId = null, t3TeacherId = null;
+if (demoTeacherProfiles?.length) {
+  const { data: tRows } = await supabase
+    .from('teachers')
+    .select('id, profile_id')
+    .in('profile_id', demoTeacherProfiles.map(p => p.id));
+  t1TeacherId = tRows?.find(t => t.profile_id === t1Id)?.id ?? null;
+  t2TeacherId = tRows?.find(t => t.profile_id === t2Id)?.id ?? null;
+  t3TeacherId = tRows?.find(t => t.profile_id === t3Id)?.id ?? null;
+}
 log(`Found ${demoTeacherProfiles?.length ?? 0} teachers`);
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -380,12 +392,12 @@ const schedules = {
 };
 
 const subjectTeacher = {
-  'Pre-KG': { default: t1Id },
-  'KG 1':   { default: t2Id },
+  'Pre-KG': { default: t1TeacherId },
+  'KG 1':   { default: t2TeacherId },
   'Basic 3A': {
-    'Mathematics/Quantitative': t1Id, 'Basic Science': t1Id, 'Agricultural Science': t1Id,
-    'English Language/Verbal Reasoning': t2Id, 'Religion & National Values': t2Id, 'French': t2Id,
-    default: t3Id,
+    'Mathematics/Quantitative': t1TeacherId, 'Basic Science': t1TeacherId, 'Agricultural Science': t1TeacherId,
+    'English Language/Verbal Reasoning': t2TeacherId, 'Religion & National Values': t2TeacherId, 'French': t2TeacherId,
+    default: t3TeacherId,
   },
 };
 
