@@ -709,6 +709,16 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
   const NAVY = '#1a237e';
   const GOLD = '#f9a825';
 
+  const activeRatings = data.subjects
+    .filter(s => PRE_KG_SKILLS.some(ps => ps.name === s.subject.trim()))
+    .map(s => preKgTotalToRating(s.total))
+    .filter(r => r > 0);
+
+  const preKgTotal = activeRatings.length > 0 ? activeRatings.reduce((a, b) => a + b, 0) : null;
+  const preKgAverage = activeRatings.length > 0 
+    ? (preKgTotal! / activeRatings.length).toFixed(1) 
+    : null;
+
   const getRating = (skillName: string): string => {
     const match = data.subjects.find(s => s.subject.trim() === skillName);
     if (!match || match.total === 0) return '';
@@ -1094,11 +1104,15 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
           <div style={{ fontSize: '7.5pt' }}>
             <div style={{ marginBottom: '6px' }}>
               <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Total</div>
-              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}></div>
+              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}>
+                {preKgTotal !== null ? preKgTotal : ''}
+              </div>
             </div>
             <div>
               <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Average</div>
-              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}></div>
+              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}>
+                {preKgAverage !== null ? preKgAverage : ''}
+              </div>
             </div>
           </div>
         </div>
