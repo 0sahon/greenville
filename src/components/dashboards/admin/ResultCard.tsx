@@ -703,7 +703,7 @@ export function preKgTotalToRating(total: number): number {
 
 /* ─── TODDLER PRE-KG Result Card — A4 Landscape, soft balloon design matching Yellow Class physical card ── */
 function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
-  const { student, term, academicYear, comments, attendance, schoolName, schoolAddress } = data;
+  const { student, term, academicYear, comments, attendance, nextTerm, schoolName, schoolAddress } = data;
   const displaySchool = (schoolName || '').trim() || SCHOOL_NAME;
   const displayAddr = (schoolAddress || '').trim() || `${SCHOOL_ADDRESS_SINGLE} · TEL: ${SCHOOL_PHONE_DISPLAY}`;
 
