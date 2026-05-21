@@ -23,6 +23,7 @@ export const SCHOOL_CITY_TAGLINE = 'Benin City, Edo State, Nigeria';
 
 export const SCHOOL_PHONE_DISPLAY = '+234 802 871 7629';
 export const SCHOOL_PHONE_TEL_HREF = 'tel:+2348028717629';
+export const SCHOOL_WHATSAPP_HREF = 'https://wa.me/2348028717629';
 
 /** Used in `toLocaleDateString` / `toLocaleString` across dashboards (Nigeria). */
 export const DATE_LOCALE = 'en-NG';
