@@ -55,19 +55,42 @@ function RecordsTab({
 }) {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<GradeWithStudent | null>(null);
-  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [allStudents, setAllStudents] = useState<(StudentOption & { class_id?: string })[]>([]);
+  const [modalSubjects, setModalSubjects] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [form, setForm] = useState({
-    student_id: '', subject: '', assessment_type: '1st CA', score: '', max_score: '15',
+    class_id: '', student_id: '', subject: '', custom_subject: '',
+    assessment_type: '1st CA', score: '', max_score: '15',
     term: 'First Term', academic_year: getDefaultAcademicYear(),
   });
 
+  // Load all students once
   useEffect(() => {
-    supabase.from('students').select('id, student_id, profiles:profile_id(first_name, last_name)')
+    supabase.from('students')
+      .select('id, student_id, class_id, profiles:profile_id(first_name, last_name)')
       .eq('is_active', true).order('student_id')
-      .then(({ data }) => setStudents((data || []) as unknown as StudentOption[]));
+      .then(({ data }) => setAllStudents((data || []) as unknown as (StudentOption & { class_id?: string })[]));
   }, []);
+
+  // Load subjects when modal class+term+year changes
+  useEffect(() => {
+    if (!form.class_id) { setModalSubjects([]); return; }
+    supabase.from('subjects').select('name')
+      .eq('class_id', form.class_id).eq('is_active', true).order('name')
+      .then(({ data }) => {
+        const names = (data || []).map((s: { name: string }) => s.name);
+        setModalSubjects(names);
+      });
+  }, [form.class_id]);
+
+  const studentsForClass = form.class_id
+    ? allStudents.filter(s => s.class_id === form.class_id)
+    : allStudents;
+
+  const selectedClassLevel = classes.find(c => c.id === form.class_id)?.level ?? '';
+  const isToddlerModal = selectedClassLevel === 'toddler';
+  const subjectOptions = isToddlerModal ? PRE_KG_SKILLS_LIST : modalSubjects;
 
   const filtered = grades.filter(g => {
     const name = `${g.students?.profiles?.first_name ?? ''} ${g.students?.profiles?.last_name ?? ''}`.toLowerCase();
@@ -96,30 +119,38 @@ function RecordsTab({
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ student_id: '', subject: '', assessment_type: '1st CA', score: '', max_score: '15', term: 'First Term', academic_year: getDefaultAcademicYear() });
+    setForm({ class_id: '', student_id: '', subject: '', custom_subject: '', assessment_type: '1st CA', score: '', max_score: '15', term: 'First Term', academic_year: getDefaultAcademicYear() });
     setShowModal(true);
   };
 
   const openEdit = (g: GradeWithStudent) => {
     setEditing(g);
+    const classId = allStudents.find(s => s.id === g.student_id)?.class_id ?? '';
+    const isKnownSubject = isToddlerModal || modalSubjects.includes(g.subject);
     setForm({
-      student_id: g.student_id, subject: g.subject, assessment_type: g.assessment_type,
+      class_id: classId, student_id: g.student_id,
+      subject: isKnownSubject ? g.subject : '__custom__',
+      custom_subject: isKnownSubject ? '' : g.subject,
+      assessment_type: g.assessment_type,
       score: String(g.score), max_score: String(g.max_score), term: g.term, academic_year: g.academic_year,
     });
     setShowModal(true);
   };
 
   const save = async () => {
-    if (!form.student_id || !form.subject.trim() || form.score === '') return onToast('Student, subject and score are required', 'error');
+    const effectiveSubject = form.subject === '__custom__' ? form.custom_subject.trim() : form.subject.trim();
+    if (!form.student_id || !effectiveSubject || form.score === '') return onToast('Student, subject and score are required', 'error');
     const score = parseFloat(form.score);
     const max_score = parseFloat(form.max_score) || 100;
     if (isNaN(score) || score < 0) return onToast('Enter a valid score', 'error');
     if (score > max_score) return onToast('Score cannot exceed max score', 'error');
+    const isPreKg = isToddlerModal || form.assessment_type === 'Pre-KG Rating';
     setSaving(true);
     try {
       const payload: GradeInsert = {
-        student_id: form.student_id, subject: form.subject.trim(),
-        assessment_type: form.assessment_type, score, max_score,
+        student_id: form.student_id, subject: effectiveSubject,
+        assessment_type: isPreKg ? 'pre_kg' : form.assessment_type,
+        score, max_score: isPreKg ? 5 : max_score,
         term: form.term, academic_year: form.academic_year, graded_by: profile.id,
       };
       if (editing) {
@@ -240,45 +271,17 @@ function RecordsTab({
               <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
             </div>
             <div className="p-5 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Student *</label>
-                <select value={form.student_id} onChange={e => setForm(f => ({ ...f, student_id: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  <option value="">Select student...</option>
-                  {students.map(s => (
-                    <option key={s.id} value={s.id}>{s.profiles?.first_name} {s.profiles?.last_name} ({s.student_id})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Subject *</label>
-                <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="e.g. Mathematics"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Type</label>
-                <select value={form.assessment_type}
-                  onChange={e => {
-                    const type = e.target.value;
-                    setForm(f => ({ ...f, assessment_type: type, ...(DEFAULT_MAX[type] ? { max_score: String(DEFAULT_MAX[type]) } : {}) }));
-                  }}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  {ASSESSMENT_TYPES.map(t => <option key={t}>{t}{DEFAULT_MAX[t] ? ` (max ${DEFAULT_MAX[t]})` : ''}</option>)}
-                </select>
-              </div>
+              {/* Row 1: Class + Term */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Score *</label>
-                  <input type="number" inputMode="numeric" autoComplete="off" min={0} step={0.5} value={form.score} onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Class *</label>
+                  <select value={form.class_id}
+                    onChange={e => setForm(f => ({ ...f, class_id: e.target.value, student_id: '', subject: '', custom_subject: '' }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="">Select class...</option>
+                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
-                  <input type="number" inputMode="numeric" autoComplete="off" min={1} value={form.max_score} onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Term</label>
                   <select value={form.term} onChange={e => setForm(f => ({ ...f, term: e.target.value }))}
@@ -286,14 +289,122 @@ function RecordsTab({
                     {TERMS.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Academic Year</label>
-                  <select value={form.academic_year} onChange={e => setForm(f => ({ ...f, academic_year: e.target.value }))}
+              </div>
+
+              {/* Row 2: Student */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Student *</label>
+                <select value={form.student_id} onChange={e => setForm(f => ({ ...f, student_id: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="">{form.class_id ? 'Select student...' : 'Select a class first'}</option>
+                  {studentsForClass.map(s => (
+                    <option key={s.id} value={s.id}>{s.profiles?.first_name} {s.profiles?.last_name} ({s.student_id})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Row 3: Subject */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Subject / Skill *</label>
+                {isToddlerModal ? (
+                  <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                    {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
+                    <option value="">Select skill area...</option>
+                    {PRE_KG_SKILLS_LIST.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                ) : subjectOptions.length > 0 ? (
+                  <>
+                    <select value={form.subject}
+                      onChange={e => setForm(f => ({ ...f, subject: e.target.value, custom_subject: '' }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                      <option value="">Select subject...</option>
+                      {subjectOptions.map(s => <option key={s}>{s}</option>)}
+                      <option value="__custom__">Other (type manually)…</option>
+                    </select>
+                    {form.subject === '__custom__' && (
+                      <input value={form.custom_subject}
+                        onChange={e => setForm(f => ({ ...f, custom_subject: e.target.value }))}
+                        placeholder="Type subject name…"
+                        className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    )}
+                  </>
+                ) : (
+                  <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="e.g. Mathematics"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                )}
+              </div>
+
+              {/* Row 4: Assessment Type */}
+              {!isToddlerModal && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Type</label>
+                  <select value={form.assessment_type}
+                    onChange={e => {
+                      const type = e.target.value;
+                      setForm(f => ({ ...f, assessment_type: type, ...(DEFAULT_MAX[type] ? { max_score: String(DEFAULT_MAX[type]) } : {}) }));
+                    }}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    {ASSESSMENT_TYPES.filter(t => t !== 'Pre-KG Rating').map(t => <option key={t}>{t}{DEFAULT_MAX[t] ? ` (max ${DEFAULT_MAX[t]})` : ''}</option>)}
                   </select>
                 </div>
+              )}
+
+              {/* Row 5: Score */}
+              {isToddlerModal ? (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Rating *</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {[5,4,3,2,1].map(r => (
+                      <button key={r} type="button"
+                        onClick={() => setForm(f => ({ ...f, score: f.score === String(r) ? '' : String(r), max_score: '5' }))}
+                        className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                          form.score === String(r)
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                        }`}>
+                        {r} — {PRE_KG_RATING_LABELS[r]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Score *</label>
+                    <input type="number" inputMode="numeric" autoComplete="off" min={0} step={0.5} value={form.score}
+                      onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
+                    <input type="number" inputMode="numeric" autoComplete="off" min={1} value={form.max_score}
+                      onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                </div>
+              )}
+
+              {/* Row 6: Academic Year */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Academic Year</label>
+                <select value={form.academic_year} onChange={e => setForm(f => ({ ...f, academic_year: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
+                </select>
               </div>
+
+              {/* Live grade preview */}
+              {!isToddlerModal && form.score !== '' && !isNaN(parseFloat(form.score)) && (
+                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                  <span className="text-xs text-gray-500">Preview:</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${nigerianGrade(parseFloat(form.score), parseFloat(form.max_score) || 100).color}`}>
+                    {nigerianGrade(parseFloat(form.score), parseFloat(form.max_score) || 100).label}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {Math.round((parseFloat(form.score) / (parseFloat(form.max_score) || 100)) * 100)}%
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
@@ -320,6 +431,8 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
 }) {
   const [classId, setClassId] = useState('');
   const [subject, setSubject] = useState('');
+  const [customSubject, setCustomSubject] = useState('');
+  const [classSubjects, setClassSubjects] = useState<string[]>([]);
   const [assessmentType, setAssessmentType] = useState('1st CA');
   const [maxScore, setMaxScore] = useState('20');
   const [term, setTerm] = useState('First Term');
@@ -335,19 +448,24 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
   const [pkSkill, setPkSkill] = useState(PRE_KG_SKILLS_LIST[0]);
 
   const loadStudents = useCallback(async () => {
-    if (!classId) { setRows([]); return; }
+    if (!classId) { setRows([]); setClassSubjects([]); return; }
     setLoadingStudents(true);
     try {
-      const { data } = await supabase
-        .from('students')
-        .select('id, student_id, profiles:profile_id(first_name, last_name)')
-        .eq('class_id', classId).eq('is_active', true).order('student_id');
-      setRows((data || []).map((s: { id: string; student_id: string; profiles: { first_name: string; last_name: string } | null }) => ({
+      const [{ data: studs }, { data: subRows }] = await Promise.all([
+        supabase.from('students')
+          .select('id, student_id, profiles:profile_id(first_name, last_name)')
+          .eq('class_id', classId).eq('is_active', true).order('student_id'),
+        supabase.from('subjects').select('name')
+          .eq('class_id', classId).eq('is_active', true).order('name'),
+      ]);
+      setRows((studs || []).map((s: { id: string; student_id: string; profiles: { first_name: string; last_name: string } | null }) => ({
         studentId: s.id,
         displayId: s.student_id,
         name: `${s.profiles?.first_name ?? ''} ${s.profiles?.last_name ?? ''}`.trim(),
         score: '',
       })));
+      setClassSubjects((subRows || []).map((s: { name: string }) => s.name));
+      setSubject('');
     } finally {
       setLoadingStudents(false);
     }
@@ -359,7 +477,7 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
   const filled = rows.filter(r => r.score !== '').length;
 
   const submit = async () => {
-    const effectiveSubject = isToddlerClass ? pkSkill : subject.trim();
+    const effectiveSubject = isToddlerClass ? pkSkill : subject === '__custom__' ? customSubject.trim() : subject.trim();
     if (!effectiveSubject) return onToast('Subject / skill is required', 'error');
     const validRows = rows.filter(r => r.score !== '' && !isNaN(parseFloat(r.score)));
     if (validRows.length === 0) return onToast('Enter at least one rating', 'error');
@@ -424,8 +542,24 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
           <>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Subject *</label>
-              <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Mathematics"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              {classSubjects.length > 0 ? (
+                <>
+                  <select value={subject} onChange={e => { setSubject(e.target.value); setCustomSubject(''); }}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="">Select subject...</option>
+                    {classSubjects.map(s => <option key={s}>{s}</option>)}
+                    <option value="__custom__">Other (type manually)…</option>
+                  </select>
+                  {subject === '__custom__' && (
+                    <input value={customSubject} onChange={e => setCustomSubject(e.target.value)}
+                      placeholder="Type subject name…"
+                      className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  )}
+                </>
+              ) : (
+                <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Mathematics"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Type</label>
