@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { BarChart3, Search, Download, Plus, X, Edit2, Trash2, Layers, BookOpen } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { BarChart3, Search, Download, Plus, X, Edit2, Trash2, Layers, BookOpen, Lock, FileDown, Upload } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import type { ProfileRow, GradeRow, GradeInsert, ClassRow } from '../../../lib/supabase';
@@ -36,6 +36,20 @@ function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error';
   );
 }
 
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let cell = '';
+  let inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuote = !inQuote; continue; }
+    if (ch === ',' && !inQuote) { result.push(cell.trim()); cell = ''; continue; }
+    cell += ch;
+  }
+  result.push(cell.trim());
+  return result;
+}
+
 // ─── Tab 1: Grade Records ───────────────────────────────────────────────────
 
 function RecordsTab({
@@ -59,6 +73,7 @@ function RecordsTab({
   const [modalSubjects, setModalSubjects] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [publishedIds, setPublishedIds] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({
     class_id: '', student_id: '', subject: '', custom_subject: '',
     assessment_type: '1st CA', score: '', max_score: '15',
@@ -71,6 +86,12 @@ function RecordsTab({
       .select('id, student_id, class_id, profiles:profile_id(first_name, last_name)')
       .eq('is_active', true).order('student_id')
       .then(({ data }) => setAllStudents((data || []) as unknown as (StudentOption & { class_id?: string })[]));
+  }, []);
+
+  // Load published student IDs for lock indicator
+  useEffect(() => {
+    supabase.from('result_sheets').select('student_id').eq('is_published', true)
+      .then(({ data }) => setPublishedIds(new Set((data || []).map((r: { student_id: string }) => r.student_id))));
   }, []);
 
   // Load subjects when modal class+term+year changes
@@ -239,10 +260,26 @@ function RecordsTab({
                       <td className="py-3 px-4 text-gray-500 text-xs">{g.term}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(g)} className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500">
+                          {publishedIds.has(g.student_id) && (
+                            <span title="Result card is published" className="p-1 text-amber-500">
+                              <Lock className="w-3 h-3" />
+                            </span>
+                          )}
+                          <button
+                            onClick={() => {
+                              if (publishedIds.has(g.student_id) && !window.confirm(`${g.students?.profiles?.first_name}'s report card is published. Edit this grade anyway?`)) return;
+                              openEdit(g);
+                            }}
+                            className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500">
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => deleteGrade(g.id)} disabled={deleting === g.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 disabled:opacity-40">
+                          <button
+                            onClick={() => {
+                              if (publishedIds.has(g.student_id) && !window.confirm(`${g.students?.profiles?.first_name}'s report card is published. Delete this grade anyway?`)) return;
+                              deleteGrade(g.id);
+                            }}
+                            disabled={deleting === g.id}
+                            className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 disabled:opacity-40">
                             {deleting === g.id
                               ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
                               : <Trash2 className="w-3.5 h-3.5" />}
@@ -441,11 +478,55 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const csvImportRef = useRef<HTMLInputElement>(null);
   const selectedClassLevel = classes.find(c => c.id === classId)?.level ?? '';
   const isToddlerClass = selectedClassLevel === 'toddler';
 
   // Toddler mode: skill selector + word ratings
   const [pkSkill, setPkSkill] = useState(PRE_KG_SKILLS_LIST[0]);
+
+  const downloadTemplate = () => {
+    if (rows.length === 0) { onToast('Select a class first to generate a template', 'error'); return; }
+    const effectiveSubject = isToddlerClass
+      ? pkSkill
+      : (subject === '__custom__' ? customSubject.trim() : subject.trim()) || 'Subject';
+    const header = isToddlerClass
+      ? ['Student ID', 'Student Name', 'Rating (1=Needs Improvement, 2=Fair, 3=Good, 4=Very Good, 5=Excellent)']
+      : ['Student ID', 'Student Name', `Score (0-${maxScore})`];
+    const q = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const lines = [header.map(q).join(','), ...rows.map(r => [q(r.displayId), q(r.name), ''].join(','))];
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(lines.join('\n'));
+    a.download = `${effectiveSubject.replace(/[^a-z0-9]/gi, '_')}-template.csv`;
+    a.click();
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = (ev.target?.result as string) || '';
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) { onToast('CSV has no data rows', 'error'); return; }
+      const scoreMap: Record<string, string> = {};
+      lines.slice(1).forEach(line => {
+        const cols = parseCSVLine(line);
+        const sid = cols[0] || '';
+        const val = cols[2] || '';
+        if (sid && val !== '') scoreMap[sid] = val;
+      });
+      let matched = 0;
+      setRows(prev => prev.map(r => {
+        const s = scoreMap[r.displayId];
+        if (s !== undefined) { matched++; return { ...r, score: s }; }
+        return r;
+      }));
+      onToast(`Imported: ${matched} of ${rows.length} students matched`, matched > 0 ? 'success' : 'error');
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   const loadStudents = useCallback(async () => {
     if (!classId) { setRows([]); setClassSubjects([]); return; }
@@ -595,6 +676,21 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
           </select>
         </div>
       </div>
+
+      {/* CSV helpers */}
+      {rows.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <input ref={csvImportRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImportFile} />
+          <button onClick={downloadTemplate}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-600 hover:bg-gray-50">
+            <FileDown className="w-3.5 h-3.5" /> Download Template
+          </button>
+          <button onClick={() => csvImportRef.current?.click()}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-purple-300 rounded-lg text-xs text-purple-700 bg-purple-50 hover:bg-purple-100">
+            <Upload className="w-3.5 h-3.5" /> Import from CSV
+          </button>
+        </div>
+      )}
 
       {loadingStudents ? (
         <div className="flex justify-center py-12"><div className="w-6 h-6 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin" /></div>

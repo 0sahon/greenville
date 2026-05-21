@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Download, RefreshCw, BarChart3, Users, DollarSign, ClipboardCheck, TrendingUp, Award } from 'lucide-react';
+import { Download, RefreshCw, BarChart3, Users, DollarSign, ClipboardCheck, TrendingUp, Award, BookOpen } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useSchoolSettings } from '../../../hooks/useSchoolSettings';
+import { TERMS, getAcademicYearOptions } from '../../../lib/academicConfig';
 import type { ProfileRow, FeeRow, AttendanceStatus } from '../../../lib/supabase';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
@@ -87,6 +88,17 @@ export default function ReportsSection({ profile: _profile, onNavigate }: Props)
   const [classEnrollment, setClassEnrollment] = useState<{ label: string; value: number }[]>([]);
   const [gradeDistribution, setGradeDistribution] = useState<{ label: string; value: number }[]>([]);
   const [topStudents, setTopStudents] = useState<{ name: string; avg: number; class: string }[]>([]);
+  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
+
+  // Subject performance by class
+  const [perfClass, setPerfClass] = useState('');
+  const [perfTerm, setPerfTerm] = useState('First Term');
+  const [perfYear, setPerfYear] = useState(() => {
+    const y = new Date().getFullYear();
+    return `${y - 1}/${y}`;
+  });
+  const [perfData, setPerfData] = useState<{ label: string; value: number }[]>([]);
+  const [perfLoading, setPerfLoading] = useState(false);
 
   const fetchReport = async () => {
     setLoading(true);
@@ -140,6 +152,7 @@ export default function ReportsSection({ profile: _profile, onNavigate }: Props)
         return { label: c.name, value: count ?? 0 };
       }));
       setClassEnrollment(classCounts.sort((a, b) => b.value - a.value).slice(0, 8));
+      setClasses(classData.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })));
     }
 
     // Grade distribution
@@ -204,6 +217,32 @@ export default function ReportsSection({ profile: _profile, onNavigate }: Props)
     a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(lines.join('\n'));
     a.download = `report-${new Date().toISOString().split('T')[0]}.txt`;
     a.click();
+  };
+
+  const loadClassPerf = async () => {
+    if (!perfClass) return;
+    setPerfLoading(true);
+    try {
+      const { data: studs } = await supabase.from('students').select('id').eq('class_id', perfClass).eq('is_active', true);
+      const ids = (studs || []).map((s: { id: string }) => s.id);
+      if (ids.length === 0) { setPerfData([]); return; }
+      const { data: grades } = await supabase
+        .from('grades').select('subject, score, max_score, assessment_type')
+        .in('student_id', ids).eq('term', perfTerm).eq('academic_year', perfYear)
+        .neq('assessment_type', 'pre_kg');
+      const bySub: Record<string, { total: number; count: number }> = {};
+      (grades || []).forEach((g: { subject: string; score: number; max_score: number }) => {
+        const pct = g.max_score > 0 ? Math.round((g.score / g.max_score) * 100) : 0;
+        if (!bySub[g.subject]) bySub[g.subject] = { total: 0, count: 0 };
+        bySub[g.subject].total += pct;
+        bySub[g.subject].count++;
+      });
+      setPerfData(Object.entries(bySub)
+        .map(([label, { total, count }]) => ({ label, value: Math.round(total / count) }))
+        .sort((a, b) => b.value - a.value));
+    } finally {
+      setPerfLoading(false);
+    }
   };
 
   if (loading) return <div className="flex justify-center items-center py-16"><div className="w-8 h-8 border-4 border-red-300 border-t-red-600 rounded-full animate-spin" /></div>;
@@ -350,6 +389,59 @@ export default function ReportsSection({ profile: _profile, onNavigate }: Props)
           </div>
         </div>
       )}
+
+      {/* Subject Performance by Class */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <BookOpen className="w-4 h-4 text-indigo-500" /> Subject Performance by Class
+        </h3>
+        <div className="flex flex-wrap gap-2 mb-4">
+          <select value={perfClass} onChange={e => setPerfClass(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 min-w-32 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <option value="">Select class…</option>
+            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={perfTerm} onChange={e => setPerfTerm(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            {TERMS.map(t => <option key={t}>{t}</option>)}
+          </select>
+          <select value={perfYear} onChange={e => setPerfYear(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            {getAcademicYearOptions().map(y => <option key={y}>{y}</option>)}
+          </select>
+          <button onClick={loadClassPerf} disabled={!perfClass || perfLoading}
+            className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-40 flex items-center gap-1.5">
+            {perfLoading
+              ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Loading…</>
+              : 'Load'}
+          </button>
+        </div>
+        {perfData.length > 0 ? (
+          <>
+            <BarChart
+              bars={perfData.map(d => ({ label: d.label.split(' ')[0], value: d.value }))}
+              maxVal={100}
+              color="bg-indigo-500"
+              height="h-20"
+            />
+            <div className="mt-3 space-y-1.5">
+              {perfData.map(d => (
+                <div key={d.label} className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600 truncate flex-1">{d.label}</span>
+                  <div className="w-24 bg-gray-100 rounded-full h-2">
+                    <div className="h-2 rounded-full bg-indigo-400" style={{ width: `${d.value}%` }} />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-700 w-10 text-right">{d.value}%</span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : !perfLoading && perfClass ? (
+          <p className="text-xs text-gray-400 text-center py-6">No grades recorded for this class/term combination.</p>
+        ) : (
+          <p className="text-xs text-gray-400 text-center py-6">Select a class and click Load to view subject averages.</p>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import React from 'react';
-import { X, Download, MessageCircle, EyeOff, Save, Trash2, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Download, MessageCircle, EyeOff, Save, Trash2, AlertTriangle, CopyCheck } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
 import { getNigerianGrade } from '../../../lib/grading';
 import ResultCard, {
   printResultCard,
@@ -87,6 +88,45 @@ export default function ResultCardModal({
   hasResultSheet, onShareWhatsApp, onToast,
   activeCardError,
 }: Props) {
+  const [copyingLastTerm, setCopyingLastTerm] = useState(false);
+
+  const prevTermInfo = (() => {
+    if (term === 'Second Term') return { term: 'First Term', year: academicYear };
+    if (term === 'Third Term') return { term: 'Second Term', year: academicYear };
+    const [start] = academicYear.split('/');
+    const prevYear = `${parseInt(start) - 1}/${parseInt(start)}`;
+    return { term: 'Third Term', year: prevYear };
+  })();
+
+  const copyFromLastTerm = async () => {
+    setCopyingLastTerm(true);
+    try {
+      const { data } = await supabase
+        .from('result_sheets')
+        .select('punctuality,neatness,honesty,cooperation,attentiveness,politeness,days_present,days_absent,total_school_days')
+        .eq('student_id', student.id)
+        .eq('term', prevTermInfo.term)
+        .eq('academic_year', prevTermInfo.year)
+        .maybeSingle();
+      if (!data) { onToast(`No record found for ${prevTermInfo.term} ${prevTermInfo.year}`, 'error'); return; }
+      setMetaForm(f => ({
+        ...f,
+        punctuality:    data.punctuality    ?? f.punctuality,
+        neatness:       data.neatness       ?? f.neatness,
+        honesty:        data.honesty        ?? f.honesty,
+        cooperation:    data.cooperation    ?? f.cooperation,
+        attentiveness:  data.attentiveness  ?? f.attentiveness,
+        politeness:     data.politeness     ?? f.politeness,
+        days_present:   data.days_present   ?? f.days_present,
+        days_absent:    data.days_absent    ?? f.days_absent,
+        total_school_days: data.total_school_days ?? f.total_school_days,
+      }));
+      onToast(`Copied behavior & attendance from ${prevTermInfo.term}`, 'success');
+    } finally {
+      setCopyingLastTerm(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-4">
@@ -350,7 +390,19 @@ export default function ResultCardModal({
               {/* Behavior Ratings for Nursery/Basic */}
               {(isNurseryStudent || isBasicStudent) && (
                 <div>
-                  <h4 className="font-semibold text-gray-800 text-sm mb-1">Behavior Ratings</h4>
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="font-semibold text-gray-800 text-sm">Behavior Ratings</h4>
+                    <button
+                      type="button"
+                      onClick={copyFromLastTerm}
+                      disabled={copyingLastTerm}
+                      className="flex items-center gap-1 px-2.5 py-1 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 disabled:opacity-50"
+                      title={`Copy behavior & attendance from ${prevTermInfo.term}`}
+                    >
+                      <CopyCheck className="w-3.5 h-3.5" />
+                      {copyingLastTerm ? 'Copying…' : `Copy from ${prevTermInfo.term}`}
+                    </button>
+                  </div>
                   <p className="text-xs text-gray-400 mb-3">Rate student behaviors on a scale of 1-5 (1: Poor, 3: Good, 5: Excellent).</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
