@@ -95,7 +95,7 @@ export default function DatasheetEntryTab({ profile }: { profile: ProfileRow }) 
           .in('student_id', ids).eq('subject', selectedSubject).eq('term', term).eq('academic_year', year);
         (existing || []).forEach((g: { student_id: string; assessment_type: string; score: number }) => {
           if (!init[g.student_id]) return;
-          const t = g.assessment_type.toLowerCase().trim();
+          const t = (g.assessment_type || '').toLowerCase().trim();
           if (t === 'home work' || t === 'homework') init[g.student_id].hw = String(g.score);
           else if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment') init[g.student_id].ca1 = String(g.score);
           else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment') init[g.student_id].ca2 = String(g.score);

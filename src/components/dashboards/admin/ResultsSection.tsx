@@ -307,44 +307,46 @@ export default function ResultsSection({ profile }: Props) {
       let ratings: Record<string, number> = {};
       if (isToddler) {
         const pkGrades = myGradeRows.filter(g => g.assessment_type === 'pre_kg');
-        pkGrades.forEach(g => { ratings[g.subject] = g.score; });
+        pkGrades.forEach(g => { ratings[(g.subject || '').trim()] = g.score; });
         setPreKgRatings(ratings);
         mySubjects = buildPreKgSubjects(ratings);
       } else if (isNursery) {
         const scores: NurseryScores = {};
         for (const g of myGradeRows) {
-          if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-          const t = g.assessment_type.toLowerCase().trim();
+          const subName = (g.subject || '').trim();
+          if (!scores[subName]) scores[subName] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+          const t = (g.assessment_type || '').toLowerCase().trim();
           // Raw direct system: use score as-is, no proportional scaling
           if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-            scores[g.subject]!.ca1 = g.score;
+            scores[subName]!.ca1 = g.score;
           else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-            scores[g.subject]!.ca2 = g.score;
+            scores[subName]!.ca2 = g.score;
           else if (t === 'exam' || t === 'examination' || t === 'final exam')
-            scores[g.subject]!.exam = g.score;
+            scores[subName]!.exam = g.score;
           else if (t === 'project')
-            scores[g.subject]!.project = g.score;
+            scores[subName]!.project = g.score;
           else if (t === 'homework' || t === 'home work')
-            scores[g.subject]!.homework = g.score;
+            scores[subName]!.homework = g.score;
         }
         setNurseryScores(scores);
         mySubjects = buildNurserySubjects(scores);
       } else {
         const scores: BasicScores = {};
         for (const g of myGradeRows) {
-          if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-          const t = g.assessment_type.toLowerCase().trim();
+          const subName = (g.subject || '').trim();
+          if (!scores[subName]) scores[subName] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+          const t = (g.assessment_type || '').toLowerCase().trim();
           // Raw direct system: use score as-is, no proportional scaling
           if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-            scores[g.subject]!.ca1 = g.score;
+            scores[subName]!.ca1 = g.score;
           else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-            scores[g.subject]!.ca2 = g.score;
+            scores[subName]!.ca2 = g.score;
           else if (t === 'exam' || t === 'examination' || t === 'final exam')
-            scores[g.subject]!.exam = g.score;
+            scores[subName]!.exam = g.score;
           else if (t === 'project')
-            scores[g.subject]!.project = g.score;
+            scores[subName]!.project = g.score;
           else if (t === 'homework' || t === 'home work')
-            scores[g.subject]!.homework = g.score;
+            scores[subName]!.homework = g.score;
         }
         setBasicScores(scores);
         mySubjects = buildBasicSubjects(scores);
@@ -356,7 +358,7 @@ export default function ResultsSection({ profile }: Props) {
       students.forEach(s => {
         const sg = allGrades.filter(g => g.student_id === s.id);
         const subs = s.classes?.level === 'toddler'
-          ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [g.subject, g.score])))
+          ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [(g.subject || '').trim(), g.score])))
           : computeSubjects(sg);
         grandTotalByStudent[s.id] = subs.reduce((acc, sub) => acc + sub.total, 0);
       });
