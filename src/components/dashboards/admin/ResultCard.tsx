@@ -11,6 +11,7 @@ import {
   SCHOOL_NAME,
   SCHOOL_PHONE_DISPLAY,
 } from '../../../config/schoolBrand';
+import { getNigerianGrade } from '../../../lib/grading';
 export { getNigerianGrade, GRADING_KEY } from '../../../lib/grading';
 
 function gradeColor(grade: string): React.CSSProperties {
