@@ -398,33 +398,97 @@ export default function ResultCardModal({
                 {(isToddlerStudent || isNurseryStudent) ? (
                   <>
                     <p className="text-xs text-indigo-600 bg-indigo-50 rounded-lg px-3 py-2 border border-indigo-100">
-                      Keep remarks short — 3 to 7 words (e.g. "Great effort this term!", "Well done, keep it up!")
+                      Keep remarks short — 3 to 7 words. Tap any suggestion to fill.
                     </p>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Class Teacher's Remark</label>
+
+                    {/* Teacher remark */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-600">Class Teacher&apos;s Remark</label>
                       <input type="text" value={metaForm.teacher_comment}
                         onChange={e => setMetaForm(f => ({ ...f, teacher_comment: e.target.value }))}
-                        placeholder="e.g. Great effort this term!"
+                        placeholder="Tap a suggestion below or type…"
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {[
+                          'Great effort this term!',
+                          'Excellent student, well done!',
+                          'Good work, keep it up!',
+                          'Making steady progress!',
+                          'Wonderful improvement shown!',
+                          'Always ready to learn!',
+                          'Brilliant performance this term!',
+                          'A joy to teach!',
+                          'Very bright and active child!',
+                          'Hard worker, keep going!',
+                          'Shows great potential!',
+                          'Improving steadily, well done!',
+                          'Needs more focus in class.',
+                          'Needs more effort next term.',
+                          'Keep practising at home.',
+                          'Good listener in class!',
+                          'Very enthusiastic learner!',
+                          'Excellent conduct and attitude!',
+                          'Participates actively in class!',
+                          'Needs parental support at home.',
+                        ].map(s => (
+                          <button key={s} type="button"
+                            onClick={() => setMetaForm(f => ({ ...f, teacher_comment: s }))}
+                            className={`px-2.5 py-1 rounded-full border text-xs transition-all ${metaForm.teacher_comment === s ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-600 border-gray-300 hover:border-green-500 hover:text-green-700'}`}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Proprietress' Remark</label>
+
+                    {/* Proprietress remark */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-600">Proprietress&apos; Remark</label>
                       <input type="text" value={metaForm.principal_comment}
                         onChange={e => setMetaForm(f => ({ ...f, principal_comment: e.target.value }))}
-                        placeholder="e.g. Well done, keep it up!"
+                        placeholder="Tap a suggestion below or type…"
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {[
+                          'Well done, keep it up!',
+                          'Excellent work this term!',
+                          'Great performance, keep shining!',
+                          'Proud of your progress!',
+                          'Keep up the good work!',
+                          'Outstanding performance this term!',
+                          'Wonderful child, well done!',
+                          'Good effort, keep improving!',
+                          'We are proud of you!',
+                          'Keep shining, bright star!',
+                          'Good start, keep going!',
+                          'Excellent conduct this term!',
+                          'Very impressive improvement shown!',
+                          'A promising young learner!',
+                          'Needs more effort at home.',
+                          'Encourage more reading at home.',
+                          'Great potential, keep working hard!',
+                          'Well behaved, keep it up!',
+                          'Needs improvement next term.',
+                          'Steady progress, well done!',
+                        ].map(s => (
+                          <button key={s} type="button"
+                            onClick={() => setMetaForm(f => ({ ...f, principal_comment: s }))}
+                            className={`px-2.5 py-1 rounded-full border text-xs transition-all ${metaForm.principal_comment === s ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-600 border-gray-300 hover:border-green-500 hover:text-green-700'}`}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Class Teacher's Remark</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Class Teacher&apos;s Remark</label>
                       <textarea rows={3} value={metaForm.teacher_comment} onChange={e => setMetaForm(f => ({ ...f, teacher_comment: e.target.value }))}
                         placeholder="e.g. A diligent student who shows great potential…"
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Proprietress' Remark</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Proprietress&apos; Remark</label>
                       <textarea rows={3} value={metaForm.principal_comment} onChange={e => setMetaForm(f => ({ ...f, principal_comment: e.target.value }))}
                         placeholder="e.g. Excellent performance. We are proud of your achievements!"
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
