@@ -24,7 +24,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-4">
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-4">
           <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center">
             <span className="text-2xl">⚠️</span>
           </div>
@@ -32,8 +32,13 @@ export default class ErrorBoundary extends Component<Props, State> {
             <p className="font-semibold text-gray-800">
               {this.props.label ? `${this.props.label} failed to load` : 'Something went wrong'}
             </p>
-            <p className="text-sm text-gray-500 mt-1">Try refreshing the page. If the problem persists, contact support.</p>
+            <p className="text-sm text-gray-500 mt-1">An unexpected error occurred while rendering this section.</p>
           </div>
+          {this.state.error.message && (
+            <pre className="text-xs bg-red-50 border border-red-200 rounded-xl px-4 py-3 max-w-lg w-full whitespace-pre-wrap break-words text-red-800 text-left">
+              {this.state.error.message}
+            </pre>
+          )}
           <button
             onClick={() => { this.setState({ error: null }); window.location.reload(); }}
             className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"

@@ -546,7 +546,7 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
 interface SubjectStat { subject: string; avg: number; count: number; high: number; low: number; }
 interface StudentStat { name: string; studentId: string; avg: number; count: number; }
 
-function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[] }) {
+function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name' | 'level'>[] }) {
   const [classId, setClassId] = useState('');
   const [term, setTerm] = useState('First Term');
   const [academicYear, setAcademicYear] = useState(getDefaultAcademicYear());
@@ -554,6 +554,9 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
   const [studentStats, setStudentStats] = useState<StudentStat[]>([]);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<'subjects' | 'students'>('subjects');
+
+  const selectedClassLevel = classes.find(c => c.id === classId)?.level ?? '';
+  const isToddlerClass = selectedClassLevel === 'toddler';
 
   const load = useCallback(async () => {
     if (!classId) return;
@@ -578,13 +581,50 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
 
       const { data: gradeData } = await supabase
         .from('grades')
-        .select('student_id, subject, score, max_score')
+        .select('student_id, subject, assessment_type, score, max_score')
         .in('student_id', studentIds)
         .eq('term', term).eq('academic_year', academicYear);
 
-      const grades = (gradeData || []) as { student_id: string; subject: string; score: number; max_score: number }[];
+      const grades = (gradeData || []) as { student_id: string; subject: string; assessment_type: string; score: number; max_score: number }[];
 
-      // Subject aggregation
+      if (isToddlerClass) {
+        // Toddler: aggregate by skill rating (1-5), not percentage
+        const pkGrades = grades.filter(g => g.assessment_type === 'pre_kg');
+
+        const bySub: Record<string, number[]> = {};
+        pkGrades.forEach(g => {
+          if (!bySub[g.subject]) bySub[g.subject] = [];
+          bySub[g.subject].push(g.score);
+        });
+        const sStats = Object.entries(bySub).map(([subject, vals]) => ({
+          subject,
+          avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10,
+          count: vals.length,
+          high: Math.max(...vals),
+          low: Math.min(...vals),
+        })).sort((a, b) => b.avg - a.avg);
+        setSubjectStats(sStats);
+
+        const byStud: Record<string, { total: number; count: number }> = {};
+        pkGrades.forEach(g => {
+          if (!byStud[g.student_id]) byStud[g.student_id] = { total: 0, count: 0 };
+          byStud[g.student_id].total += g.score;
+          byStud[g.student_id].count += 1;
+        });
+        const stStats = (studentData || []).map((s: { id: string }) => {
+          const agg = byStud[s.id];
+          return {
+            name: nameMap[s.id],
+            studentId: idMap[s.id],
+            avg: agg ? Math.round((agg.total / agg.count) * 10) / 10 : 0,
+            count: agg ? agg.count : 0,
+          };
+        }).sort((a: StudentStat, b: StudentStat) => b.avg - a.avg);
+        setStudentStats(stStats);
+        return;
+      }
+
+      // Subject aggregation (conventional classes)
       const bySub: Record<string, number[]> = {};
       grades.forEach(g => {
         const pct = g.max_score > 0 ? (g.score / g.max_score) * 100 : 0;
@@ -621,7 +661,7 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
     } finally {
       setLoading(false);
     }
-  }, [classId, term, academicYear]);
+  }, [classId, term, academicYear, isToddlerClass]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -664,15 +704,30 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
         <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin" /></div>
       ) : (
         <>
-          {classAvg !== null && (
+          {isToddlerClass && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-sm text-yellow-800">
+              Pre-KG / Toddler class — ratings shown as word evaluations (Excellent · Very Good · Good · Fair · Needs Improvement)
+            </div>
+          )}
+
+          {subjectStats.length > 0 && (
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-purple-50 rounded-xl p-4 text-center">
-                <p className="text-xs text-purple-600 mb-1">Class Average</p>
-                <p className="text-2xl font-bold text-purple-700">{classAvg}%</p>
-                <p className="text-xs font-semibold text-purple-500 mt-0.5">{getNigerianGrade(classAvg).grade}</p>
-              </div>
+              {isToddlerClass ? (
+                <div className="bg-indigo-50 rounded-xl p-4 text-center">
+                  <p className="text-xs text-indigo-600 mb-1">Class Rating</p>
+                  <p className="text-2xl font-bold text-indigo-700">
+                    {PRE_KG_RATING_LABELS[Math.round(subjectStats.reduce((s, x) => s + x.avg, 0) / subjectStats.length)] ?? '—'}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-purple-50 rounded-xl p-4 text-center">
+                  <p className="text-xs text-purple-600 mb-1">Class Average</p>
+                  <p className="text-2xl font-bold text-purple-700">{classAvg}%</p>
+                  <p className="text-xs font-semibold text-purple-500 mt-0.5">{classAvg !== null ? getNigerianGrade(classAvg).grade : ''}</p>
+                </div>
+              )}
               <div className="bg-blue-50 rounded-xl p-4 text-center">
-                <p className="text-xs text-blue-600 mb-1">Subjects</p>
+                <p className="text-xs text-blue-600 mb-1">{isToddlerClass ? 'Skills' : 'Subjects'}</p>
                 <p className="text-2xl font-bold text-blue-700">{subjectStats.length}</p>
               </div>
               <div className="bg-green-50 rounded-xl p-4 text-center">
@@ -686,7 +741,7 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
             {(['subjects', 'students'] as const).map(v => (
               <button key={v} onClick={() => setView(v)}
                 className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all ${view === v ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
-                {v === 'subjects' ? 'By Subject' : 'By Student'}
+                {v === 'subjects' ? (isToddlerClass ? 'By Skill' : 'By Subject') : 'By Student'}
               </button>
             ))}
           </div>
@@ -694,6 +749,36 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
           {view === 'subjects' ? (
             subjectStats.length === 0 ? (
               <div className="text-center py-10 text-gray-400 text-sm">No grades recorded for this term.</div>
+            ) : isToddlerClass ? (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                      <th className="py-3 px-4">Skill Area</th>
+                      <th className="py-3 px-4">Ratings</th>
+                      <th className="py-3 px-4">Class Evaluation</th>
+                      <th className="py-3 px-4">Best</th>
+                      <th className="py-3 px-4">Lowest</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subjectStats.map(s => {
+                      const rounded = Math.round(s.avg);
+                      const evalLabel = PRE_KG_RATING_LABELS[rounded] ?? '—';
+                      const evalColor = rounded >= 4 ? 'text-green-700 bg-green-100' : rounded === 3 ? 'text-indigo-700 bg-indigo-100' : rounded === 2 ? 'text-amber-700 bg-amber-100' : 'text-red-700 bg-red-100';
+                      return (
+                        <tr key={s.subject} className="border-b border-gray-50 hover:bg-gray-50">
+                          <td className="py-3 px-4 font-medium text-gray-800">{s.subject}</td>
+                          <td className="py-3 px-4 text-gray-500">{s.count}</td>
+                          <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${evalColor}`}>{evalLabel}</span></td>
+                          <td className="py-3 px-4 text-green-600 font-medium">{PRE_KG_RATING_LABELS[s.high] ?? s.high}</td>
+                          <td className="py-3 px-4 text-red-500">{PRE_KG_RATING_LABELS[s.low] ?? s.low}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
@@ -742,14 +827,17 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
                     <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 uppercase">
                       <th className="py-3 px-4">Pos</th>
                       <th className="py-3 px-4">Student</th>
-                      <th className="py-3 px-4">Records</th>
-                      <th className="py-3 px-4">Avg Score</th>
-                      <th className="py-3 px-4">Grade</th>
+                      <th className="py-3 px-4">{isToddlerClass ? 'Skills Rated' : 'Records'}</th>
+                      <th className="py-3 px-4">{isToddlerClass ? 'Overall Evaluation' : 'Avg Score'}</th>
+                      {!isToddlerClass && <th className="py-3 px-4">Grade</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {studentStats.map((s, i) => {
-                      const { grade: label, color } = getNigerianGrade(s.avg);
+                      const rounded = Math.round(s.avg);
+                      const pkLabel = PRE_KG_RATING_LABELS[rounded] ?? '—';
+                      const pkColor = rounded >= 4 ? 'text-green-700 bg-green-100' : rounded === 3 ? 'text-indigo-700 bg-indigo-100' : rounded === 2 ? 'text-amber-700 bg-amber-100' : 'text-red-700 bg-red-100';
+                      const { grade: label, color } = isToddlerClass ? { grade: '', color: '' } : getNigerianGrade(s.avg);
                       return (
                         <tr key={s.studentId} className={`border-b border-gray-50 hover:bg-gray-50 ${i < 3 ? 'bg-amber-50/30' : ''}`}>
                           <td className="py-3 px-4 text-lg font-bold">{posEmoji(i)}</td>
@@ -759,20 +847,26 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name'>[]
                           </td>
                           <td className="py-3 px-4 text-gray-500">{s.count}</td>
                           <td className="py-3 px-4">
-                            {s.count > 0 ? (
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                  <div className="h-full rounded-full bg-purple-500" style={{ width: `${Math.min(100, s.avg)}%` }} />
-                                </div>
-                                <span className="font-semibold text-gray-800 tabular-nums">{s.avg}%</span>
-                              </div>
-                            ) : <span className="text-gray-300 text-xs">No grades</span>}
-                          </td>
-                          <td className="py-3 px-4">
                             {s.count > 0
-                              ? <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span>
-                              : <span className="text-gray-300 text-xs">—</span>}
+                              ? isToddlerClass
+                                ? <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${pkColor}`}>{pkLabel}</span>
+                                : (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                      <div className="h-full rounded-full bg-purple-500" style={{ width: `${Math.min(100, s.avg)}%` }} />
+                                    </div>
+                                    <span className="font-semibold text-gray-800 tabular-nums">{s.avg}%</span>
+                                  </div>
+                                )
+                              : <span className="text-gray-300 text-xs">No ratings</span>}
                           </td>
+                          {!isToddlerClass && (
+                            <td className="py-3 px-4">
+                              {s.count > 0
+                                ? <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span>
+                                : <span className="text-gray-300 text-xs">—</span>}
+                            </td>
+                          )}
                         </tr>
                       );
                     })}
