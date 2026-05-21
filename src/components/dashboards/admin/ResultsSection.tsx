@@ -6,7 +6,8 @@ import {
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import { useSchoolSettings } from '../../../hooks/useSchoolSettings';
-import { getNigerianGrade, printResultCard, CardPrintContent,
+import { getNigerianGrade } from '../../../lib/grading';
+import { printResultCard, CardPrintContent,
   PRE_KG_SKILLS,
   NURSERY_SUBJECTS, buildNurserySubjects, NURSERY_CA_MAX, NURSERY_EXAM_MAX,
   BASIC_SUBJECTS, buildBasicSubjects, BASIC_CA_MAX, BASIC_EXAM_MAX,

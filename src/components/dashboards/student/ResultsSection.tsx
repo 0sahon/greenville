@@ -3,7 +3,8 @@ import { FileText, ChevronDown, AlertCircle, TrendingUp, Award, BookOpen } from 
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import { useStudentData } from './useStudentData';
-import ResultCard, { getNigerianGrade, printResultCard } from '../admin/ResultCard';
+import { getNigerianGrade } from '../../../lib/grading';
+import ResultCard, { printResultCard } from '../admin/ResultCard';
 import type { ResultCardData, SubjectResult } from '../admin/ResultCard';
 import type { ProfileRow, GradeRow } from '../../../lib/supabase';
 import { computeSubjects } from '../../../lib/gradeCompute';

@@ -5,8 +5,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
+import { getNigerianGrade } from '../../../lib/grading';
 import ResultCard, {
-  getNigerianGrade, printResultCard, PRE_KG_SKILLS, PRE_KG_COMMENTS,
+  printResultCard, PRE_KG_SKILLS, PRE_KG_COMMENTS,
   NURSERY_SUBJECTS, buildNurserySubjects, NURSERY_CA_MAX, NURSERY_EXAM_MAX,
   BASIC_SUBJECTS, buildBasicSubjects, BASIC_CA_MAX, BASIC_EXAM_MAX,
 } from '../admin/ResultCard';

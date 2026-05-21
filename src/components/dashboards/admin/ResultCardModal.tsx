@@ -1,7 +1,8 @@
 import React from 'react';
 import { X, Download, MessageCircle, EyeOff, Save, Trash2, AlertTriangle } from 'lucide-react';
+import { getNigerianGrade } from '../../../lib/grading';
 import ResultCard, {
-  getNigerianGrade, printResultCard,
+  printResultCard,
   PRE_KG_SKILLS, PRE_KG_COMMENTS,
   NURSERY_SUBJECTS, NURSERY_CA_MAX, NURSERY_EXAM_MAX,
   BASIC_SUBJECTS, BASIC_CA_MAX, BASIC_EXAM_MAX,
