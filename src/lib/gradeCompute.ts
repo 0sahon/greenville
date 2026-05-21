@@ -26,10 +26,10 @@ export function computeSubjects(grades: GradeRecord[]): SubjectResult[] {
   const map = new Map<string, ComponentBucket>();
 
   for (const g of grades) {
-    const key  = g.subject.trim();
+    const key  = (g.subject || '').trim();
     if (!map.has(key)) map.set(key, { ca1: null, ca2: null, exam: null, hw: null, project: null });
     const entry = map.get(key)!;
-    const type  = g.assessment_type.toLowerCase().trim();
+    const type  = (g.assessment_type || '').toLowerCase().trim();
 
     if (type === 'home work' || type === 'homework') {
       entry.hw = { score: g.score, max: g.max_score };

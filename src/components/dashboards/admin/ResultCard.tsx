@@ -127,7 +127,7 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
     : null;
 
   const getSubject = (name: string) =>
-    subjects.find(s => s.subject.toLowerCase().trim() === name.toLowerCase().trim());
+    subjects.find(s => (s.subject || '').toLowerCase().trim() === (name || '').toLowerCase().trim());
 
   const BORDER = '1px solid #555';
   const TH: React.CSSProperties = {
@@ -505,7 +505,7 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
   };
 
   const getSubject = (name: string) =>
-    subjects.find(s => s.subject.toLowerCase().trim() === name.toLowerCase().trim());
+    subjects.find(s => (s.subject || '').toLowerCase().trim() === (name || '').toLowerCase().trim());
 
   const scoredNurserySubjects = displayedNurserySubjects.filter(n => {
     const s = getSubject(n);
@@ -711,7 +711,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
   const GOLD = '#f9a825';
 
   const activeRatings = data.subjects
-    .filter(s => PRE_KG_SKILLS.some(ps => ps.name === s.subject.trim()))
+    .filter(s => PRE_KG_SKILLS.some(ps => ps.name === (s.subject || '').trim()))
     .map(s => preKgTotalToRating(s.total))
     .filter(r => r > 0);
 
@@ -721,7 +721,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
     : null;
 
   const getRating = (skillName: string): string => {
-    const match = data.subjects.find(s => s.subject.trim() === skillName);
+    const match = data.subjects.find(s => (s.subject || '').trim() === skillName);
     if (!match || match.total === 0) return '';
     const rating = preKgTotalToRating(match.total);
     return PRE_KG_COMMENTS[skillName]?.[rating] || '';
