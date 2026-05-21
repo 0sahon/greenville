@@ -441,14 +441,28 @@ async function main() {
 
     // Create result sheets
     console.log(`📋 Creating result sheets for ${classConf.name}...`);
-    const teacherComments = [
+    // Toddler/Pre-KG uses short 3-7 word phrases; nursery/basic use full sentences
+    const isToddlerClass = classConf.level === 'toddler';
+    const teacherComments = isToddlerClass ? [
+      'Great effort this term!',
+      'Excellent student, well done!',
+      'Good work, keep it up!',
+      'Brilliant performance this term!',
+      'Making steady progress!',
+    ] : [
       'An exceptional student who consistently demonstrates outstanding enthusiasm and comprehension.',
       'Shows remarkable improvement and dedication. A highly commendable effort this term.',
       'A diligent pupil who participates nicely. With continued focus, even greater heights will be reached.',
       'Very bright and enthusiastic learner. A delightful presence in the classroom.',
       'Shows good potential and is making steady progress. We encourage more dedication next term.',
     ];
-    const principalComments = [
+    const principalComments = isToddlerClass ? [
+      'Well done, keep it up!',
+      'Proud of your progress!',
+      'Excellent work this term!',
+      'Outstanding effort, bravo!',
+      'Keep improving, well done!',
+    ] : [
       "Outstanding performance! We are extremely proud of these achievements.",
       "Performed admirably. We look forward to continued excellence next term.",
       "Satisfactory performance. We encourage aiming higher next term.",
