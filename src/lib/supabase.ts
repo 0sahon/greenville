@@ -84,6 +84,7 @@ export type ResultSheetUpdate = Database['public']['Tables']['result_sheets']['U
 export type SubjectRow = Database['public']['Tables']['subjects']['Row'];
 export type SubjectInsert = Database['public']['Tables']['subjects']['Insert'];
 export type SubjectUpdate = Database['public']['Tables']['subjects']['Update'];
+export type SubjectSettingsRow = Database['public']['Tables']['subject_settings']['Row'];
 export type FeeTemplateRow = Database['public']['Tables']['fee_templates']['Row'];
 export type FeeTemplateInsert = Database['public']['Tables']['fee_templates']['Insert'];
 export type FeeTemplateUpdate = Database['public']['Tables']['fee_templates']['Update'];

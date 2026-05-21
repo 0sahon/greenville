@@ -15,7 +15,24 @@ export const defaultMeta = {
   days_present: 0, days_absent: 0, total_school_days: 0,
   next_term_begins: '', next_term_fees: '', is_published: false,
 };
-export type MetaForm = typeof defaultMeta;
+
+/** MetaForm as used in state — behavior fields may come back null from DB */
+export interface MetaForm {
+  teacher_comment: string;
+  principal_comment: string;
+  punctuality: number | null;
+  neatness: number | null;
+  honesty: number | null;
+  cooperation: number | null;
+  attentiveness: number | null;
+  politeness: number | null;
+  days_present: number;
+  days_absent: number;
+  total_school_days: number;
+  next_term_begins: string;
+  next_term_fees: string;
+  is_published: boolean;
+}
 
 export interface StudentInfo {
   id: string;

@@ -35,12 +35,12 @@ interface ResultSheetMeta {
   id?: string;
   teacher_comment: string;
   principal_comment: string;
-  punctuality: number;
-  neatness: number;
-  honesty: number;
-  cooperation: number;
-  attentiveness: number;
-  politeness: number;
+  punctuality: number | null;
+  neatness: number | null;
+  honesty: number | null;
+  cooperation: number | null;
+  attentiveness: number | null;
+  politeness: number | null;
   days_present: number;
   days_absent: number;
   total_school_days: number;
@@ -298,7 +298,7 @@ export default function TeacherResultsSection({ profile }: Props) {
 
     setCardData({
       student: {
-        name: `${student.profiles?.first_name} ${student.profiles?.last_name}`,
+        name: `${student.profiles?.first_name ?? ''} ${student.profiles?.last_name ?? ''}`.trim(),
         studentId: student.student_id,
         className: student.classes?.name || '—',
         classLevel: level,
@@ -314,12 +314,16 @@ export default function TeacherResultsSection({ profile }: Props) {
         classAverage: grandTotals.length > 0 ? Math.round(grandTotals.reduce((a, b) => a + b, 0) / grandTotals.length) : 0,
       },
       behavior: {
-        punctuality: meta.punctuality, neatness: meta.neatness, honesty: meta.honesty,
-        cooperation: meta.cooperation, attentiveness: meta.attentiveness, politeness: meta.politeness,
+        punctuality:   meta.punctuality   ?? 3,
+        neatness:      meta.neatness      ?? 3,
+        honesty:       meta.honesty       ?? 3,
+        cooperation:   meta.cooperation   ?? 3,
+        attentiveness: meta.attentiveness ?? 3,
+        politeness:    meta.politeness    ?? 3,
       },
       attendance: { daysPresent: meta.days_present, daysAbsent: meta.days_absent, totalDays: meta.total_school_days },
-      comments: { teacher: meta.teacher_comment, principal: meta.principal_comment },
-      nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees },
+      comments: { teacher: meta.teacher_comment || '', principal: meta.principal_comment || '' },
+      nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees || '' },
       schoolName: SCHOOL_NAME,
       schoolAddress: `${SCHOOL_ADDRESS_SINGLE} · TEL: ${SCHOOL_PHONE_DISPLAY}`,
       visibleSubjects,
@@ -341,12 +345,16 @@ export default function TeacherResultsSection({ profile }: Props) {
     setCardData(prev => prev ? {
       ...prev,
       behavior: {
-        punctuality: updated.punctuality, neatness: updated.neatness, honesty: updated.honesty,
-        cooperation: updated.cooperation, attentiveness: updated.attentiveness, politeness: updated.politeness,
+        punctuality:   updated.punctuality   ?? 3,
+        neatness:      updated.neatness      ?? 3,
+        honesty:       updated.honesty       ?? 3,
+        cooperation:   updated.cooperation   ?? 3,
+        attentiveness: updated.attentiveness ?? 3,
+        politeness:    updated.politeness    ?? 3,
       },
       attendance: { daysPresent: updated.days_present, daysAbsent: updated.days_absent, totalDays: updated.total_school_days },
-      comments: { teacher: updated.teacher_comment, principal: updated.principal_comment },
-      nextTerm: { begins: updated.next_term_begins || '', fees: updated.next_term_fees },
+      comments: { teacher: updated.teacher_comment || '', principal: updated.principal_comment || '' },
+      nextTerm: { begins: updated.next_term_begins || '', fees: updated.next_term_fees || '' },
     } : null);
   };
 

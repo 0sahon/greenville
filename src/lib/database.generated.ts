@@ -1249,6 +1249,30 @@ export type Database = {
         }
         Relationships: []
       }
+      subject_settings: {
+        Row: {
+          id: string
+          level_group: string
+          subject: string
+          is_visible: boolean
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          level_group: string
+          subject: string
+          is_visible?: boolean
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          level_group?: string
+          subject?: string
+          is_visible?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
       student_parents: {
         Row: {
           created_at: string | null

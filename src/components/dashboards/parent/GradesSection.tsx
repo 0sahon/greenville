@@ -50,12 +50,12 @@ interface ResultSheetRow {
   academic_year: string;
   teacher_comment: string;
   principal_comment: string;
-  punctuality: number;
-  neatness: number;
-  honesty: number;
-  cooperation: number;
-  attentiveness: number;
-  politeness: number;
+  punctuality: number | null;
+  neatness: number | null;
+  honesty: number | null;
+  cooperation: number | null;
+  attentiveness: number | null;
+  politeness: number | null;
   days_present: number;
   days_absent: number;
   total_school_days: number;
@@ -156,30 +156,31 @@ export default function ParentGradesSection({ profile }: Props) {
   const buildCardData = (): ResultCardData | null => {
     if (!resultSheet || !activeChild) return null;
     const grandTotal = resultSubjects.reduce((s, r) => s + r.total, 0);
+    const effectiveTerm = filterTerm || TERMS[0];
     return {
       student: {
         name: childName(activeChild),
         studentId: activeChild.student_id,
         className: activeChild.classes?.name || '—',
-        classLevel: activeChild.classes?.level,
+        classLevel: activeChild.classes?.level ?? '',
         gender: activeChild.gender || '',
         dob: activeChild.date_of_birth || '',
       },
-      term: filterTerm,
+      term: effectiveTerm,
       academicYear: filterYear,
       subjects: resultSubjects,
       classStats: { position: 0, totalStudents: 0, grandTotal, highestInClass: 0, lowestInClass: 0, classAverage: 0 },
       behavior: {
-        punctuality: resultSheet.punctuality,
-        neatness: resultSheet.neatness,
-        honesty: resultSheet.honesty,
-        cooperation: resultSheet.cooperation,
-        attentiveness: resultSheet.attentiveness,
-        politeness: resultSheet.politeness,
+        punctuality:   resultSheet.punctuality   ?? 0,
+        neatness:      resultSheet.neatness      ?? 0,
+        honesty:       resultSheet.honesty       ?? 0,
+        cooperation:   resultSheet.cooperation   ?? 0,
+        attentiveness: resultSheet.attentiveness ?? 0,
+        politeness:    resultSheet.politeness    ?? 0,
       },
       attendance: { daysPresent: resultSheet.days_present, daysAbsent: resultSheet.days_absent, totalDays: resultSheet.total_school_days },
-      comments: { teacher: resultSheet.teacher_comment, principal: resultSheet.principal_comment },
-      nextTerm: { begins: resultSheet.next_term_begins || '', fees: resultSheet.next_term_fees },
+      comments: { teacher: resultSheet.teacher_comment || '', principal: resultSheet.principal_comment || '' },
+      nextTerm: { begins: resultSheet.next_term_begins || '', fees: resultSheet.next_term_fees || '' },
       schoolName: SCHOOL_NAME,
       schoolAddress: `${SCHOOL_ADDRESS_SINGLE} · TEL: ${SCHOOL_PHONE_DISPLAY}`,
     };
@@ -359,12 +360,15 @@ export default function ParentGradesSection({ profile }: Props) {
               <>
                 <ResultCard
                   data={cardData}
-                  onPrint={() => printResultCard(childName(activeChild!))}
+                  onPrint={() => {
+                    const isSpecial = cardData.student.classLevel === 'creche' || cardData.student.classLevel === 'toddler';
+                    printResultCard(childName(activeChild!), isSpecial);
+                  }}
                 />
-                {resultSubjects.length > 0 && (
+                {resultSubjects.length > 0 && !['creche','toddler'].includes(cardData.student.classLevel ?? '') && (
                   <PerformanceChart
                     subjects={resultSubjects}
-                    title={`${childName(activeChild!)} — ${filterTerm} · ${filterYear} Subject Performance`}
+                    title={`${childName(activeChild!)} — ${filterTerm || TERMS[0]} · ${filterYear} Subject Performance`}
                   />
                 )}
               </>

@@ -181,7 +181,9 @@ export default function DashboardShell({
           )}
         </div>
         <button onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-red-500/20 hover:text-red-300 transition-colors">
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-red-500/20 hover:text-red-300 transition-colors ${
+            sidebarOpen ? 'justify-start' : 'justify-center px-0'
+          }`}>
           <LogOut className="w-5 h-5 flex-shrink-0" />
           {sidebarOpen && <span className="text-sm font-medium">Sign Out</span>}
         </button>
@@ -198,9 +200,9 @@ export default function DashboardShell({
 
       {/* Mobile Sidebar */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileSidebarOpen(false)} />
-          <aside className={`absolute left-0 top-0 bottom-0 w-64 bg-gradient-to-b ${gradientFrom} via-indigo-800 ${gradientTo} z-50`}>
+          <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b ${gradientFrom} via-indigo-800 ${gradientTo} z-50 flex flex-col`}>
             <SidebarContent />
           </aside>
         </div>
