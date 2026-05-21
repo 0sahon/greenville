@@ -142,45 +142,51 @@ export default function ResultsSection({ profile }: Props) {
   const loadClassData = useCallback(async () => {
     if (!selectedClass) { setStudents([]); setResultSheets({}); setClassChartBars([]); return; }
     setLoading(true);
-    const { data: studs } = await supabase
-      .from('students')
-      .select('id, student_id, profiles:profile_id(first_name, last_name, email), classes:class_id(name, level), gender, date_of_birth')
-      .eq('class_id', selectedClass).eq('is_active', true).order('student_id');
+    try {
+      const { data: studs } = await supabase
+        .from('students')
+        .select('id, student_id, profiles:profile_id(first_name, last_name, email), classes:class_id(name, level), gender, date_of_birth')
+        .eq('class_id', selectedClass).eq('is_active', true).order('student_id');
 
-    const studList = (studs || []) as StudentInfo[];
-    setStudents(studList);
+      const studList = (studs || []) as StudentInfo[];
+      setStudents(studList);
 
-    if (studList.length > 0) {
-      const [{ data: sheets }, { data: allGradesRaw }] = await Promise.all([
-        supabase.from('result_sheets').select('*').in('student_id', studList.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
-        supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').in('student_id', studList.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
-      ]);
+      if (studList.length > 0) {
+        const [{ data: sheets }, { data: allGradesRaw }] = await Promise.all([
+          supabase.from('result_sheets').select('*').in('student_id', studList.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
+          supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').in('student_id', studList.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
+        ]);
 
-      const map: Record<string, MetaForm & { id?: string }> = {};
-      (sheets || []).forEach((sh: MetaForm & { id: string; student_id: string }) => {
-        map[sh.student_id] = { ...defaultMeta, ...sh };
-      });
-      setResultSheets(map);
+        const map: Record<string, MetaForm & { id?: string }> = {};
+        (sheets || []).forEach((sh: MetaForm & { id: string; student_id: string }) => {
+          map[sh.student_id] = { ...defaultMeta, ...sh };
+        });
+        setResultSheets(map);
 
-      // Build class chart bars
-      const allGrades = (allGradesRaw || []) as GradeRow[];
-      const bars: SubjectResult[] = studList
-        .map(s => {
-          const sGrades = allGrades.filter(g => g.student_id === s.id);
-          const subs = computeSubjects(sGrades);
-          const avg = subs.length > 0 ? Math.round(subs.reduce((a, sub) => a + sub.total, 0) / subs.length) : 0;
-          return {
-            subject: s.profiles?.first_name || 'Student',
-            ca1: 0, ca2: 0, exam: 0,
-            total: avg,
-            ...getNigerianGrade(avg),
-          };
-        })
-        .filter(b => b.total > 0)
-        .sort((a, b) => b.total - a.total);
-      setClassChartBars(bars);
+        // Build class chart bars
+        const allGrades = (allGradesRaw || []) as GradeRow[];
+        const bars: SubjectResult[] = studList
+          .map(s => {
+            const sGrades = allGrades.filter(g => g.student_id === s.id);
+            const subs = computeSubjects(sGrades);
+            const avg = subs.length > 0 ? Math.round(subs.reduce((a, sub) => a + sub.total, 0) / subs.length) : 0;
+            return {
+              subject: s.profiles?.first_name || 'Student',
+              ca1: 0, ca2: 0, exam: 0,
+              total: avg,
+              ...getNigerianGrade(avg),
+            };
+          })
+          .filter(b => b.total > 0)
+          .sort((a, b) => b.total - a.total);
+        setClassChartBars(bars);
+      }
+    } catch (err: any) {
+      console.error("Error loading class data:", err);
+      setToast({ msg: err.message || 'Failed to load class data', type: 'error' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [selectedClass, selectedTerm, academicYear]);
 
   useEffect(() => { loadClassData(); }, [loadClassData]);
@@ -216,51 +222,55 @@ export default function ResultsSection({ profile }: Props) {
   const loadOverall = useCallback(async () => {
     if (classes.length === 0) return;
     setLoadingOverall(true);
+    try {
+      // Fetch all active students with class_id
+      const { data: allStuds } = await supabase.from('students').select('id, class_id').eq('is_active', true);
+      const studs = (allStuds || []) as { id: string; class_id: string }[];
+      if (studs.length === 0) return;
 
-    // Fetch all active students with class_id
-    const { data: allStuds } = await supabase.from('students').select('id, class_id').eq('is_active', true);
-    const studs = (allStuds || []) as { id: string; class_id: string }[];
-    if (studs.length === 0) { setLoadingOverall(false); return; }
+      // Fetch all grades for the term/year in one query
+      const { data: allGradesRaw } = await supabase
+        .from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year')
+        .in('student_id', studs.map(s => s.id))
+        .eq('term', selectedTerm).eq('academic_year', academicYear);
+      const allGrades = (allGradesRaw || []) as GradeRow[];
 
-    // Fetch all grades for the term/year in one query
-    const { data: allGradesRaw } = await supabase
-      .from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year')
-      .in('student_id', studs.map(s => s.id))
-      .eq('term', selectedTerm).eq('academic_year', academicYear);
-    const allGrades = (allGradesRaw || []) as GradeRow[];
+      // Fetch published counts per class via result_sheets
+      const { data: sheetsRaw } = await supabase
+        .from('result_sheets').select('student_id, is_published')
+        .in('student_id', studs.map(s => s.id))
+        .eq('term', selectedTerm).eq('academic_year', academicYear);
+      const sheets = (sheetsRaw || []) as { student_id: string; is_published: boolean }[];
 
-    // Fetch published counts per class via result_sheets
-    const { data: sheetsRaw } = await supabase
-      .from('result_sheets').select('student_id, is_published')
-      .in('student_id', studs.map(s => s.id))
-      .eq('term', selectedTerm).eq('academic_year', academicYear);
-    const sheets = (sheetsRaw || []) as { student_id: string; is_published: boolean }[];
+      // Group students by class
+      const byClass = new Map<string, string[]>();
+      studs.forEach(s => { if (!byClass.has(s.class_id)) byClass.set(s.class_id, []); byClass.get(s.class_id)!.push(s.id); });
 
-    // Group students by class
-    const byClass = new Map<string, string[]>();
-    studs.forEach(s => { if (!byClass.has(s.class_id)) byClass.set(s.class_id, []); byClass.get(s.class_id)!.push(s.id); });
+      const publishedById: Record<string, boolean> = {};
+      sheets.forEach(sh => { publishedById[sh.student_id] = sh.is_published; });
 
-    const publishedById: Record<string, boolean> = {};
-    sheets.forEach(sh => { publishedById[sh.student_id] = sh.is_published; });
+      const stats: OverallClassStat[] = classes.map(cls => {
+        const studIds = byClass.get(cls.id) || [];
+        let totalAvg = 0; let count = 0; let published = 0;
+        studIds.forEach(sid => {
+          const sGrades = allGrades.filter(g => g.student_id === sid);
+          const subs = computeSubjects(sGrades);
+          if (subs.length > 0) {
+            totalAvg += Math.round(subs.reduce((a, sub) => a + sub.total, 0) / subs.length);
+            count++;
+          }
+          if (publishedById[sid]) published++;
+        });
+        const avg = count > 0 ? Math.round(totalAvg / count) : 0;
+        return { name: cls.name, studentCount: studIds.length, average: avg, ...getNigerianGrade(avg), published };
+      }).filter(s => s.studentCount > 0);
 
-    const stats: OverallClassStat[] = classes.map(cls => {
-      const studIds = byClass.get(cls.id) || [];
-      let totalAvg = 0; let count = 0; let published = 0;
-      studIds.forEach(sid => {
-        const sGrades = allGrades.filter(g => g.student_id === sid);
-        const subs = computeSubjects(sGrades);
-        if (subs.length > 0) {
-          totalAvg += Math.round(subs.reduce((a, sub) => a + sub.total, 0) / subs.length);
-          count++;
-        }
-        if (publishedById[sid]) published++;
-      });
-      const avg = count > 0 ? Math.round(totalAvg / count) : 0;
-      return { name: cls.name, studentCount: studIds.length, average: avg, ...getNigerianGrade(avg), published };
-    }).filter(s => s.studentCount > 0);
-
-    setOverallStats(stats);
-    setLoadingOverall(false);
+      setOverallStats(stats);
+    } catch (err: any) {
+      console.error("Error loading overall stats:", err);
+    } finally {
+      setLoadingOverall(false);
+    }
   }, [classes, selectedTerm, academicYear]);
 
   useEffect(() => { if (mainView === 'overview') loadOverall(); }, [mainView, loadOverall]);
@@ -271,104 +281,119 @@ export default function ResultsSection({ profile }: Props) {
     setModalTab('preview');
     setDeleteConfirm(false);
 
-    const isToddler = student.classes?.level === 'toddler';
-    const isNursery = student.classes?.level === 'creche';
-    const dateRange = getTermDateRange(selectedTerm, academicYear);
-    const [{ data: myGrades }, { data: classGrades }, { data: attData }] = await Promise.all([
-      supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear),
-      supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').in('student_id', students.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
-      supabase.from('attendance').select('status').eq('student_id', student.id).gte('date', dateRange.start).lte('date', dateRange.end),
-    ]);
+    try {
+      const isToddler = student.classes?.level === 'toddler';
+      const isNursery = student.classes?.level === 'creche';
+      const dateRange = getTermDateRange(selectedTerm, academicYear);
+      
+      const [myGradesRes, classGradesRes, attDataRes] = await Promise.all([
+        supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear),
+        supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').in('student_id', students.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
+        supabase.from('attendance').select('status').eq('student_id', student.id).gte('date', dateRange.start).lte('date', dateRange.end),
+      ]);
 
-    const myGradeRows = (myGrades || []) as GradeRow[];
+      if (myGradesRes.error) throw myGradesRes.error;
+      if (classGradesRes.error) throw classGradesRes.error;
+      if (attDataRes.error) throw attDataRes.error;
 
-    let mySubjects: SubjectResult[];
-    let ratings: Record<string, number> = {};
-    if (isToddler) {
-      const pkGrades = myGradeRows.filter(g => g.assessment_type === 'pre_kg');
-      pkGrades.forEach(g => { ratings[g.subject] = g.score; });
-      setPreKgRatings(ratings);
-      mySubjects = buildPreKgSubjects(ratings);
-    } else if (isNursery) {
-      const scores: NurseryScores = {};
-      for (const g of myGradeRows) {
-        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-        const t = g.assessment_type.toLowerCase().trim();
-        // Raw direct system: use score as-is, no proportional scaling
-        if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-          scores[g.subject]!.ca1 = g.score;
-        else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-          scores[g.subject]!.ca2 = g.score;
-        else if (t === 'exam' || t === 'examination' || t === 'final exam')
-          scores[g.subject]!.exam = g.score;
-        else if (t === 'project')
-          scores[g.subject]!.project = g.score;
-        else if (t === 'homework' || t === 'home work')
-          scores[g.subject]!.homework = g.score;
+      const myGrades = myGradesRes.data;
+      const classGrades = classGradesRes.data;
+      const attData = attDataRes.data;
+
+      const myGradeRows = (myGrades || []) as GradeRow[];
+
+      let mySubjects: SubjectResult[];
+      let ratings: Record<string, number> = {};
+      if (isToddler) {
+        const pkGrades = myGradeRows.filter(g => g.assessment_type === 'pre_kg');
+        pkGrades.forEach(g => { ratings[g.subject] = g.score; });
+        setPreKgRatings(ratings);
+        mySubjects = buildPreKgSubjects(ratings);
+      } else if (isNursery) {
+        const scores: NurseryScores = {};
+        for (const g of myGradeRows) {
+          if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+          const t = g.assessment_type.toLowerCase().trim();
+          // Raw direct system: use score as-is, no proportional scaling
+          if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
+            scores[g.subject]!.ca1 = g.score;
+          else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
+            scores[g.subject]!.ca2 = g.score;
+          else if (t === 'exam' || t === 'examination' || t === 'final exam')
+            scores[g.subject]!.exam = g.score;
+          else if (t === 'project')
+            scores[g.subject]!.project = g.score;
+          else if (t === 'homework' || t === 'home work')
+            scores[g.subject]!.homework = g.score;
+        }
+        setNurseryScores(scores);
+        mySubjects = buildNurserySubjects(scores);
+      } else {
+        const scores: BasicScores = {};
+        for (const g of myGradeRows) {
+          if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+          const t = g.assessment_type.toLowerCase().trim();
+          // Raw direct system: use score as-is, no proportional scaling
+          if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
+            scores[g.subject]!.ca1 = g.score;
+          else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
+            scores[g.subject]!.ca2 = g.score;
+          else if (t === 'exam' || t === 'examination' || t === 'final exam')
+            scores[g.subject]!.exam = g.score;
+          else if (t === 'project')
+            scores[g.subject]!.project = g.score;
+          else if (t === 'homework' || t === 'home work')
+            scores[g.subject]!.homework = g.score;
+        }
+        setBasicScores(scores);
+        mySubjects = buildBasicSubjects(scores);
       }
-      setNurseryScores(scores);
-      mySubjects = buildNurserySubjects(scores);
-    } else {
-      const scores: BasicScores = {};
-      for (const g of myGradeRows) {
-        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-        const t = g.assessment_type.toLowerCase().trim();
-        // Raw direct system: use score as-is, no proportional scaling
-        if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-          scores[g.subject]!.ca1 = g.score;
-        else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-          scores[g.subject]!.ca2 = g.score;
-        else if (t === 'exam' || t === 'examination' || t === 'final exam')
-          scores[g.subject]!.exam = g.score;
-        else if (t === 'project')
-          scores[g.subject]!.project = g.score;
-        else if (t === 'homework' || t === 'home work')
-          scores[g.subject]!.homework = g.score;
-      }
-      setBasicScores(scores);
-      mySubjects = buildBasicSubjects(scores);
-    }
-    setActiveSubjects(mySubjects);
+      setActiveSubjects(mySubjects);
 
-    const allGrades = (classGrades || []) as GradeRow[];
-    const grandTotalByStudent: Record<string, number> = {};
-    students.forEach(s => {
-      const sg = allGrades.filter(g => g.student_id === s.id);
-      const subs = s.classes?.level === 'toddler'
-        ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [g.subject, g.score])))
-        : computeSubjects(sg);
-      grandTotalByStudent[s.id] = subs.reduce((acc, sub) => acc + sub.total, 0);
-    });
-
-    const myGrandTotal = mySubjects.reduce((acc, s) => acc + s.total, 0);
-    const allTotals = Object.values(grandTotalByStudent).filter(t => t > 0);
-    const sorted = [...allTotals].sort((a, b) => b - a);
-    const position = sorted.indexOf(myGrandTotal) + 1 || sorted.length + 1;
-
-    setActiveClassStats({
-      position, totalStudents: students.length, grandTotal: myGrandTotal,
-      highestInClass: sorted[0] ?? 0,
-      lowestInClass: sorted[sorted.length - 1] ?? 0,
-      classAverage: allTotals.length > 0 ? Math.round(allTotals.reduce((a, b) => a + b, 0) / allTotals.length) : 0,
-    });
-
-    // Auto-calculate attendance from records
-    const attRecords = (attData || []) as { status: string }[];
-    const attTotal = attRecords.length;
-    const attPresent = attRecords.filter(a => a.status === 'present' || a.status === 'late').length;
-    const autoAtt = attTotal > 0
-      ? { days_present: attPresent, days_absent: attTotal - attPresent, total_school_days: attTotal }
-      : {};
-
-    const existing = resultSheets[student.id];
-    if (existing) {
-      // Use saved attendance if already set, else auto-fill
-      setMetaForm({
-        ...defaultMeta, ...existing,
-        ...(existing.total_school_days === 0 ? autoAtt : {}),
+      const allGrades = (classGrades || []) as GradeRow[];
+      const grandTotalByStudent: Record<string, number> = {};
+      students.forEach(s => {
+        const sg = allGrades.filter(g => g.student_id === s.id);
+        const subs = s.classes?.level === 'toddler'
+          ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [g.subject, g.score])))
+          : computeSubjects(sg);
+        grandTotalByStudent[s.id] = subs.reduce((acc, sub) => acc + sub.total, 0);
       });
-    } else {
-      setMetaForm({ ...defaultMeta, ...autoAtt });
+
+      const myGrandTotal = mySubjects.reduce((acc, s) => acc + s.total, 0);
+      const allTotals = Object.values(grandTotalByStudent).filter(t => t > 0);
+      const sorted = [...allTotals].sort((a, b) => b - a);
+      const position = sorted.indexOf(myGrandTotal) + 1 || sorted.length + 1;
+
+      setActiveClassStats({
+        position, totalStudents: students.length, grandTotal: myGrandTotal,
+        highestInClass: sorted[0] ?? 0,
+        lowestInClass: sorted[sorted.length - 1] ?? 0,
+        classAverage: allTotals.length > 0 ? Math.round(allTotals.reduce((a, b) => a + b, 0) / allTotals.length) : 0,
+      });
+
+      // Auto-calculate attendance from records
+      const attRecords = (attData || []) as { status: string }[];
+      const attTotal = attRecords.length;
+      const attPresent = attRecords.filter(a => a.status === 'present' || a.status === 'late').length;
+      const autoAtt = attTotal > 0
+        ? { days_present: attPresent, days_absent: attTotal - attPresent, total_school_days: attTotal }
+        : {};
+
+      const existing = resultSheets[student.id];
+      if (existing) {
+        // Use saved attendance if already set, else auto-fill
+        setMetaForm({
+          ...defaultMeta, ...existing,
+          ...(existing.total_school_days === 0 ? autoAtt : {}),
+        });
+      } else {
+        setMetaForm({ ...defaultMeta, ...autoAtt });
+      }
+    } catch (err: any) {
+      console.error("Error loading report card:", err);
+      setToast({ msg: err.message || 'Failed to load report card', type: 'error' });
+      closeModal();
     }
   };
 

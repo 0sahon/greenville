@@ -212,123 +212,138 @@ export default function TeacherResultsSection({ profile }: Props) {
     setDeleteConfirm(false);
     setLoadingCard(true);
 
-    const isToddler = student.classes?.level === 'toddler';
-    const isNursery = student.classes?.level === 'creche';
+    try {
+      const isToddler = student.classes?.level === 'toddler';
+      const isNursery = student.classes?.level === 'creche';
 
-    const [{ data: sheet }, { data: gradeRows }, { data: classGrades }] = await Promise.all([
-      supabase.from('result_sheets').select('*').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear).maybeSingle(),
-      supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear),
-      supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').in('student_id', students.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
-    ]);
+      const [sheetRes, gradeRowsRes, classGradesRes] = await Promise.all([
+        supabase.from('result_sheets').select('*').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear).maybeSingle(),
+        supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').eq('student_id', student.id).eq('term', selectedTerm).eq('academic_year', academicYear),
+        supabase.from('grades').select('id,subject,assessment_type,score,max_score,student_id,term,academic_year').in('student_id', students.map(s => s.id)).eq('term', selectedTerm).eq('academic_year', academicYear),
+      ]);
 
-    const rs = sheet as ResultSheetMeta | null;
-    const allGradeRows = (gradeRows || []) as GradeRow[];
+      if (sheetRes.error) throw sheetRes.error;
+      if (gradeRowsRes.error) throw gradeRowsRes.error;
+      if (classGradesRes.error) throw classGradesRes.error;
 
-    let subs: SubjectResult[];
-    let ratings: Record<string, number> = {};
-    if (isToddler) {
-      const pkGrades = allGradeRows.filter(g => g.assessment_type === 'pre_kg');
-      pkGrades.forEach(g => { ratings[g.subject] = g.score; });
-      setPreKgRatings(ratings);
-      subs = buildPreKgSubjects(ratings);
-    } else if (isNursery) {
-      const scores: NurseryScores = {};
-      for (const g of allGradeRows) {
-        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-        const t = g.assessment_type.toLowerCase().trim();
-        // Raw direct system: use score as-is, no proportional scaling
-        if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-          scores[g.subject]!.ca1 = g.score;
-        else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-          scores[g.subject]!.ca2 = g.score;
-        else if (t === 'exam' || t === 'examination' || t === 'final exam')
-          scores[g.subject]!.exam = g.score;
-        else if (t === 'project')
-          scores[g.subject]!.project = g.score;
-        else if (t === 'homework' || t === 'home work')
-          scores[g.subject]!.homework = g.score;
+      const sheet = sheetRes.data;
+      const gradeRows = gradeRowsRes.data;
+      const classGrades = classGradesRes.data;
+
+      const rs = sheet as ResultSheetMeta | null;
+      const allGradeRows = (gradeRows || []) as GradeRow[];
+
+      let subs: SubjectResult[];
+      let ratings: Record<string, number> = {};
+      if (isToddler) {
+        const pkGrades = allGradeRows.filter(g => g.assessment_type === 'pre_kg');
+        pkGrades.forEach(g => { ratings[g.subject] = g.score; });
+        setPreKgRatings(ratings);
+        subs = buildPreKgSubjects(ratings);
+      } else if (isNursery) {
+        const scores: NurseryScores = {};
+        for (const g of allGradeRows) {
+          if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+          const t = g.assessment_type.toLowerCase().trim();
+          // Raw direct system: use score as-is, no proportional scaling
+          if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
+            scores[g.subject]!.ca1 = g.score;
+          else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
+            scores[g.subject]!.ca2 = g.score;
+          else if (t === 'exam' || t === 'examination' || t === 'final exam')
+            scores[g.subject]!.exam = g.score;
+          else if (t === 'project')
+            scores[g.subject]!.project = g.score;
+          else if (t === 'homework' || t === 'home work')
+            scores[g.subject]!.homework = g.score;
+        }
+        setNurseryScores(scores);
+        subs = buildNurserySubjects(scores);
+      } else {
+        const scores: BasicScores = {};
+        for (const g of allGradeRows) {
+          if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+          const t = g.assessment_type.toLowerCase().trim();
+          // Raw direct system: use score as-is, no proportional scaling
+          if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
+            scores[g.subject]!.ca1 = g.score;
+          else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
+            scores[g.subject]!.ca2 = g.score;
+          else if (t === 'exam' || t === 'examination' || t === 'final exam')
+            scores[g.subject]!.exam = g.score;
+          else if (t === 'project')
+            scores[g.subject]!.project = g.score;
+          else if (t === 'homework' || t === 'home work')
+            scores[g.subject]!.homework = g.score;
+        }
+        setBasicScores(scores);
+        subs = buildBasicSubjects(scores);
       }
-      setNurseryScores(scores);
-      subs = buildNurserySubjects(scores);
-    } else {
-      const scores: BasicScores = {};
-      for (const g of allGradeRows) {
-        if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-        const t = g.assessment_type.toLowerCase().trim();
-        // Raw direct system: use score as-is, no proportional scaling
-        if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-          scores[g.subject]!.ca1 = g.score;
-        else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-          scores[g.subject]!.ca2 = g.score;
-        else if (t === 'exam' || t === 'examination' || t === 'final exam')
-          scores[g.subject]!.exam = g.score;
-        else if (t === 'project')
-          scores[g.subject]!.project = g.score;
-        else if (t === 'homework' || t === 'home work')
-          scores[g.subject]!.homework = g.score;
-      }
-      setBasicScores(scores);
-      subs = buildBasicSubjects(scores);
+      setSubjects(subs);
+
+      // Compute class stats
+      const allGrades = (classGrades || []) as GradeRow[];
+      const grandTotals = students.map(s => {
+        const sg = allGrades.filter(g => g.student_id === s.id);
+        const ssubs = s.classes?.level === 'toddler'
+          ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [g.subject, g.score])))
+          : computeSubjects(sg);
+        return ssubs.reduce((a, sub) => a + sub.total, 0);
+      }).filter(t => t > 0);
+      const myTotal = subs.reduce((a, s) => a + s.total, 0);
+      const sorted = [...grandTotals].sort((a, b) => b - a);
+      const position = sorted.indexOf(myTotal) + 1 || sorted.length + 1;
+
+      const meta = rs || defaultMeta;
+      setMetaForm({ ...defaultMeta, ...meta });
+
+      const level = student.classes?.level ?? '';
+      const isBasicLvl = ['basic1','basic2','basic3','basic4','basic5'].includes(level);
+      const visibleSubjects = isBasicLvl
+        ? getVisibleSubjects('basic', BASIC_SUBJECTS)
+        : level === 'creche'
+        ? getVisibleSubjects('nursery', NURSERY_SUBJECTS)
+        : undefined;
+
+      setCardData({
+        student: {
+          name: `${student.profiles?.first_name ?? ''} ${student.profiles?.last_name ?? ''}`.trim(),
+          studentId: student.student_id,
+          className: student.classes?.name || '—',
+          classLevel: level,
+          gender: student.gender || '',
+          dob: student.date_of_birth || '',
+        },
+        term: selectedTerm,
+        academicYear,
+        subjects: subs,
+        classStats: {
+          position, totalStudents: students.length, grandTotal: myTotal,
+          highestInClass: sorted[0] ?? 0, lowestInClass: sorted[sorted.length - 1] ?? 0,
+          classAverage: grandTotals.length > 0 ? Math.round(grandTotals.reduce((a, b) => a + b, 0) / grandTotals.length) : 0,
+        },
+        behavior: {
+          punctuality:   meta.punctuality   ?? 3,
+          neatness:      meta.neatness      ?? 3,
+          honesty:       meta.honesty       ?? 3,
+          cooperation:   meta.cooperation   ?? 3,
+          attentiveness: meta.attentiveness ?? 3,
+          politeness:    meta.politeness    ?? 3,
+        },
+        attendance: { daysPresent: meta.days_present, daysAbsent: meta.days_absent, totalDays: meta.total_school_days },
+        comments: { teacher: meta.teacher_comment || '', principal: meta.principal_comment || '' },
+        nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees || '' },
+        schoolName: SCHOOL_NAME,
+        schoolAddress: `${SCHOOL_ADDRESS_SINGLE} · TEL: ${SCHOOL_PHONE_DISPLAY}`,
+        visibleSubjects,
+      });
+      setLoadingCard(false);
+    } catch (err: any) {
+      console.error("Error loading card:", err);
+      setToast({ msg: err.message || 'Failed to load report card details', type: 'error' });
+      setLoadingCard(false);
+      setActiveStudent(null);
     }
-    setSubjects(subs);
-
-    // Compute class stats
-    const allGrades = (classGrades || []) as GradeRow[];
-    const grandTotals = students.map(s => {
-      const sg = allGrades.filter(g => g.student_id === s.id);
-      const ssubs = s.classes?.level === 'toddler'
-        ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [g.subject, g.score])))
-        : computeSubjects(sg);
-      return ssubs.reduce((a, sub) => a + sub.total, 0);
-    }).filter(t => t > 0);
-    const myTotal = subs.reduce((a, s) => a + s.total, 0);
-    const sorted = [...grandTotals].sort((a, b) => b - a);
-    const position = sorted.indexOf(myTotal) + 1 || sorted.length + 1;
-
-    const meta = rs || defaultMeta;
-    setMetaForm({ ...defaultMeta, ...meta });
-
-    const level = student.classes?.level ?? '';
-    const isBasicLvl = ['basic1','basic2','basic3','basic4','basic5'].includes(level);
-    const visibleSubjects = isBasicLvl
-      ? getVisibleSubjects('basic', BASIC_SUBJECTS)
-      : level === 'creche'
-      ? getVisibleSubjects('nursery', NURSERY_SUBJECTS)
-      : undefined;
-
-    setCardData({
-      student: {
-        name: `${student.profiles?.first_name ?? ''} ${student.profiles?.last_name ?? ''}`.trim(),
-        studentId: student.student_id,
-        className: student.classes?.name || '—',
-        classLevel: level,
-        gender: student.gender || '',
-        dob: student.date_of_birth || '',
-      },
-      term: selectedTerm,
-      academicYear,
-      subjects: subs,
-      classStats: {
-        position, totalStudents: students.length, grandTotal: myTotal,
-        highestInClass: sorted[0] ?? 0, lowestInClass: sorted[sorted.length - 1] ?? 0,
-        classAverage: grandTotals.length > 0 ? Math.round(grandTotals.reduce((a, b) => a + b, 0) / grandTotals.length) : 0,
-      },
-      behavior: {
-        punctuality:   meta.punctuality   ?? 3,
-        neatness:      meta.neatness      ?? 3,
-        honesty:       meta.honesty       ?? 3,
-        cooperation:   meta.cooperation   ?? 3,
-        attentiveness: meta.attentiveness ?? 3,
-        politeness:    meta.politeness    ?? 3,
-      },
-      attendance: { daysPresent: meta.days_present, daysAbsent: meta.days_absent, totalDays: meta.total_school_days },
-      comments: { teacher: meta.teacher_comment || '', principal: meta.principal_comment || '' },
-      nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees || '' },
-      schoolName: SCHOOL_NAME,
-      schoolAddress: `${SCHOOL_ADDRESS_SINGLE} · TEL: ${SCHOOL_PHONE_DISPLAY}`,
-      visibleSubjects,
-    });
-    setLoadingCard(false);
   };
 
   const updatePreKgRating = (skillName: string, rating: number) => {
