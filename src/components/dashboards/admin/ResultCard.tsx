@@ -244,28 +244,28 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
           </tr>
         </thead>
         <tbody>
-          {displayedBasicSubjects.map((name, i) => {
-            const s = getSubject(name);
-            const { grade, remark } = s && s.total > 0 ? getNigerianGrade(s.total) : { grade: '', remark: '' };
-            const gc = grade ? gradeColor(grade) : {};
-            return (
-              <tr key={name} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                <td style={{ ...TD, textAlign: 'left', fontWeight: 'bold', fontSize: '8pt', padding: '3px 6px', textTransform: 'uppercase' }}>
-                  {name}
-                </td>
-                <td style={TD}>{s && s.ca1 > 0 ? s.ca1 : ''}</td>
-                <td style={TD}>{s && s.ca2 > 0 ? s.ca2 : ''}</td>
-                <td style={TD}>{s?.project !== undefined ? s.project : ''}</td>
-                <td style={TD}>{s?.homework !== undefined ? s.homework : ''}</td>
-                <td style={TD}>{s && s.exam > 0 ? s.exam : ''}</td>
-                <td style={{ ...TD, fontWeight: 'bold', background: s && s.total > 0 ? '#f0f0f0' : '#fff' }}>
-                  {s && s.total > 0 ? s.total : ''}
-                </td>
-                <td style={{ ...TD, ...gc, padding: '3px 2px' }}>{grade}</td>
-                <td style={{ ...TD, textAlign: 'left', fontSize: '7.5pt', padding: '3px 5px' }}>{remark}</td>
-              </tr>
-            );
-          })}
+          {displayedBasicSubjects
+            .map(name => ({ name, s: getSubject(name) }))
+            .filter(({ s }) => s && s.total > 0)
+            .map(({ name, s }, i) => {
+              const { grade, remark } = getNigerianGrade(s!.total);
+              const gc = gradeColor(grade);
+              return (
+                <tr key={name} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                  <td style={{ ...TD, textAlign: 'left', fontWeight: 'bold', fontSize: '8pt', padding: '3px 6px', textTransform: 'uppercase' }}>
+                    {name}
+                  </td>
+                  <td style={TD}>{s!.ca1 > 0 ? s!.ca1 : ''}</td>
+                  <td style={TD}>{s!.ca2 > 0 ? s!.ca2 : ''}</td>
+                  <td style={TD}>{(s!.project ?? 0) > 0 ? s!.project : ''}</td>
+                  <td style={TD}>{(s!.homework ?? 0) > 0 ? s!.homework : ''}</td>
+                  <td style={TD}>{s!.exam > 0 ? s!.exam : ''}</td>
+                  <td style={{ ...TD, fontWeight: 'bold', background: '#f0f0f0' }}>{s!.total}</td>
+                  <td style={{ ...TD, ...gc, padding: '3px 2px' }}>{grade}</td>
+                  <td style={{ ...TD, textAlign: 'left', fontSize: '7.5pt', padding: '3px 5px' }}>{remark}</td>
+                </tr>
+              );
+            })}
         </tbody>
       </table>
 
@@ -489,8 +489,9 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
     ? new Date().getFullYear() - new Date(student.dob).getFullYear()
     : null;
 
-  const avgScore = subjects.length > 0
-    ? Math.round(subjects.reduce((s, r) => s + r.total, 0) / subjects.length)
+  const scoredSubjectsForAvg = subjects.filter(s => s.total > 0);
+  const avgScore = scoredSubjectsForAvg.length > 0
+    ? Math.round(scoredSubjectsForAvg.reduce((s, r) => s + r.total, 0) / scoredSubjectsForAvg.length)
     : 0;
 
   const BORDER = '1px solid #555';
@@ -505,8 +506,10 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
   const getSubject = (name: string) =>
     subjects.find(s => s.subject.toLowerCase().trim() === name.toLowerCase().trim());
 
-  const MIN_ROWS = 14;
-  const emptyRows = Math.max(0, MIN_ROWS - displayedNurserySubjects.length);
+  const scoredNurserySubjects = displayedNurserySubjects.filter(n => {
+    const s = getSubject(n);
+    return s && s.total > 0;
+  });
 
   return (
     <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '9pt', color: '#000', background: '#fff', border: '2px solid #333' }}>
@@ -589,34 +592,26 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
           </tr>
         </thead>
         <tbody>
-          {displayedNurserySubjects.map((name, i) => {
-            const s = getSubject(name);
-            const { grade, remark } = s && s.total > 0 ? getNigerianGrade(s.total) : { grade: '', remark: '' };
-            const gc = grade ? gradeColor(grade) : {};
+          {scoredNurserySubjects.map((name, i) => {
+            const s = getSubject(name)!;
+            const { grade, remark } = getNigerianGrade(s.total);
+            const gc = gradeColor(grade);
             return (
               <tr key={name} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                 <td style={{ ...TD, textAlign: 'left', fontWeight: 'bold', fontSize: '8.5pt', padding: '4px 6px', textTransform: 'uppercase' }}>
                   {name}
                 </td>
-                <td style={TD}>{s && s.ca1 > 0 ? s.ca1 : ''}</td>
-                <td style={TD}>{s && s.ca2 > 0 ? s.ca2 : ''}</td>
-                <td style={TD}>{s?.project !== undefined ? s.project : ''}</td>
-                <td style={TD}>{s?.homework !== undefined ? s.homework : ''}</td>
-                <td style={TD}>{s && s.exam > 0 ? s.exam : ''}</td>
-                <td style={{ ...TD, fontWeight: 'bold', background: s && s.total > 0 ? '#f0f0f0' : '#fff' }}>
-                  {s && s.total > 0 ? s.total : ''}
-                </td>
+                <td style={TD}>{s.ca1 > 0 ? s.ca1 : ''}</td>
+                <td style={TD}>{s.ca2 > 0 ? s.ca2 : ''}</td>
+                <td style={TD}>{(s.project ?? 0) > 0 ? s.project : ''}</td>
+                <td style={TD}>{(s.homework ?? 0) > 0 ? s.homework : ''}</td>
+                <td style={TD}>{s.exam > 0 ? s.exam : ''}</td>
+                <td style={{ ...TD, fontWeight: 'bold', background: '#f0f0f0' }}>{s.total}</td>
                 <td style={{ ...TD, ...gc, padding: '3px 2px' }}>{grade}</td>
                 <td style={{ ...TD, textAlign: 'left', fontSize: '7.5pt', padding: '3px 5px' }}>{remark}</td>
               </tr>
             );
           })}
-          {Array.from({ length: emptyRows }).map((_, i) => (
-            <tr key={`e${i}`} style={{ background: (NURSERY_SUBJECTS.length + i) % 2 === 0 ? '#fff' : '#fafafa' }}>
-              <td style={{ ...TD, textAlign: 'left', height: '20px' }}>&nbsp;</td>
-              {Array(8).fill(0).map((__, j) => <td key={j} style={TD}>&nbsp;</td>)}
-            </tr>
-          ))}
         </tbody>
       </table>
 

@@ -43,10 +43,11 @@
 
 ### 2.2 Teachers
 
-| Name              | Email                                                   | Password      | Specialisation                      | Classes         |
-|-------------------|---------------------------------------------------------|---------------|-------------------------------------|-----------------|
-| Adaeze Okonkwo    | `teacher.adaeze@greenvillemontessorischools.ng`         | `Teacher123!` | Mathematics & Basic Science         | Pre-KG · Basic 3A |
-| Emeka Eze         | `teacher.emeka@greenvillemontessorischools.ng`          | `Teacher123!` | English Language & Social Studies   | KG 1            |
+| Name              | Email                                                   | Password      | Role / Specialisation                        | Class           |
+|-------------------|---------------------------------------------------------|---------------|----------------------------------------------|-----------------|
+| Adaeze Okonkwo    | `teacher.adaeze@greenvillemontessorischools.ng`         | `Teacher123!` | Mathematics & Basic Science                  | Pre-KG          |
+| Emeka Eze         | `teacher.emeka@greenvillemontessorischools.ng`          | `Teacher123!` | English Language & Social Studies            | KG 1            |
+| Ifeoma Okeke      | `teacher.ifeoma@greenvillemontessorischools.ng`         | `Teacher123!` | Primary Education & Class Management         | Basic 3A        |
 
 ---
 
@@ -85,12 +86,29 @@ All student passwords: **`Student123!`**
 
 ### 2.4 Parents
 
-Parent accounts are **created manually by the Admin** and linked to their child's student record. To add a parent during demo:
+All parent passwords: **`Parent123!`**
 
-1. Log in as Admin.
-2. Go to **Parents** in the sidebar.
-3. Click **Add Parent** and fill in the parent's name, email, phone, and link to the student.
-4. The parent will receive login credentials and can log in to their own portal immediately.
+These accounts are pre-seeded by `seed-presentation-demo.mjs` and linked to their child's student record.
+
+#### Pre-KG Parents
+| Parent Name          | Email                                                               | Linked Student      |
+|----------------------|---------------------------------------------------------------------|---------------------|
+| Ngozi Eze            | `parent.ngozi.eze@greenvillemontessorischools.ng`                   | Zara Eze            |
+| Chukwuemeka Chukwu   | `parent.chukwuemeka.chukwu@greenvillemontessorischools.ng`          | Kene Chukwu         |
+
+#### KG 1 Parents
+| Parent Name          | Email                                                               | Linked Student      |
+|----------------------|---------------------------------------------------------------------|---------------------|
+| Adaobi Eze           | `parent.adaobi.eze@greenvillemontessorischools.ng`                  | Kelechi Eze         |
+| Uchenna Okafor       | `parent.uchenna.okafor@greenvillemontessorischools.ng`              | Chinonso Okafor     |
+
+#### Basic 3A Parents
+| Parent Name          | Email                                                               | Linked Student      |
+|----------------------|---------------------------------------------------------------------|---------------------|
+| Bola Nwosu           | `parent.bola.nwosu@greenvillemontessorischools.ng`                  | Chidera Nwosu       |
+| Segun Adeyemi        | `parent.segun.adeyemi@greenvillemontessorischools.ng`               | Amaka Okafor        |
+
+> **After your presentation:** run `node scripts/seed-presentation-demo.mjs --clear` to remove all parent accounts and demo data instantly.
 
 ---
 

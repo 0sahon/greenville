@@ -104,8 +104,9 @@ async function main() {
   // ── Step 2: Create teachers ───────────────────────────────────────────────────
   console.log('\n👩‍🏫 Creating teachers...');
   const teachers = [
-    { email: 'teacher.adaeze@greenvillemontessorischools.ng', firstName: 'Adaeze', lastName: 'Okonkwo', phone: '08031234567', qualification: 'B.Ed Mathematics', specialization: 'Mathematics & Basic Science' },
-    { email: 'teacher.emeka@greenvillemontessorischools.ng',  firstName: 'Emeka',  lastName: 'Eze',     phone: '08057654321', qualification: 'B.Ed English',      specialization: 'English Language & Social Studies' },
+    { email: 'teacher.adaeze@greenvillemontessorischools.ng', firstName: 'Adaeze', lastName: 'Okonkwo', phone: '08031234567', qualification: 'B.Ed Mathematics',          specialization: 'Mathematics & Basic Science' },
+    { email: 'teacher.emeka@greenvillemontessorischools.ng',  firstName: 'Emeka',  lastName: 'Eze',     phone: '08057654321', qualification: 'B.Ed English',              specialization: 'English Language & Social Studies' },
+    { email: 'teacher.ifeoma@greenvillemontessorischools.ng', firstName: 'Ifeoma', lastName: 'Okeke',   phone: '08099887766', qualification: 'B.Ed Primary Education',    specialization: 'Primary Education & Class Management' },
   ];
 
   const createdTeachers = [];
@@ -218,7 +219,7 @@ async function main() {
     {
       name: 'Basic 3A',
       level: 'basic3',
-      teacherIdx: 0,
+      teacherIdx: 2,
       students: [
         { email: 'chidera.nwosu@greenvillemontessorischools.ng',   firstName: 'Chidera',   lastName: 'Nwosu',    gender: 'male',   dob: '2015-03-12' },
         { email: 'amaka.okafor@greenvillemontessorischools.ng',    firstName: 'Amaka',     lastName: 'Okafor',   gender: 'female', dob: '2015-07-20' },
@@ -227,12 +228,18 @@ async function main() {
         { email: 'emmanuel.obi@greenvillemontessorischools.ng',    firstName: 'Emmanuel',  lastName: 'Obi',      gender: 'male',   dob: '2015-09-18' },
       ],
       subjects: [
-        { name: 'Mathematics',       code: 'MATH', teacherIdx: 0 },
-        { name: 'English Language',  code: 'ENG',  teacherIdx: 1 },
-        { name: 'Basic Science',     code: 'BSC',  teacherIdx: 0 },
-        { name: 'Social Studies',    code: 'SST',  teacherIdx: 1 },
-        { name: 'Christian R. K.',   code: 'CRK',  teacherIdx: 1 },
-        { name: 'Quantitative Reasoning', code: 'QNT', teacherIdx: 0 },
+        { name: 'Mathematics/Quantitative',          code: 'MATH', teacherIdx: 0 },
+        { name: 'English Language/Verbal Reasoning', code: 'ENG',  teacherIdx: 1 },
+        { name: 'Basic Science',                     code: 'BSC',  teacherIdx: 0 },
+        { name: 'Religion & National Values',        code: 'RNV',  teacherIdx: 1 },
+        { name: 'Agricultural Science',              code: 'AGR',  teacherIdx: 2 },
+        { name: 'French',                            code: 'FRE',  teacherIdx: 1 },
+        { name: 'Computer Science',                  code: 'CSC',  teacherIdx: 2 },
+        { name: 'Physical and Health Education',     code: 'PHE',  teacherIdx: 2 },
+        { name: 'Home Economics',                    code: 'HEC',  teacherIdx: 2 },
+        { name: 'Handwriting',                       code: 'HWR',  teacherIdx: 2 },
+        { name: 'Music',                             code: 'MUS',  teacherIdx: 1 },
+        { name: 'Coding',                            code: 'COD',  teacherIdx: 2 },
       ],
     },
   ];
