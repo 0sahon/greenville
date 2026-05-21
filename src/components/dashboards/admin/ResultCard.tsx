@@ -677,19 +677,92 @@ export const PRE_KG_SKILLS = [
   { name: 'Social Habit',         col: 'right'  },
 ] as const;
 
-export const PRE_KG_COMMENTS: Record<string, Record<number, string>> = {
-  'Literacy':             { 5: 'Reads & writes with great confidence', 4: 'Recognises words & letters well', 3: 'Progressing steadily in reading', 2: 'Needs more reading practice', 1: 'Beginning to recognise letters' },
-  'Understanding':        { 5: 'Grasps new ideas exceptionally fast', 4: 'Follows and applies lessons well', 3: 'Shows satisfactory comprehension', 2: 'Needs concept reinforcement', 1: 'Requires guided concept support' },
-  'Obedience':            { 5: 'Follows every instruction promptly', 4: 'Respects rules consistently', 3: 'Generally cooperative in class', 2: 'Needs reminders to follow rules', 1: 'Requires consistent redirection' },
-  'Care of Self':         { 5: 'Impeccably neat and well-groomed', 4: 'Keeps self clean and tidy daily', 3: 'Manages personal care fairly well', 2: 'Needs reminders for cleanliness', 1: 'Requires support with hygiene' },
-  'Individual Behaviour': { 5: 'Exemplary conduct every single day', 4: 'Displays very commendable behaviour', 3: 'Mostly well-behaved in class', 2: 'Behaviour improving with support', 1: 'Needs closer behavioural guidance' },
-  'Punctuality':          { 5: 'Always early and ready to learn', 4: 'Consistently prompt and prepared', 3: 'Usually arrives on time', 2: 'Occasionally comes in late', 1: 'Punctuality needs improvement' },
-  'Numeracy':             { 5: 'Counts, sorts & adds brilliantly', 4: 'Recognises numbers with ease', 3: 'Developing good number sense', 2: 'Needs extra numeracy practice', 1: 'Beginning to identify numbers' },
-  'Bible Studies':        { 5: 'Recalls Bible verses & stories eagerly', 4: 'Participates actively in Bible time', 3: 'Learning Bible lessons steadily', 2: 'Needs more engagement in Bible', 1: 'Beginning to engage with Bible' },
-  'Creative Play':        { 5: 'Imaginative, inventive & enthusiastic', 4: 'Engages creatively with great joy', 3: 'Participates well in creative play', 2: 'Needs more creative exploration', 1: 'Beginning to explore creative play' },
-  'Phonics':              { 5: 'Blends sounds & reads fluently', 4: 'Identifies letter sounds accurately', 3: 'Building phonics skills steadily', 2: 'Needs phonics reinforcement daily', 1: 'Beginning to learn letter sounds' },
-  'Scribbling':           { 5: 'Excellent pencil grip & control', 4: 'Traces and draws with confidence', 3: 'Developing fine motor skills well', 2: 'Needs more pencil practice', 1: 'Still developing pencil grip' },
-  'Social Habit':         { 5: 'Shares, cooperates & leads peers', 4: 'Relates very well with classmates', 3: 'Gets along well with others', 2: 'Needs support in peer relations', 1: 'Still adjusting to group play' },
+// Multiple comment options per skill per rating — card picks one based on student name (deterministic)
+export const PRE_KG_COMMENTS: Record<string, Record<number, string[]>> = {
+  'Literacy': {
+    5: ['Reads & writes with great confidence', 'Outstanding literacy — far exceeds expectations', 'Reads fluently and writes independently', 'Exceptional reader with strong writing skills', 'Literacy skills are truly impressive'],
+    4: ['Recognises words & letters very well', 'Good reading progress, writes neatly', 'Reads simple texts with confidence', 'Shows strong letter and word recognition', 'Reading and writing developing excellently'],
+    3: ['Progressing steadily in reading', 'Making good strides in literacy', 'Learning to read with teacher support', 'Showing improvement in letter recognition', 'Literacy skills are developing well'],
+    2: ['Needs more reading practice daily', 'Still learning to identify letters', 'Requires extra literacy support', 'Literacy needs consistent reinforcement', 'Keep practising reading at home'],
+    1: ['Beginning to recognise letters', 'Just starting the literacy journey', 'Needs one-on-one literacy support', 'Requires intensive reading guidance', 'Literacy skills need significant work'],
+  },
+  'Understanding': {
+    5: ['Grasps new ideas exceptionally fast', 'Comprehension is outstanding in class', 'Understands and applies concepts brilliantly', 'Incredible ability to absorb new lessons', 'Demonstrates deep understanding always'],
+    4: ['Follows and applies lessons very well', 'Good comprehension of new concepts', 'Understands most lessons with ease', 'Applies learned concepts effectively', 'Shows very good class understanding'],
+    3: ['Shows satisfactory comprehension', 'Generally understands class lessons', 'Developing understanding with support', 'Grasps concepts with teacher guidance', 'Learning to follow classroom instructions'],
+    2: ['Needs concept reinforcement often', 'Requires repeated explanation of topics', 'Understanding improving with extra help', 'Needs more guided learning support', 'Comprehension requires more attention'],
+    1: ['Requires guided concept support', 'Needs intensive one-on-one teaching', 'Still learning to follow instructions', 'Comprehension is at an early stage', 'Requires patient and consistent support'],
+  },
+  'Obedience': {
+    5: ['Follows every instruction promptly', 'Models excellent obedience for peers', 'Always respectful and rule-abiding', 'Exemplary in following class rules', 'Obedient, cooperative and well-mannered'],
+    4: ['Respects rules consistently in class', 'Usually follows instructions well', 'Cooperative and attentive to rules', 'Mostly obedient with positive attitude', 'Listens and responds well to guidance'],
+    3: ['Generally cooperative in class', 'Follows rules with occasional reminders', 'Usually obedient when guided properly', 'Respectful with some teacher prompting', 'Developing good obedience habits'],
+    2: ['Needs reminders to follow rules', 'Obedience is still developing slowly', 'Sometimes struggles to obey instructions', 'Requires regular redirection in class', 'Needs consistent boundaries and support'],
+    1: ['Requires consistent redirection', 'Struggles to follow class rules', 'Needs patient and firm guidance', 'Obedience requires urgent attention', 'Still learning to respect boundaries'],
+  },
+  'Care of Self': {
+    5: ['Impeccably neat and well-groomed always', 'Excellent personal hygiene every day', 'Models outstanding care of self', 'Always arrives clean, tidy and smart', 'Self-care standards are exceptional'],
+    4: ['Keeps self clean and tidy daily', 'Good personal hygiene maintained well', 'Arrives neat and well-dressed always', 'Shows great awareness of self-care', 'Personal grooming is commendable'],
+    3: ['Manages personal care fairly well', 'Generally tidy with minor reminders', 'Usually maintains good hygiene habits', 'Self-care is developing positively', 'Mostly neat with occasional guidance'],
+    2: ['Needs reminders for cleanliness', 'Personal hygiene needs improvement', 'Self-care habits are still developing', 'Requires daily hygiene reminders', 'Needs support maintaining tidiness'],
+    1: ['Requires support with hygiene', 'Personal care needs close attention', 'Still learning basic self-care habits', 'Needs intensive hygiene support', 'Self-care is at a very early stage'],
+  },
+  'Individual Behaviour': {
+    5: ['Exemplary conduct every single day', 'A role model for good behaviour', 'Outstanding behaviour in all settings', 'Conducts self with maturity and grace', 'Behaviour is beyond expectations always'],
+    4: ['Displays very commendable behaviour', 'Consistently good conduct in class', 'Behaves well and sets good example', 'Positive behaviour noted throughout term', 'Conduct is very pleasing and consistent'],
+    3: ['Mostly well-behaved in class', 'Good behaviour with occasional lapses', 'Generally conducts self appropriately', 'Behaves well most of the time', 'Developing positive behavioural habits'],
+    2: ['Behaviour improving with support', 'Conduct needs consistent monitoring', 'Still working on appropriate behaviour', 'Behaviour can be disruptive at times', 'Needs regular behavioural guidance'],
+    1: ['Needs closer behavioural guidance', 'Conduct requires immediate attention', 'Behaviour is a significant concern', 'Needs firm and consistent boundaries', 'Still learning classroom behavioural norms'],
+  },
+  'Punctuality': {
+    5: ['Always early and ready to learn', 'Never late — outstanding punctuality', 'Arrives early and fully prepared', 'A shining example of punctuality', 'Consistently on time every day'],
+    4: ['Consistently prompt and prepared', 'Almost always arrives on time', 'Very good time-keeping this term', 'Punctuality is very commendable', 'Rarely late and always ready'],
+    3: ['Usually arrives on time', 'Punctuality is generally satisfactory', 'Mostly prompt with few exceptions', 'Arrives on time most school days', 'Time-keeping is improving well'],
+    2: ['Occasionally comes in late', 'Punctuality needs more consistency', 'Lateness has been noted several times', 'Needs improvement in time-keeping', 'Please ensure timely arrival daily'],
+    1: ['Punctuality needs urgent improvement', 'Frequently arrives late to school', 'Lateness is affecting learning progress', 'Time-keeping is a serious concern', 'Must arrive on time consistently'],
+  },
+  'Numeracy': {
+    5: ['Counts, sorts & adds brilliantly', 'Outstanding number skills for age group', 'Exceptional numeracy — loves numbers', 'Solves number problems with great ease', 'Numeracy skills far exceed expectations'],
+    4: ['Recognises numbers with great ease', 'Counts confidently and correctly', 'Very good number concept development', 'Adds and sorts objects very well', 'Numeracy is a clear strength'],
+    3: ['Developing good number sense', 'Making steady numeracy progress', 'Counts and recognises basic numbers', 'Number work is coming along well', 'Numeracy improving at good pace'],
+    2: ['Needs extra numeracy practice', 'Number recognition still developing', 'Requires support with basic counting', 'Numeracy needs regular reinforcement', 'Practise counting at home daily'],
+    1: ['Beginning to identify numbers', 'Still learning to count to ten', 'Needs one-on-one numeracy support', 'Numeracy skills need extra focus', 'Number concepts are at early stage'],
+  },
+  'Bible Studies': {
+    5: ['Recalls Bible verses & stories eagerly', 'Outstanding knowledge of Bible lessons', 'Participates brilliantly in Bible time', 'Loves and memorises scripture with joy', 'Bible knowledge is truly remarkable'],
+    4: ['Participates actively in Bible time', 'Good knowledge of Bible stories shown', 'Recalls Bible lessons with confidence', 'Engages enthusiastically with scripture', 'Very good Bible study participation'],
+    3: ['Learning Bible lessons steadily', 'Shows interest in Bible stories', 'Generally participates in Bible time', 'Bible knowledge is developing well', 'Engages with scripture when guided'],
+    2: ['Needs more engagement in Bible', 'Bible studies participation is limited', 'Should participate more in scripture', 'Needs encouragement during Bible time', 'Bible knowledge needs reinforcement'],
+    1: ['Beginning to engage with Bible', 'Still warming up to Bible studies', 'Needs more support in scripture time', 'Bible engagement is at early stage', 'Requires patient scripture guidance'],
+  },
+  'Creative Play': {
+    5: ['Imaginative, inventive & enthusiastic', 'Creativity is a remarkable strength', 'Leads creative play with great flair', 'Brings wonderful ideas to every activity', 'Outstanding imagination and creativity'],
+    4: ['Engages creatively with great joy', 'Very creative in play activities', 'Shows strong imagination in class', 'Brings enthusiasm to all creative tasks', 'Creative skills are well developed'],
+    3: ['Participates well in creative play', 'Enjoys creative activities with peers', 'Imagination is developing positively', 'Shows willingness to explore creativity', 'Creative engagement is satisfactory'],
+    2: ['Needs more creative exploration', 'Creative participation is limited', 'Should engage more in art activities', 'Needs encouragement to be creative', 'Creativity developing with more support'],
+    1: ['Beginning to explore creative play', 'Still warming up to creative tasks', 'Needs more exposure to creative work', 'Creative skills are at an early stage', 'Requires gentle creativity encouragement'],
+  },
+  'Phonics': {
+    5: ['Blends sounds & reads fluently', 'Exceptional phonics skills for age', 'Identifies all letter sounds perfectly', 'Phonics mastery is truly impressive', 'Outstanding sound blending and reading'],
+    4: ['Identifies letter sounds accurately', 'Very good phonics understanding shown', 'Blends sounds with good confidence', 'Strong phonics progress this term', 'Reads simple words using good phonics'],
+    3: ['Building phonics skills steadily', 'Learning letter sounds progressively', 'Phonics is developing at good pace', 'Making steady progress with sounds', 'Recognises most basic letter sounds'],
+    2: ['Needs phonics reinforcement daily', 'Letter sounds still being mastered', 'Phonics requires extra practice', 'Needs more support with sound blending', 'Encourage phonics practice at home'],
+    1: ['Beginning to learn letter sounds', 'Still learning to identify sounds', 'Needs intensive phonics support', 'Phonics skills at very early stage', 'Requires patient one-on-one phonics help'],
+  },
+  'Scribbling': {
+    5: ['Excellent pencil grip & control', 'Fine motor skills are outstanding', 'Draws and traces with precision', 'Pencil control far exceeds expectations', 'Exceptional hand-eye coordination shown'],
+    4: ['Traces and draws with confidence', 'Good pencil grip and neat strokes', 'Fine motor skills well developed', 'Hand control is very commendable', 'Scribbling shows great coordination'],
+    3: ['Developing fine motor skills well', 'Making good progress with pencil work', 'Pencil grip improving noticeably', 'Scribbling and drawing developing well', 'Fine motor skills on a positive track'],
+    2: ['Needs more pencil practice', 'Pencil grip still being developed', 'Fine motor skills need more work', 'Encourage drawing and colouring at home', 'Needs support to improve pencil control'],
+    1: ['Still developing pencil grip', 'Pencil control at very early stage', 'Needs intensive fine motor support', 'Hand-eye coordination needs attention', 'Requires patient fine motor guidance'],
+  },
+  'Social Habit': {
+    5: ['Shares, cooperates & leads peers', 'Outstanding social skills for age group', 'A joy to have — loved by all peers', 'Models excellent social behaviour always', 'Socially confident, kind and helpful'],
+    4: ['Relates very well with classmates', 'Very sociable and cooperative child', 'Makes friends easily and plays well', 'Good sharing and teamwork shown', 'Socially engaging and well-adjusted'],
+    3: ['Gets along well with others', 'Generally good with peers in class', 'Social habits are developing nicely', 'Plays cooperatively most of the time', 'Making good social progress this term'],
+    2: ['Needs support in peer relations', 'Social skills still being developed', 'Occasionally struggles to share', 'Needs guidance in group activities', 'Social habits need more encouragement'],
+    1: ['Still adjusting to group play', 'Social interaction is at early stage', 'Needs patient social skills support', 'Struggles to engage well with peers', 'Requires gentle social development help'],
+  },
 };
 
 export function preKgTotalToRating(total: number): number {
@@ -720,11 +793,16 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
     ? (preKgTotal! / activeRatings.length).toFixed(1) 
     : null;
 
+  // Deterministic pick: same student always gets the same comment option
+  const nameHash = student.name.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0);
+
   const getRating = (skillName: string): string => {
     const match = data.subjects.find(s => (s.subject || '').trim() === skillName);
     if (!match || match.total === 0) return '';
     const rating = preKgTotalToRating(match.total);
-    return PRE_KG_COMMENTS[skillName]?.[rating] || '';
+    const options = PRE_KG_COMMENTS[skillName]?.[rating];
+    if (!options || options.length === 0) return '';
+    return options[nameHash % options.length];
   };
 
   const attendancePct = attendance.totalDays > 0

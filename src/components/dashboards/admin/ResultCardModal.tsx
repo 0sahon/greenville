@@ -292,7 +292,7 @@ export default function ResultCardModal({
                             <span className="text-sm font-semibold text-gray-700">{skill.name}</span>
                             {current > 0 && (
                               <span className="text-xs text-green-700 font-medium italic truncate max-w-[220px]">
-                                {PRE_KG_COMMENTS[skill.name]?.[current]}
+                                {PRE_KG_COMMENTS[skill.name]?.[current]?.[0]}
                               </span>
                             )}
                           </div>
@@ -325,7 +325,7 @@ export default function ResultCardModal({
                             <option value={0}>— Not rated —</option>
                             {[5, 4, 3, 2, 1].map(r => (
                               <option key={r} value={r}>
-                                {['', 'Needs Improvement', 'Fair', 'Good', 'Very Good', 'Excellent'][r]} — {PRE_KG_COMMENTS[skill.name]?.[r]}
+                                {['', 'Needs Improvement', 'Fair', 'Good', 'Very Good', 'Excellent'][r]} — {PRE_KG_COMMENTS[skill.name]?.[r]?.[0]}
                               </option>
                             ))}
                           </select>
