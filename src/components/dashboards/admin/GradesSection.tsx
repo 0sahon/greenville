@@ -74,7 +74,7 @@ function RecordsTab({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [publishedIds, setPublishedIds] = useState<Set<string>>(new Set());
-  const [recordsView, setRecordsView] = useState<'flat' | 'subject' | 'type'>('flat');
+  const [recordsView, setRecordsView] = useState<'flat' | 'subject' | 'type' | 'matrix'>('flat');
   const [filterSubject, setFilterSubject] = useState('');
   const [filterType, setFilterType] = useState('');
   const [form, setForm] = useState({
@@ -246,6 +246,13 @@ function RecordsTab({
                 {v === 'flat' ? 'All' : v === 'subject' ? 'By Subject' : 'By Type'}
               </button>
             ))}
+            {/* Matrix view — only when a toddler class is selected */}
+            {filterClass && classes.find(c => c.id === filterClass)?.level === 'toddler' && (
+              <button onClick={() => setRecordsView('matrix')}
+                className={`px-3 py-1.5 ${recordsView === 'matrix' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                Skill Matrix
+              </button>
+            )}
           </div>
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
             <Download className="w-4 h-4" /> Export
@@ -301,6 +308,79 @@ function RecordsTab({
               <th className="py-3 px-4">Term</th><th className="py-3 px-4">Actions</th>
             </tr>
           );
+
+          // ── Skill Matrix view (toddler classes only) ──
+          if (recordsView === 'matrix') {
+            const pkGrades = filtered.filter(g => g.assessment_type === 'pre_kg');
+            // Build student list (unique, preserving first-seen order)
+            const studentMap = new Map<string, string>();
+            pkGrades.forEach(g => {
+              if (!studentMap.has(g.student_id))
+                studentMap.set(g.student_id, `${g.students?.profiles?.first_name ?? ''} ${g.students?.profiles?.last_name ?? ''}`.trim());
+            });
+            const students = [...studentMap.entries()];
+            // Build lookup: studentId → skill → score
+            const lookup: Record<string, Record<string, number>> = {};
+            pkGrades.forEach(g => {
+              if (!lookup[g.student_id]) lookup[g.student_id] = {};
+              lookup[g.student_id][(g.subject || '').trim()] = g.score;
+            });
+            const RATING_COLORS: Record<number, string> = {
+              5: 'bg-pink-500 text-white',
+              4: 'bg-blue-500 text-white',
+              3: 'bg-teal-500 text-white',
+              2: 'bg-yellow-400 text-gray-800',
+              1: 'bg-orange-400 text-white',
+            };
+            const RATING_SHORT: Record<number, string> = { 5: 'E', 4: 'VG', 3: 'G', 2: 'F', 1: 'NI' };
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-indigo-900 text-white">
+                      <th className="py-2 px-3 text-left font-semibold sticky left-0 bg-indigo-900 z-10 min-w-[130px]">Student</th>
+                      {PRE_KG_SKILLS_LIST.map(skill => (
+                        <th key={skill} className="py-2 px-1 text-center font-medium" style={{ minWidth: '60px', maxWidth: '80px', writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: '90px', verticalAlign: 'bottom', paddingBottom: '6px' }}>
+                          {skill}
+                        </th>
+                      ))}
+                      <th className="py-2 px-2 text-center font-semibold bg-indigo-950">Avg</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {students.length === 0 && (
+                      <tr><td colSpan={PRE_KG_SKILLS_LIST.length + 2} className="text-center py-10 text-gray-400">No Pre-KG ratings found</td></tr>
+                    )}
+                    {students.map(([id, name], ri) => {
+                      const skills = lookup[id] ?? {};
+                      const scores = PRE_KG_SKILLS_LIST.map(s => skills[s] ?? 0);
+                      const rated = scores.filter(s => s > 0);
+                      const avg = rated.length > 0 ? (rated.reduce((a, b) => a + b, 0) / rated.length).toFixed(1) : '—';
+                      return (
+                        <tr key={id} className={ri % 2 === 0 ? 'bg-white' : 'bg-indigo-50'}>
+                          <td className="py-2 px-3 font-medium text-gray-800 sticky left-0 z-10 border-r border-gray-200" style={{ background: ri % 2 === 0 ? '#fff' : '#eef2ff' }}>{name}</td>
+                          {scores.map((score, si) => (
+                            <td key={si} className="py-1.5 px-1 text-center">
+                              {score > 0
+                                ? <span className={`inline-block px-1.5 py-0.5 rounded-full font-bold text-xs ${RATING_COLORS[score] ?? ''}`} title={PRE_KG_RATING_LABELS[score]}>{RATING_SHORT[score]}</span>
+                                : <span className="text-gray-200">—</span>
+                              }
+                            </td>
+                          ))}
+                          <td className="py-1.5 px-2 text-center font-bold text-indigo-700 bg-indigo-50">{avg}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <div className="flex flex-wrap gap-2 p-3 border-t border-gray-100 text-xs">
+                  {Object.entries(RATING_COLORS).reverse().map(([r, cls]) => (
+                    <span key={r} className={`px-2 py-0.5 rounded-full font-bold ${cls}`}>{r} — {PRE_KG_RATING_LABELS[Number(r)]}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          }
 
           if (recordsView === 'flat') {
             return (

@@ -79,6 +79,7 @@ export default function ResultsSection({ profile }: Props) {
   const [modalTab, setModalTab] = useState<'preview' | 'edit'>('preview');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [preKgRatings, setPreKgRatings] = useState<Partial<Record<string, number>>>({});
+  const [preKgCommentChoices, setPreKgCommentChoices] = useState<Record<string, number>>({});
   const [nurseryScores, setNurseryScores] = useState<NurseryScores>({});
   const [basicScores, setBasicScores] = useState<BasicScores>({});
   const [activeCardError, setActiveCardError] = useState<string | null>(null);
@@ -495,6 +496,7 @@ export default function ResultsSection({ profile }: Props) {
       nextTerm: { begins: metaForm.next_term_begins || '', fees: metaForm.next_term_fees || '' },
       schoolName, schoolAddress: (settings.school_address as string) || '',
       visibleSubjects,
+      preKgCommentChoices: isToddlerStudent ? preKgCommentChoices : undefined,
     };
   };
 
@@ -1394,6 +1396,8 @@ export default function ResultsSection({ profile }: Props) {
           nurseryScores={nurseryScores}
           basicScores={basicScores}
           preKgRatings={preKgRatings}
+          preKgCommentChoices={preKgCommentChoices}
+          onPreKgCommentChoice={(skill, idx) => setPreKgCommentChoices(prev => ({ ...prev, [skill]: idx }))}
           onNurseryScore={updateNurseryScore}
           onBasicScore={updateBasicScore}
           onPreKgRating={updatePreKgRating}

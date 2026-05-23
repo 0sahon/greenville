@@ -80,6 +80,8 @@ export interface ResultCardData {
   schoolName: string;
   schoolAddress: string;
   visibleSubjects?: string[];
+  /** Toddler only: per-skill comment option index (0-4), overrides name-hash default */
+  preKgCommentChoices?: Record<string, number>;
 }
 
 /* ─── Print helper ──────────────────────────────────────────── */
@@ -842,16 +844,23 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
     ? (preKgTotal! / activeRatings.length).toFixed(1) 
     : null;
 
-  // Deterministic pick: same student always gets the same comment option
+  // Deterministic pick unless a manual override is supplied via data.preKgCommentChoices
   const nameHash = student.name.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0);
 
-  const getRating = (skillName: string): string => {
+  const getRatingNum = (skillName: string): number => {
     const match = data.subjects.find(s => (s.subject || '').trim() === skillName);
-    if (!match || match.total === 0) return '';
-    const rating = preKgTotalToRating(match.total);
+    if (!match || match.total === 0) return 0;
+    return preKgTotalToRating(match.total);
+  };
+
+  const getRating = (skillName: string): string => {
+    const rating = getRatingNum(skillName);
+    if (rating === 0) return '';
     const options = PRE_KG_COMMENTS[skillName]?.[rating];
     if (!options || options.length === 0) return '';
-    return options[nameHash % options.length];
+    const choiceIdx = data.preKgCommentChoices?.[skillName];
+    const idx = choiceIdx !== undefined ? choiceIdx % options.length : nameHash % options.length;
+    return options[idx];
   };
 
   const attendancePct = attendance.totalDays > 0
@@ -893,91 +902,82 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
     'Social Habit':         '🤗',
   };
 
-  const Balloon = ({ skillName, colorIdx }: { skillName: string; colorIdx: number }) => {
+  const Balloon = ({ skillName, colorIdx, tilt = 0 }: { skillName: string; colorIdx: number; tilt?: number }) => {
     const [hi, mid, dark] = BALLOON_COLORS[colorIdx % BALLOON_COLORS.length];
     const comment = getRating(skillName);
     const emoji = SKILL_EMOJIS[skillName] || '🎈';
+    const ratingNum = getRatingNum(skillName);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {/* Balloon body — modern sharp teardrop */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transform: `rotate(${tilt}deg)`, transformOrigin: 'bottom center' }}>
+        {/* Balloon body — large modern teardrop */}
         <div style={{
           position: 'relative',
-          width: '108px',
-          height: '118px',
-          borderRadius: '50% 50% 44% 44% / 56% 56% 47% 47%',
-          background: `radial-gradient(ellipse at 34% 24%, #fff 0%, ${hi} 12%, ${mid} 48%, ${dark} 100%)`,
-          boxShadow: `0 6px 18px rgba(0,0,0,0.28), 0 2px 4px rgba(0,0,0,0.18), inset 0 -4px 8px rgba(0,0,0,0.12)`,
-          border: `1.5px solid ${dark}22`,
+          width: '126px',
+          height: '142px',
+          borderRadius: '50% 50% 44% 44% / 56% 56% 46% 46%',
+          background: `radial-gradient(ellipse at 32% 22%, #fff 0%, ${hi} 10%, ${mid} 44%, ${dark} 100%)`,
+          boxShadow: `0 10px 28px rgba(0,0,0,0.32), 0 3px 7px rgba(0,0,0,0.18), inset 0 -6px 12px rgba(0,0,0,0.14)`,
+          border: `1.5px solid ${dark}30`,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '13px 8px 17px',
+          padding: '14px 8px 22px',
           overflow: 'hidden',
         }}>
-          {/* Sharp bright specular highlight */}
-          <div style={{
-            position: 'absolute', top: '9px', left: '17px',
-            width: '30px', height: '18px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.92)',
-            transform: 'rotate(-20deg)',
-            pointerEvents: 'none',
-            filter: 'blur(1px)',
-          }} />
-          {/* Small secondary glint */}
-          <div style={{
-            position: 'absolute', top: '22px', left: '28px',
-            width: '11px', height: '7px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.60)',
-            pointerEvents: 'none',
-          }} />
+          {/* Primary specular highlight */}
+          <div style={{ position: 'absolute', top: '10px', left: '18px', width: '36px', height: '22px', borderRadius: '50%', background: 'rgba(255,255,255,0.92)', transform: 'rotate(-22deg)', filter: 'blur(1.5px)', pointerEvents: 'none' }} />
+          {/* Secondary glint */}
+          <div style={{ position: 'absolute', top: '26px', left: '32px', width: '13px', height: '9px', borderRadius: '50%', background: 'rgba(255,255,255,0.62)', pointerEvents: 'none' }} />
+
+          {/* Star rating row at top */}
+          {ratingNum > 0 && (
+            <div style={{ position: 'absolute', top: '7px', right: '8px', display: 'flex', gap: '1.5px', zIndex: 1 }}>
+              {[1,2,3,4,5].map(i => (
+                <span key={i} style={{ fontSize: '7pt', color: i <= ratingNum ? '#FFD700' : 'rgba(255,255,255,0.28)', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>★</span>
+              ))}
+            </div>
+          )}
 
           {/* Emoji */}
-          <div style={{ fontSize: '17pt', marginBottom: '3px', zIndex: 1, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.25))' }}>
+          <div style={{ fontSize: '20pt', marginBottom: '4px', zIndex: 1, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.28))' }}>
             {emoji}
           </div>
 
-          {/* Skill label — white pill with balloon's own dark color text (alternating per balloon) */}
+          {/* Skill label */}
           <div style={{
-            background: 'rgba(255,255,255,0.88)',
-            borderRadius: '8px',
-            padding: '1px 5px',
+            background: 'rgba(255,255,255,0.90)',
+            borderRadius: '9px',
+            padding: '2px 6px',
             fontWeight: 'bold', fontSize: '7.5pt', color: dark,
             fontFamily: "'Fredoka', sans-serif",
             textAlign: 'center', lineHeight: 1.2, zIndex: 1,
-            maxWidth: '92px',
-            marginBottom: comment ? '3px' : 0,
+            maxWidth: '106px',
+            marginBottom: comment ? '4px' : 0,
           }}>
             {skillName}
           </div>
 
-          {/* Comment — italic white text */}
+          {/* Comment */}
           {comment && (
             <div style={{
-              fontSize: '6pt', color: 'rgba(255,255,255,0.97)',
+              fontSize: '6.5pt', color: 'rgba(255,255,255,0.97)',
               fontFamily: "'Fredoka', sans-serif",
               textAlign: 'center', fontStyle: 'italic',
-              lineHeight: 1.15, zIndex: 1,
+              lineHeight: 1.18, zIndex: 1,
               textShadow: '0 1px 3px rgba(0,0,0,0.55)',
-              maxWidth: '92px',
+              maxWidth: '106px',
             }}>
               {comment}
             </div>
           )}
         </div>
         {/* Knot */}
-        <div style={{
-          width: 0, height: 0,
-          borderLeft: '4.5px solid transparent',
-          borderRight: '4.5px solid transparent',
-          borderTop: `8px solid ${dark}`,
-        }} />
-        {/* Shorter curvy string */}
-        <svg width="16" height="14" viewBox="0 0 16 14" style={{ display: 'block', overflow: 'visible' }}>
-          <path d="M8,0 Q3,4 8,8 Q13,12 8,14" stroke={dark} strokeWidth="1.3" fill="none" opacity="0.55" />
+        <div style={{ width: 0, height: 0, borderLeft: '5.5px solid transparent', borderRight: '5.5px solid transparent', borderTop: `10px solid ${dark}` }} />
+        {/* Long wavy string — trajectory of take-off */}
+        <svg width="22" height="28" viewBox="0 0 22 28" style={{ display: 'block', overflow: 'visible' }}>
+          <path d="M11,0 Q3,7 11,14 Q19,21 11,28" stroke={dark} strokeWidth="1.6" fill="none" opacity="0.6" />
         </svg>
       </div>
     );
@@ -1108,50 +1108,46 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
       {/* ── Balloon Section ── */}
       <div style={{ background: 'linear-gradient(160deg, #FFF5F9 0%, #FFEBF4 50%, #FFF9FC 100%)', padding: '5px 12px 2px' }}>
 
-        {/* Row 1 */}
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '1px' }}>
-          <Balloon skillName={PRE_KG_SKILLS[0].name} colorIdx={0} />
-          <Balloon skillName={PRE_KG_SKILLS[1].name} colorIdx={1} />
-          <Balloon skillName={PRE_KG_SKILLS[2].name} colorIdx={2} />
-          <Balloon skillName={PRE_KG_SKILLS[3].name} colorIdx={3} />
-          <Balloon skillName={PRE_KG_SKILLS[4].name} colorIdx={4} />
+        {/* Row 1 — slight alternating tilts for natural float effect */}
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '2px' }}>
+          <Balloon skillName={PRE_KG_SKILLS[0].name} colorIdx={0} tilt={-6} />
+          <Balloon skillName={PRE_KG_SKILLS[1].name} colorIdx={1} tilt={4} />
+          <Balloon skillName={PRE_KG_SKILLS[2].name} colorIdx={2} tilt={-3} />
+          <Balloon skillName={PRE_KG_SKILLS[3].name} colorIdx={3} tilt={5} />
+          <Balloon skillName={PRE_KG_SKILLS[4].name} colorIdx={4} tilt={-5} />
         </div>
 
         {/* Row 2 */}
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '1px' }}>
-          <Balloon skillName={PRE_KG_SKILLS[5].name} colorIdx={5} />
-          <Balloon skillName={PRE_KG_SKILLS[6].name} colorIdx={6} />
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', marginBottom: '2px' }}>
+          <Balloon skillName={PRE_KG_SKILLS[5].name} colorIdx={5} tilt={4} />
+          <Balloon skillName={PRE_KG_SKILLS[6].name} colorIdx={6} tilt={-4} />
+          <Balloon skillName={PRE_KG_SKILLS[7].name} colorIdx={7} tilt={5} />
+          <Balloon skillName={PRE_KG_SKILLS[8].name} colorIdx={8} tilt={-6} />
+          <Balloon skillName={PRE_KG_SKILLS[9].name} colorIdx={9} tilt={3} />
+        </div>
 
-          {/* Cute cartoon child figure */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '4px', position: 'relative' }}>
+        {/* Row 3 — last 2 skills + child figure centred */}
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end' }}>
+          <Balloon skillName={PRE_KG_SKILLS[10].name} colorIdx={10} tilt={-5} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '4px', position: 'relative', flex: '0 0 auto' }}>
+            {/* Child figure — centred in row 3 */}
             <svg width="70" height="85" viewBox="0 0 80 100" style={{ display: 'block', overflow: 'visible' }}>
-              {/* Head */}
               <circle cx="40" cy="22" r="13" fill="#ffdbb5" />
-              {/* Hair */}
               <path d="M 23 22 Q 40 5 57 22 Q 40 10 23 22" fill="#5c2e0b" />
               <circle cx="28" cy="14" r="5" fill="#5c2e0b" />
               <circle cx="52" cy="14" r="5" fill="#5c2e0b" />
-              {/* Eyes */}
               <circle cx="35" cy="20" r="1.5" fill="#333" />
               <circle cx="45" cy="20" r="1.5" fill="#333" />
-              {/* Smiling mouth */}
               <path d="M 36 26 Q 40 31 44 26" stroke="#cc3300" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-              {/* Rosy cheeks */}
               <circle cx="31" cy="23" r="2.5" fill="#ff9999" opacity="0.75" />
               <circle cx="49" cy="23" r="2.5" fill="#ff9999" opacity="0.75" />
-              {/* Dress */}
               <path d="M 32 35 L 18 70 L 62 70 L 48 35 Z" fill="#ff4081" />
-              {/* White collar */}
               <path d="M 32 35 Q 40 40 48 35 Q 40 37 32 35" fill="#fff" />
-              {/* Star emblem on dress */}
               <path d="M 40 46 L 42 51 L 47 51 L 43 54 L 45 59 L 40 56 L 35 59 L 37 54 L 33 51 L 38 51 Z" fill="#ffeb3b" />
-              {/* Arms holding strings */}
               <line x1="28" y1="42" x2="6" y2="30" stroke="#ffdbb5" strokeWidth="3.5" strokeLinecap="round" />
               <line x1="52" y1="42" x2="74" y2="30" stroke="#ffdbb5" strokeWidth="3.5" strokeLinecap="round" />
-              {/* Legs and shoes */}
               <line x1="33" y1="70" x2="33" y2="88" stroke="#ffdbb5" strokeWidth="4" strokeLinecap="round" />
               <line x1="47" y1="70" x2="47" y2="88" stroke="#ffdbb5" strokeWidth="4" strokeLinecap="round" />
-              {/* Shoes */}
               <path d="M 28 88 C 28 84, 38 84, 38 88 Z" fill="#c2185b" />
               <path d="M 42 88 C 42 84, 52 84, 52 88 Z" fill="#c2185b" />
             </svg>
@@ -1159,19 +1155,7 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
               🌟 {SCHOOL_CITY_TAGLINE} 🌟
             </div>
           </div>
-
-          <Balloon skillName={PRE_KG_SKILLS[7].name} colorIdx={7} />
-          <Balloon skillName={PRE_KG_SKILLS[8].name} colorIdx={8} />
-        </div>
-
-        {/* Row 3 — Phonics (left) | space | Scribbling + Social Habit (right) */}
-        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <Balloon skillName={PRE_KG_SKILLS[9].name} colorIdx={9} />
-          <div style={{ flex: 1 }} />
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
-            <Balloon skillName={PRE_KG_SKILLS[10].name} colorIdx={10} />
-            <Balloon skillName={PRE_KG_SKILLS[11].name} colorIdx={11} />
-          </div>
+          <Balloon skillName={PRE_KG_SKILLS[11].name} colorIdx={11} tilt={5} />
         </div>
       </div>
 

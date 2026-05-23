@@ -60,6 +60,8 @@ interface Props {
   nurseryScores: NurseryScores;
   basicScores: BasicScores;
   preKgRatings: Partial<Record<string, number>>;
+  preKgCommentChoices: Record<string, number>;
+  onPreKgCommentChoice: (skill: string, idx: number) => void;
   onNurseryScore: (subject: string, field: 'ca1' | 'ca2' | 'exam' | 'project' | 'homework', value: number) => void;
   onBasicScore: (subject: string, field: 'ca1' | 'ca2' | 'exam' | 'project' | 'homework', value: number) => void;
   onPreKgRating: (skillName: string, rating: number) => void;
@@ -81,7 +83,7 @@ export default function ResultCardModal({
   modalTab, onTabChange, onClose,
   cardData,
   isNurseryStudent, isToddlerStudent, isBasicStudent,
-  nurseryScores, basicScores, preKgRatings,
+  nurseryScores, basicScores, preKgRatings, preKgCommentChoices, onPreKgCommentChoice,
   onNurseryScore, onBasicScore, onPreKgRating,
   metaForm, setMetaForm,
   saving, onSave,
@@ -175,6 +177,40 @@ export default function ResultCardModal({
                   <ResultCard data={cardData} onPrint={() => printResultCard(`${student.profiles?.first_name} ${student.profiles?.last_name}`, isNurseryStudent || isToddlerStudent)} />
                 </div>
               </div>
+
+              {/* Toddler: comment picker — teacher selects from 5 options per rated skill */}
+              {isToddlerStudent && (
+                <div className="border border-indigo-200 rounded-xl p-4 bg-indigo-50">
+                  <h4 className="font-semibold text-indigo-800 text-sm mb-1">Balloon Comments</h4>
+                  <p className="text-xs text-indigo-500 mb-3">Click a comment to use it inside each balloon. The highlighted option is currently shown on the card.</p>
+                  <div className="space-y-3">
+                    {PRE_KG_SKILLS
+                      .filter(skill => (cardData.subjects.find(s => s.subject === skill.name)?.total ?? 0) > 0)
+                      .map(skill => {
+                        const subj = cardData.subjects.find(s => s.subject === skill.name);
+                        const rating = subj ? (subj.total >= 18 ? 5 : subj.total >= 14 ? 4 : subj.total >= 10 ? 3 : subj.total >= 6 ? 2 : 1) : 0;
+                        const options = PRE_KG_COMMENTS[skill.name]?.[rating] ?? [];
+                        if (!options.length) return null;
+                        const nameHash = cardData.student.name.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0);
+                        const currentIdx = preKgCommentChoices[skill.name] ?? (nameHash % options.length);
+                        return (
+                          <div key={skill.name}>
+                            <div className="text-xs font-semibold text-indigo-700 mb-1">{skill.name} <span className="font-normal text-indigo-400">— {['','Needs Improvement','Fair','Good','Very Good','Excellent'][rating]}</span></div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {options.map((opt, i) => (
+                                <button key={i} onClick={() => onPreKgCommentChoice(skill.name, i)}
+                                  className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${i === currentIdx ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-400'}`}>
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => {
