@@ -281,6 +281,14 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
               </tr>
             );
           })}
+          {/* Empty filler rows so the table fills the full subject-list height */}
+          {Array.from({ length: Math.max(0, BASIC_SUBJECTS.length - scoredRows.length) }).map((_, i) => (
+            <tr key={`filler-${i}`} style={{ background: (scoredRows.length + i) % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0', height: '22px' }}>
+              {[...Array(9)].map((__, ci) => (
+                <td key={ci} style={{ borderRight: ci < 8 ? '1px solid #e2e8f0' : undefined }} />
+              ))}
+            </tr>
+          ))}
           {/* Grand total row */}
           {scoredRows.length > 0 && (
             <tr style={{ background: '#1a2433', color: '#fff', borderTop: '2px solid #111' }}>
@@ -307,18 +315,18 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
             Practical Life Assessment
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', flex: 1 }}>
-            <div style={{ borderRight: '1px solid #e2e8f0', padding: '4px 0' }}>
+            <div style={{ borderRight: '1px solid #e2e8f0', padding: '4px 0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               {practicalLife.slice(0, 4).map(item => (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', borderBottom: '1px solid #f1f5f9', fontSize: '7.5pt' }}>
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', flex: 1, padding: '3px 8px', borderBottom: '1px solid #f1f5f9', fontSize: '7.5pt' }}>
                   <span style={{ fontWeight: 'bold', color: '#475569', marginRight: '4px', width: '12px' }}>{item.id}.</span>
                   <span style={{ flex: 1, color: '#374151' }}>{item.label}</span>
                   <span style={{ ...GB, fontSize: '7pt', minWidth: '18px' }}>{item.score}</span>
                 </div>
               ))}
             </div>
-            <div style={{ padding: '4px 0' }}>
+            <div style={{ padding: '4px 0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               {practicalLife.slice(4).map(item => (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', borderBottom: '1px solid #f1f5f9', fontSize: '7.5pt' }}>
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', flex: 1, padding: '3px 8px', borderBottom: '1px solid #f1f5f9', fontSize: '7.5pt' }}>
                   <span style={{ fontWeight: 'bold', color: '#475569', marginRight: '4px', width: '12px' }}>{item.id}.</span>
                   <span style={{ flex: 1, color: '#374151' }}>{item.label}</span>
                   <span style={{ ...GB, fontSize: '7pt', minWidth: '18px' }}>{item.score}</span>
@@ -327,19 +335,19 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
             </div>
           </div>
 
-          {/* Comments */}
-          <div style={{ padding: '8px 10px', borderTop: '1px solid #e2e8f0', flex: 1 }}>
-            <div style={{ marginBottom: '10px' }}>
+          {/* Comments — flex column so each block fills equal share of remaining height */}
+          <div style={{ padding: '8px 10px', borderTop: '1px solid #e2e8f0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: '6px' }}>
               <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Class Teacher&apos;s Comment:</div>
-              <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.teacher}</div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px', paddingRight: '20px' }}>
+              <div style={{ flex: 1, borderBottom: '1px solid #94a3b8', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.teacher}</div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', paddingRight: '20px' }}>
                 <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
               </div>
             </div>
-            <div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '6px' }}>
               <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Head of School&apos;s Comment:</div>
-              <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.principal}</div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px', paddingRight: '20px' }}>
+              <div style={{ flex: 1, borderBottom: '1px solid #94a3b8', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.principal}</div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', paddingRight: '20px' }}>
                 <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
               </div>
             </div>
@@ -612,6 +620,14 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
               </tr>
             );
           })}
+          {/* Empty filler rows so the table fills the full subject-list height */}
+          {Array.from({ length: Math.max(0, NURSERY_SUBJECTS.length - scoredNurserySubjects.length) }).map((_, i) => (
+            <tr key={`filler-${i}`} style={{ background: (scoredNurserySubjects.length + i) % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0', height: '22px' }}>
+              {[...Array(9)].map((__, ci) => (
+                <td key={ci} style={{ borderRight: ci < 8 ? '1px solid #e2e8f0' : undefined }} />
+              ))}
+            </tr>
+          ))}
           {scoredNurserySubjects.length > 0 && (
             <tr style={{ background: '#1a2433', color: '#fff', borderTop: '2px solid #111' }}>
               <td colSpan={6} style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 'bold', fontSize: '8.5pt', letterSpacing: '0.5px' }}>
@@ -629,19 +645,19 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
       {/* ══ BOTTOM SECTION — shorter for landscape A4 ══ */}
       <div style={{ display: 'flex', flex: 1, borderTop: '2px solid #1a2433', minHeight: '50mm' }}>
 
-        {/* LEFT: Comments */}
-        <div style={{ flex: 1, borderRight: '1px solid #cbd5e1', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
+        {/* LEFT: Comments — each block fills equal share, text area stretches */}
+        <div style={{ flex: 1, borderRight: '1px solid #cbd5e1', padding: '8px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: '6px' }}>
             <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Class Teacher&apos;s Comment:</div>
-            <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.teacher}</div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', paddingRight: '20px' }}>
+            <div style={{ flex: 1, borderBottom: '1px solid #94a3b8', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.teacher}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', paddingRight: '20px' }}>
               <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
             </div>
           </div>
-          <div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '6px' }}>
             <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Head of School&apos;s Comment:</div>
-            <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.principal}</div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', paddingRight: '20px' }}>
+            <div style={{ flex: 1, borderBottom: '1px solid #94a3b8', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.principal}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', paddingRight: '20px' }}>
               <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
             </div>
           </div>
