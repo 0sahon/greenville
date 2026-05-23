@@ -179,222 +179,215 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
     { id: 'h', label: 'Level of Independence',                      score: '' },
   ];
 
+  /* ── B&W-safe grade badge ── */
+  const GB: React.CSSProperties = {
+    display: 'inline-block', border: '1.5px solid #000', fontWeight: 'bold',
+    padding: '1px 4px', textAlign: 'center', minWidth: '22px', fontSize: '8pt',
+  };
+
+  const scoredRows = displayedBasicSubjects
+    .map(name => ({ name, s: getSubject(name) }))
+    .filter(({ s }) => s && s.total > 0);
+
   return (
-    <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '9pt', color: '#000', background: '#fff', border: '2px solid #333' }}>
+    <div style={{
+      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '9pt', color: '#000',
+      background: '#fff', border: '2px solid #111',
+      display: 'flex', flexDirection: 'column', minHeight: '277mm',
+    }}>
 
-      {/* ── HEADER: logo left · school info centre · address right ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 12px 6px', borderBottom: '2px solid #333' }}>
-        {/* Single logo — left only */}
+      {/* ══ HEADER — dark band ══ */}
+      <div style={{ background: '#1a2433', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px' }}>
         <img src={SCHOOL_LOGO_PATH} alt={displaySchool}
-          style={{ width: 68, height: 68, objectFit: 'contain', flexShrink: 0, marginTop: '2px' }} />
-
-        {/* School name + subtitle + email */}
+          style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0, borderRadius: '6px', border: '2px solid rgba(255,255,255,0.3)' }} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '18pt', fontWeight: 'bold', color: '#000', lineHeight: 1.1, letterSpacing: '0.3px' }}>
+          <div style={{ fontSize: '17pt', fontWeight: 'bold', letterSpacing: '0.5px', lineHeight: 1.1 }}>
             {displaySchool.toUpperCase()}
           </div>
-          <div style={{ fontSize: '9pt', fontWeight: 'bold', color: '#333', marginTop: '2px', letterSpacing: '0.3px' }}>
-            &#9679;DAY CARE &#9679;PRE-SCHOOL &#9679;NURSERY &#9679;PRIMARY
+          <div style={{ fontSize: '7.5pt', opacity: 0.8, marginTop: '3px', letterSpacing: '0.3px' }}>
+            Day Care &nbsp;·&nbsp; Pre-School &nbsp;·&nbsp; Nursery &nbsp;·&nbsp; Primary School
           </div>
-          <div style={{ fontSize: '7.5pt', color: '#555', marginTop: '3px' }}>
-            Email: greenvillemontessoriesschools@yahoo.com
+          <div style={{ fontSize: '7pt', opacity: 0.65, marginTop: '2px' }}>
+            {SCHOOL_ADDRESS_LINE1}, {SCHOOL_ADDRESS_LINE2} &nbsp;·&nbsp; Tel: {SCHOOL_PHONE_DISPLAY}
           </div>
         </div>
-
-        {/* Address block — top right */}
-        <div style={{ textAlign: 'right', fontSize: '7.5pt', color: '#333', lineHeight: 1.5, flexShrink: 0, maxWidth: '160px' }}>
-          <div>{SCHOOL_ADDRESS_LINE1},</div>
-          <div>{SCHOOL_ADDRESS_LINE2}</div>
-          <div>Tel: {SCHOOL_PHONE_DISPLAY}</div>
+        {/* Adm No box */}
+        <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.25)', paddingLeft: '14px', flexShrink: 0 }}>
+          <div style={{ fontSize: '6.5pt', opacity: 0.65, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Adm. No.</div>
+          <div style={{ fontSize: '12pt', fontWeight: 'bold', marginTop: '2px', letterSpacing: '1px' }}>{student.studentId || '—'}</div>
         </div>
       </div>
 
-      {/* ── TITLE STRIP ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 12px', borderBottom: '1px solid #333', background: '#f5f5f5' }}>
-        <div style={{ fontSize: '11pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
-          Lower and Middle Basic Report Sheet
-        </div>
-        <div style={{ fontSize: '10pt', fontWeight: 'bold' }}>
-          No.&nbsp;{student.studentId || ''}
-        </div>
+      {/* ══ TITLE BAR ══ */}
+      <div style={{ background: '#2d3748', color: '#fff', padding: '5px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '10pt', fontWeight: 'bold', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+          Academic Report Card — Lower &amp; Middle Basic
+        </span>
+        <span style={{ fontSize: '8.5pt', background: 'rgba(255,255,255,0.12)', padding: '2px 10px', borderRadius: '3px', letterSpacing: '0.3px' }}>
+          {term} &nbsp;·&nbsp; {academicYear}
+        </span>
       </div>
 
-      {/* ── STUDENT INFO ── */}
-      <div style={{ padding: '5px 12px 4px', borderBottom: '1px solid #999', fontSize: '8.5pt' }}>
-        {/* Row 1 */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', alignItems: 'baseline' }}>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name of Pupil:</span>
-          <span style={{ flex: 2, borderBottom: '1px solid #555', minWidth: '160px', paddingLeft: '3px' }}>{student.name}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '10px' }}>Class:</span>
-          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{student.className}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '10px' }}>Term</span>
-          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{term}</span>
-        </div>
-        {/* Row 2 */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', alignItems: 'baseline' }}>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Academic Session:</span>
-          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{academicYear}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Attended Class:</span>
-          <span style={{ width: '40px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{attendance.daysPresent || ''}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Times Out of</span>
-          <span style={{ width: '40px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{attendance.totalDays || ''}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Age:</span>
-          <span style={{ width: '40px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{ageYears !== null ? `${ageYears}` : ''}</span>
-        </div>
-        {/* Row 3 */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'baseline' }}>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Average:</span>
-          <span style={{ width: '80px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{subjects.length > 0 ? `${avgScore}%` : ''}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '16px' }}>Scores:</span>
-          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{subjects.length > 0 ? grandTotal : ''}</span>
-        </div>
+      {/* ══ STUDENT INFO GRID ══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', borderBottom: '2px solid #1a2433' }}>
+        {[
+          { label: 'Student Name', value: student.name },
+          { label: 'Class',        value: student.className },
+          { label: 'Gender',       value: student.gender || '—' },
+          { label: 'Age',          value: ageYears !== null ? `${ageYears} yrs` : '—' },
+          { label: 'Days Present', value: attendance.daysPresent || '—' },
+          { label: 'Days Opened',  value: attendance.totalDays  || '—' },
+        ].map(({ label, value }, idx) => (
+          <div key={label} style={{
+            padding: '5px 10px',
+            borderRight: idx < 5 ? '1px solid #cbd5e1' : 'none',
+            borderTop: '1px solid #e2e8f0',
+          }}>
+            <div style={{ fontSize: '6pt', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>{label}</div>
+            <div style={{ fontSize: '9pt', fontWeight: 'bold', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+          </div>
+        ))}
       </div>
 
-      {/* ── SUBJECTS TABLE ── */}
+      {/* ══ SUBJECTS TABLE ══ */}
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr>
-            <th style={{ ...TH, textAlign: 'left', width: '27%', fontSize: '9pt', padding: '5px 6px' }}>SUBJECTS</th>
-            <th style={{ ...TH, width: '8%' }}>1st<br />CAT<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
-            <th style={{ ...TH, width: '8%' }}>2nd<br />CAT<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
-            <th style={{ ...TH, width: '8%' }}>Project<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>10%</span></th>
-            <th style={{ ...TH, width: '10%' }}>HW/<br />Assignment<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>10%</span></th>
-            <th style={{ ...TH, width: '8%' }}>Exam<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>50%</span></th>
-            <th style={{ ...TH, width: '8%', background: '#d0d0d0' }}>Total<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>100%</span></th>
-            <th style={{ ...TH, width: '7%', background: '#d0d0d0' }}>Grade</th>
-            <th style={{ ...TH, width: '16%', textAlign: 'left', padding: '5px 5px' }}>Remarks</th>
+          <tr style={{ background: '#374151', color: '#fff' }}>
+            <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 'bold', fontSize: '8.5pt', width: '28%', borderRight: '1px solid #4b5563' }}>SUBJECTS</th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '8%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>CA1<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/15</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '8%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>CA2<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/15</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '8%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>Project<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/10</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '8%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>H/Work<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/10</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '9%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>Exam<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/50</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '8pt', fontWeight: 'bold', width: '9%', borderRight: '1px solid #4b5563', background: '#1e293b', lineHeight: 1.3 }}>Total<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/100</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '7%', borderRight: '1px solid #4b5563', background: '#1e293b' }}>Grade</th>
+            <th style={{ padding: '5px 6px', textAlign: 'left', fontSize: '7.5pt' }}>Remarks</th>
           </tr>
         </thead>
         <tbody>
-          {displayedBasicSubjects
-            .map(name => ({ name, s: getSubject(name) }))
-            .filter(({ s }) => s && s.total > 0)
-            .map(({ name, s }, i) => {
-              const { grade, remark } = getNigerianGrade(s!.total);
-              const gc = gradeColor(grade);
-              return (
-                <tr key={name} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                  <td style={{ ...TD, textAlign: 'left', fontWeight: 'bold', fontSize: '8pt', padding: '3px 6px', textTransform: 'uppercase' }}>
-                    {name}
-                  </td>
-                  <td style={TD}>{s!.ca1 > 0 ? s!.ca1 : ''}</td>
-                  <td style={TD}>{s!.ca2 > 0 ? s!.ca2 : ''}</td>
-                  <td style={TD}>{(s!.project ?? 0) > 0 ? s!.project : ''}</td>
-                  <td style={TD}>{(s!.homework ?? 0) > 0 ? s!.homework : ''}</td>
-                  <td style={TD}>{s!.exam > 0 ? s!.exam : ''}</td>
-                  <td style={{ ...TD, fontWeight: 'bold', background: '#f0f0f0' }}>{s!.total}</td>
-                  <td style={{ ...TD, ...gc, padding: '3px 2px' }}>{grade}</td>
-                  <td style={{ ...TD, textAlign: 'left', fontSize: '7.5pt', padding: '3px 5px' }}>{remark}</td>
-                </tr>
-              );
-            })}
+          {scoredRows.map(({ name, s }, i) => {
+            const { grade, remark } = getNigerianGrade(s!.total);
+            return (
+              <tr key={name} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '4px 8px', fontWeight: '600', fontSize: '8pt', borderRight: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.2px' }}>{name}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{s!.ca1 > 0 ? s!.ca1 : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{s!.ca2 > 0 ? s!.ca2 : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{(s!.project ?? 0) > 0 ? s!.project : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{(s!.homework ?? 0) > 0 ? s!.homework : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{s!.exam > 0 ? s!.exam : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', fontWeight: 'bold', fontSize: '9pt', borderRight: '1px solid #e2e8f0', background: '#f1f5f9' }}>{s!.total}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0' }}><span style={GB}>{grade}</span></td>
+                <td style={{ padding: '4px 6px', fontSize: '7.5pt', color: '#374151' }}>{remark}</td>
+              </tr>
+            );
+          })}
+          {/* Grand total row */}
+          {scoredRows.length > 0 && (
+            <tr style={{ background: '#1a2433', color: '#fff', borderTop: '2px solid #111' }}>
+              <td colSpan={6} style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 'bold', fontSize: '8.5pt', letterSpacing: '0.5px' }}>
+                GRAND TOTAL &nbsp;&nbsp; AVERAGE: {avgScore}%
+              </td>
+              <td style={{ padding: '5px 3px', textAlign: 'center', fontWeight: 'bold', fontSize: '10pt', background: '#0f172a' }}>{grandTotal}</td>
+              <td colSpan={2} style={{ padding: '5px 8px', fontSize: '7.5pt', opacity: 0.8 }}>
+                {scoredRows.length} subject{scoredRows.length !== 1 ? 's' : ''} scored
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 
-      {/* ── PRACTICAL LIFE section ── */}
-      <div style={{ borderTop: BORDER, borderBottom: BORDER }}>
-        <div style={{ background: '#e8e8e8', fontWeight: 'bold', fontSize: '8pt', padding: '3px 8px', borderBottom: BORDER }}>
-          PRACTICAL LIFE
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', fontSize: '7.5pt' }}>
-          {[
-            [practicalLife[0], practicalLife[3]],
-            [practicalLife[1], practicalLife[4]],
-            [practicalLife[2], practicalLife[5]],
-          ].map((pair, col) => (
-            <div key={col} style={{ borderRight: col < 2 ? BORDER : 'none' }}>
-              {pair.map(item => (
-                <div key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '2px 6px', borderBottom: '1px solid #ccc' }}>
-                  <span style={{ fontWeight: 'bold', marginRight: '4px', minWidth: '10px' }}>{item.id}</span>
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  <span style={{ fontWeight: 'bold', minWidth: '22px', textAlign: 'center', ...( item.score ? gradeColor(item.score) : {}) }}>
-                    {item.score}
-                  </span>
+      {/* ══ BOTTOM SECTION — fills remaining page height ══ */}
+      <div style={{ display: 'flex', flex: 1, borderTop: '2px solid #1a2433', minHeight: '90mm' }}>
+
+        {/* LEFT: Practical Life + Comments */}
+        <div style={{ flex: 1, borderRight: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column' }}>
+
+          {/* Practical Life header */}
+          <div style={{ background: '#374151', color: '#fff', padding: '4px 10px', fontSize: '8pt', fontWeight: 'bold', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+            Practical Life Assessment
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', flex: 1 }}>
+            <div style={{ borderRight: '1px solid #e2e8f0', padding: '4px 0' }}>
+              {practicalLife.slice(0, 4).map(item => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', borderBottom: '1px solid #f1f5f9', fontSize: '7.5pt' }}>
+                  <span style={{ fontWeight: 'bold', color: '#475569', marginRight: '4px', width: '12px' }}>{item.id}.</span>
+                  <span style={{ flex: 1, color: '#374151' }}>{item.label}</span>
+                  <span style={{ ...GB, fontSize: '7pt', minWidth: '18px' }}>{item.score}</span>
                 </div>
               ))}
             </div>
-          ))}
-        </div>
-        {/* g and h — span full width */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderTop: '1px solid #ccc', fontSize: '7.5pt' }}>
-          {[practicalLife[6], practicalLife[7]].map((item, i) => (
-            <div key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '2px 6px', borderRight: i === 0 ? BORDER : 'none' }}>
-              <span style={{ fontWeight: 'bold', marginRight: '4px', minWidth: '10px' }}>{item.id}</span>
-              <span style={{ flex: 1 }}>{item.label}</span>
-              <span style={{ fontWeight: 'bold', minWidth: '22px', textAlign: 'center', ...(item.score ? gradeColor(item.score) : {}) }}>
-                {item.score}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── FOOTER: comments left | grading key right ── */}
-      <div style={{ display: 'flex', gap: '0', alignItems: 'stretch' }}>
-
-        {/* Left — comments & signatures */}
-        <div style={{ flex: 1, padding: '8px 12px', fontSize: '8.5pt', borderRight: BORDER }}>
-
-          {/* Next term */}
-          <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-            <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>School Re-opens for Next Term on:</span>
-            <span style={{ flex: 1, borderBottom: '1px solid #555', minHeight: '14px', paddingLeft: '4px' }}>
-              {nextTerm.begins ? fmtDate(nextTerm.begins) : ''}
-            </span>
-          </div>
-
-          {/* Class teacher */}
-          <div style={{ marginBottom: '8px' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Class Teacher&apos;s Comment:</div>
-            <div style={{ borderBottom: '1px solid #555', minHeight: '18px', paddingLeft: '4px', fontStyle: 'italic' }}>
-              {comments.teacher}
-            </div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '14px' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ minHeight: '28px' }} />
-              <div style={{ borderTop: '1px solid #333', paddingTop: '2px', fontSize: '7.5pt' }}>— Signature &amp; Date —</div>
+            <div style={{ padding: '4px 0' }}>
+              {practicalLife.slice(4).map(item => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', borderBottom: '1px solid #f1f5f9', fontSize: '7.5pt' }}>
+                  <span style={{ fontWeight: 'bold', color: '#475569', marginRight: '4px', width: '12px' }}>{item.id}.</span>
+                  <span style={{ flex: 1, color: '#374151' }}>{item.label}</span>
+                  <span style={{ ...GB, fontSize: '7pt', minWidth: '18px' }}>{item.score}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Head of school */}
-          <div style={{ marginBottom: '8px' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Head of School&apos;s Comment:</div>
-            <div style={{ borderBottom: '1px solid #555', minHeight: '18px', paddingLeft: '4px', fontStyle: 'italic' }}>
-              {comments.principal}
+          {/* Comments */}
+          <div style={{ padding: '8px 10px', borderTop: '1px solid #e2e8f0', flex: 1 }}>
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Class Teacher&apos;s Comment:</div>
+              <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.teacher}</div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px', paddingRight: '20px' }}>
+                <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
+              </div>
             </div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ minHeight: '28px' }} />
-              <div style={{ borderTop: '1px solid #333', paddingTop: '2px', fontSize: '7.5pt' }}>— Signature &amp; Date —</div>
+            <div>
+              <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Head of School&apos;s Comment:</div>
+              <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.principal}</div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px', paddingRight: '20px' }}>
+                <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right — INTERPRETING OF GRADING SYSTEM */}
-        <div style={{ width: '170px', flexShrink: 0, padding: '8px 10px', fontSize: '8pt' }}>
-          <div style={{ fontWeight: 'bold', textAlign: 'center', fontSize: '8.5pt', marginBottom: '6px', lineHeight: 1.3, textTransform: 'uppercase' }}>
-            Interpreting of<br />Grading System
+        {/* RIGHT: Grading Key */}
+        <div style={{ width: '168px', flexShrink: 0, padding: '0' }}>
+          <div style={{ background: '#374151', color: '#fff', padding: '4px 10px', fontSize: '8pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Grading Key
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={{ padding: '3px 6px', fontSize: '6.5pt', fontWeight: 'bold', textAlign: 'center', color: '#475569', borderBottom: '1px solid #e2e8f0', width: '28px' }}>Grade</th>
+                <th style={{ padding: '3px 6px', fontSize: '6.5pt', fontWeight: 'bold', textAlign: 'center', color: '#475569', borderBottom: '1px solid #e2e8f0', width: '40px' }}>Range</th>
+                <th style={{ padding: '3px 6px', fontSize: '6.5pt', fontWeight: 'bold', textAlign: 'left', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>Remark</th>
+              </tr>
+            </thead>
             <tbody>
-              {GRADING_KEY.map(({ grade, range, remark }) => (
-                <tr key={grade}>
-                  <td style={{ border: BORDER, padding: '2px 5px', fontWeight: 'bold', textAlign: 'center', width: '24px', ...gradeColor(grade) }}>
-                    {grade}
-                  </td>
-                  <td style={{ border: BORDER, padding: '2px 5px', fontSize: '7.5pt' }}>
-                    {range} : {remark}
-                  </td>
+              {GRADING_KEY.map(({ grade, range, remark }, i) => (
+                <tr key={grade} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '3px 6px', textAlign: 'center', fontWeight: 'bold', fontSize: '8.5pt' }}>{grade}</td>
+                  <td style={{ padding: '3px 6px', textAlign: 'center', fontSize: '7.5pt', color: '#475569' }}>{range}</td>
+                  <td style={{ padding: '3px 6px', fontSize: '7.5pt', color: '#374151' }}>{remark}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ marginTop: '8px', fontSize: '6.5pt', color: '#777', fontStyle: 'italic', textAlign: 'center' }}>
-            Computer-generated · {SCHOOL_CITY_TAGLINE}
+          <div style={{ padding: '10px 8px 6px', fontSize: '6.5pt', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic' }}>
+            Computer-generated<br />{SCHOOL_CITY_TAGLINE}
           </div>
         </div>
+      </div>
+
+      {/* ══ FOOTER BAR ══ */}
+      <div style={{ background: '#1a2433', color: '#fff', padding: '5px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7.5pt' }}>
+        <span>
+          <span style={{ opacity: 0.65, marginRight: '4px' }}>School Re-opens:</span>
+          <span style={{ fontWeight: 'bold' }}>{nextTerm.begins ? fmtDate(nextTerm.begins) : '—'}</span>
+        </span>
+        {nextTerm.fees && (
+          <span>
+            <span style={{ opacity: 0.65, marginRight: '4px' }}>Fees:</span>
+            <span style={{ fontWeight: 'bold' }}>{nextTerm.fees}</span>
+          </span>
+        )}
+        <span style={{ opacity: 0.5, fontSize: '6.5pt' }}>{displaySchool}</span>
       </div>
     </div>
   );
@@ -516,15 +509,6 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
     ? Math.round(scoredSubjectsForAvg.reduce((s, r) => s + r.total, 0) / scoredSubjectsForAvg.length)
     : 0;
 
-  const BORDER = '1px solid #555';
-  const TH: React.CSSProperties = {
-    border: BORDER, padding: '4px 3px', textAlign: 'center',
-    fontWeight: 'bold', fontSize: '7.5pt', background: '#e8e8e8', lineHeight: 1.3,
-  };
-  const TD: React.CSSProperties = {
-    border: BORDER, padding: '3px 3px', textAlign: 'center', fontSize: '8pt',
-  };
-
   const getSubject = (name: string) =>
     subjects.find(s => (s.subject || '').toLowerCase().trim() === (name || '').toLowerCase().trim());
 
@@ -533,150 +517,177 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
     return s && s.total > 0;
   });
 
-  return (
-    <div style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '9pt', color: '#000', background: '#fff', border: '2px solid #333' }}>
+  const grandTotal = scoredNurserySubjects.reduce((sum, n) => sum + (getSubject(n)?.total ?? 0), 0);
 
-      {/* ── HEADER — same style as basic card ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 12px 6px', borderBottom: '2px solid #333' }}>
+  return (
+    <div style={{
+      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '9pt', color: '#000',
+      background: '#fff', border: '2px solid #111',
+      display: 'flex', flexDirection: 'column', minHeight: '277mm',
+    }}>
+
+      {/* ══ DARK HEADER BAND ══ */}
+      <div style={{ background: '#1a2433', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px' }}>
         <img src={SCHOOL_LOGO_PATH} alt={displaySchool}
-          style={{ width: 68, height: 68, objectFit: 'contain', flexShrink: 0, marginTop: '2px' }} />
+          style={{ width: 64, height: 64, objectFit: 'contain', flexShrink: 0, borderRadius: '6px', border: '2px solid rgba(255,255,255,0.3)' }} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '18pt', fontWeight: 'bold', color: '#000', lineHeight: 1.1, letterSpacing: '0.3px' }}>
+          <div style={{ fontSize: '17pt', fontWeight: 'bold', letterSpacing: '0.5px', lineHeight: 1.1 }}>
             {displaySchool.toUpperCase()}
           </div>
-          <div style={{ fontSize: '9pt', fontWeight: 'bold', color: '#333', marginTop: '2px' }}>
-            &#9679;DAY CARE &#9679;PRE-SCHOOL &#9679;NURSERY &#9679;PRIMARY
+          <div style={{ fontSize: '7.5pt', opacity: 0.8, marginTop: '3px', letterSpacing: '0.3px' }}>
+            Day Care &nbsp;·&nbsp; Pre-School &nbsp;·&nbsp; Nursery &nbsp;·&nbsp; Primary School
           </div>
-          <div style={{ fontSize: '7.5pt', color: '#555', marginTop: '3px' }}>
-            Email: greenvillemontessoriesschools@yahoo.com
+          <div style={{ fontSize: '7pt', opacity: 0.65, marginTop: '2px' }}>
+            {SCHOOL_ADDRESS_LINE1}, {SCHOOL_ADDRESS_LINE2} &nbsp;·&nbsp; Tel: {SCHOOL_PHONE_DISPLAY}
           </div>
         </div>
-        <div style={{ textAlign: 'right', fontSize: '7.5pt', color: '#333', lineHeight: 1.5, flexShrink: 0, maxWidth: '160px' }}>
-          <div>{SCHOOL_ADDRESS_LINE1},</div>
-          <div>{SCHOOL_ADDRESS_LINE2}</div>
-          <div>Tel: {SCHOOL_PHONE_DISPLAY}</div>
+        <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.25)', paddingLeft: '14px', flexShrink: 0 }}>
+          <div style={{ fontSize: '6.5pt', opacity: 0.65, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Adm. No.</div>
+          <div style={{ fontSize: '12pt', fontWeight: 'bold', marginTop: '2px', letterSpacing: '1px' }}>{student.studentId || '—'}</div>
         </div>
       </div>
 
-      {/* ── TITLE STRIP ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 12px', borderBottom: '1px solid #333', background: '#f5f5f5' }}>
-        <div style={{ fontSize: '11pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
+      {/* ══ TITLE BAR ══ */}
+      <div style={{ background: '#2d3748', color: '#fff', padding: '5px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '10pt', fontWeight: 'bold', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
           Individual Students Assessment Sheet
-        </div>
-        <div style={{ fontSize: '10pt', fontWeight: 'bold' }}>
-          No.&nbsp;{student.studentId || ''}
-        </div>
+        </span>
+        <span style={{ fontSize: '8.5pt', background: 'rgba(255,255,255,0.12)', padding: '2px 10px', borderRadius: '3px', letterSpacing: '0.3px' }}>
+          {term} &nbsp;·&nbsp; {academicYear}
+        </span>
       </div>
 
-      {/* ── STUDENT INFO ── */}
-      <div style={{ padding: '5px 12px 4px', borderBottom: '1px solid #999', fontSize: '8.5pt' }}>
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', alignItems: 'baseline' }}>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Name:</span>
-          <span style={{ flex: 2, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{student.name}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Age:</span>
-          <span style={{ width: '40px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{ageYears !== null ? `${ageYears}` : ''}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Class:</span>
-          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>
-            {student.className}{kgColorName(student.className) ? ` · ${kgColorName(student.className)}` : ''}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '4px', alignItems: 'baseline' }}>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>No. of Times School Opened:</span>
-          <span style={{ width: '40px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{attendance.totalDays || ''}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>No. of Times Present:</span>
-          <span style={{ width: '40px', borderBottom: '1px solid #555', paddingLeft: '3px' }}>{attendance.daysPresent || ''}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Average Percentage:</span>
-          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{subjects.length > 0 ? `${avgScore}%` : ''}</span>
-        </div>
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'baseline' }}>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Admission No.:</span>
-          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{student.studentId}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Academic Session:</span>
-          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{academicYear}</span>
-          <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap', marginLeft: '8px' }}>Resumption Date:</span>
-          <span style={{ flex: 1, borderBottom: '1px solid #555', paddingLeft: '3px' }}>{nextTerm.begins ? fmtDate(nextTerm.begins) : ''}</span>
-        </div>
+      {/* ══ STUDENT INFO GRID ══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', borderBottom: '2px solid #1a2433' }}>
+        {[
+          { label: 'Student Name', value: student.name },
+          { label: 'Class',        value: `${student.className}${kgColorName(student.className) ? ` · ${kgColorName(student.className)}` : ''}` },
+          { label: 'Age',          value: ageYears !== null ? `${ageYears} yrs` : '—' },
+          { label: 'Average',      value: scoredNurserySubjects.length > 0 ? `${avgScore}%` : '—' },
+          { label: 'Days Present', value: attendance.daysPresent || '—' },
+          { label: 'Days Opened',  value: attendance.totalDays  || '—' },
+        ].map(({ label, value }, idx) => (
+          <div key={label} style={{
+            padding: '5px 10px',
+            borderRight: idx < 5 ? '1px solid #cbd5e1' : 'none',
+            borderTop: '1px solid #e2e8f0',
+          }}>
+            <div style={{ fontSize: '6pt', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>{label}</div>
+            <div style={{ fontSize: '9pt', fontWeight: 'bold', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+          </div>
+        ))}
       </div>
 
-      {/* ── SUBJECTS TABLE — Nursery-appropriate headers (CA1/CA2 instead of 1st CAT/2nd CAT) ── */}
+      {/* ══ SUBJECTS TABLE ══ */}
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr>
-            <th style={{ ...TH, textAlign: 'left', width: '27%', padding: '5px 6px', fontSize: '9pt' }}>SUBJECTS</th>
-            <th style={{ ...TH, width: '8%' }}>CA1<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
-            <th style={{ ...TH, width: '8%' }}>CA2<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>15%</span></th>
-            <th style={{ ...TH, width: '8%' }}>Project<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>10%</span></th>
-            <th style={{ ...TH, width: '10%' }}>HW/<br />Assignment<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>10%</span></th>
-            <th style={{ ...TH, width: '8%' }}>Exam<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>50%</span></th>
-            <th style={{ ...TH, width: '8%', background: '#d0d0d0' }}>Total<br /><span style={{ fontSize: '7pt', fontWeight: 'normal' }}>100%</span></th>
-            <th style={{ ...TH, width: '7%', background: '#d0d0d0' }}>Grade</th>
-            <th style={{ ...TH, textAlign: 'left', padding: '5px 5px' }}>Remarks</th>
+          <tr style={{ background: '#374151', color: '#fff' }}>
+            <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 'bold', fontSize: '8.5pt', width: '28%', borderRight: '1px solid #4b5563' }}>SUBJECTS</th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '8%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>CA1<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/15</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '8%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>CA2<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/15</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '8%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>Project<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/10</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '8%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>H/Work<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/10</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '9%', borderRight: '1px solid #4b5563', lineHeight: 1.3 }}>Exam<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/50</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '8pt', fontWeight: 'bold', width: '9%', borderRight: '1px solid #4b5563', background: '#1e293b', lineHeight: 1.3 }}>Total<br /><span style={{ fontSize: '6.5pt', fontWeight: 'normal', opacity: 0.8 }}>/100</span></th>
+            <th style={{ padding: '5px 3px', textAlign: 'center', fontSize: '7.5pt', width: '7%', borderRight: '1px solid #4b5563', background: '#1e293b' }}>Grade</th>
+            <th style={{ padding: '5px 6px', textAlign: 'left', fontSize: '7.5pt' }}>Remarks</th>
           </tr>
         </thead>
         <tbody>
           {scoredNurserySubjects.map((name, i) => {
             const s = getSubject(name)!;
             const { grade, remark } = getNigerianGrade(s.total);
-            const gc = gradeColor(grade);
             return (
-              <tr key={name} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                <td style={{ ...TD, textAlign: 'left', fontWeight: 'bold', fontSize: '8.5pt', padding: '4px 6px', textTransform: 'uppercase' }}>
-                  {name}
-                </td>
-                <td style={TD}>{s.ca1 > 0 ? s.ca1 : ''}</td>
-                <td style={TD}>{s.ca2 > 0 ? s.ca2 : ''}</td>
-                <td style={TD}>{(s.project ?? 0) > 0 ? s.project : ''}</td>
-                <td style={TD}>{(s.homework ?? 0) > 0 ? s.homework : ''}</td>
-                <td style={TD}>{s.exam > 0 ? s.exam : ''}</td>
-                <td style={{ ...TD, fontWeight: 'bold', background: '#f0f0f0' }}>{s.total}</td>
-                <td style={{ ...TD, ...gc, padding: '3px 2px' }}>{grade}</td>
-                <td style={{ ...TD, textAlign: 'left', fontSize: '7.5pt', padding: '3px 5px' }}>{remark}</td>
+              <tr key={name} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '4px 8px', fontWeight: '600', fontSize: '8pt', borderRight: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.2px' }}>{name}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{s.ca1 > 0 ? s.ca1 : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{s.ca2 > 0 ? s.ca2 : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{(s.project ?? 0) > 0 ? s.project : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{(s.homework ?? 0) > 0 ? s.homework : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0', fontSize: '8.5pt' }}>{s.exam > 0 ? s.exam : ''}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', fontWeight: 'bold', fontSize: '9pt', borderRight: '1px solid #e2e8f0', background: '#f1f5f9' }}>{s.total}</td>
+                <td style={{ padding: '4px 3px', textAlign: 'center', borderRight: '1px solid #e2e8f0' }}><span style={GB}>{grade}</span></td>
+                <td style={{ padding: '4px 6px', fontSize: '7.5pt', color: '#374151' }}>{remark}</td>
               </tr>
             );
           })}
+          {scoredNurserySubjects.length > 0 && (
+            <tr style={{ background: '#1a2433', color: '#fff', borderTop: '2px solid #111' }}>
+              <td colSpan={6} style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 'bold', fontSize: '8.5pt', letterSpacing: '0.5px' }}>
+                GRAND TOTAL &nbsp;&nbsp; AVERAGE: {avgScore}%
+              </td>
+              <td style={{ padding: '5px 3px', textAlign: 'center', fontWeight: 'bold', fontSize: '10pt', background: '#0f172a' }}>{grandTotal}</td>
+              <td colSpan={2} style={{ padding: '5px 8px', fontSize: '7.5pt', opacity: 0.8 }}>
+                {scoredNurserySubjects.length} subject{scoredNurserySubjects.length !== 1 ? 's' : ''} scored
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 
-      {/* ── FOOTER — teacher remarks left | grading key right ── */}
-      <div style={{ display: 'flex', borderTop: '1px solid #555' }}>
-        <div style={{ flex: 1, padding: '8px 12px', fontSize: '8.5pt', borderRight: '1px solid #555' }}>
-          <div style={{ marginBottom: '10px' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Class Teacher&apos;s Remarks:</div>
-            <div style={{ borderBottom: '1px solid #555', minHeight: '18px', fontStyle: 'italic', paddingLeft: '4px' }}>{comments.teacher}</div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-              <div style={{ borderTop: '1px solid #333', paddingTop: '2px', fontSize: '7.5pt' }}>— Class Teacher&apos;s Signature —</div>
+      {/* ══ BOTTOM SECTION — fills remaining page height ══ */}
+      <div style={{ display: 'flex', flex: 1, borderTop: '2px solid #1a2433', minHeight: '90mm' }}>
+
+        {/* LEFT: Comments */}
+        <div style={{ flex: 1, borderRight: '1px solid #cbd5e1', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <div>
+            <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Class Teacher&apos;s Comment:</div>
+            <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.teacher}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '22px', paddingRight: '20px' }}>
+              <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
             </div>
           </div>
           <div>
-            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Proprietress Remarks:</div>
-            <div style={{ borderBottom: '1px solid #555', minHeight: '18px', fontStyle: 'italic', paddingLeft: '4px' }}>{comments.principal}</div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-              <div style={{ borderTop: '1px solid #333', paddingTop: '2px', fontSize: '7.5pt' }}>— Proprietress Signature —</div>
+            <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Head of School&apos;s Comment:</div>
+            <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.principal}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '22px', paddingRight: '20px' }}>
+              <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
             </div>
           </div>
         </div>
-        <div style={{ width: '170px', flexShrink: 0, padding: '8px 10px', fontSize: '8pt' }}>
-          <div style={{ fontWeight: 'bold', textAlign: 'center', fontSize: '8.5pt', marginBottom: '6px', lineHeight: 1.3, textTransform: 'uppercase' }}>
-            Interpreting of<br />Grading System
+
+        {/* RIGHT: Grading Key */}
+        <div style={{ width: '168px', flexShrink: 0, padding: '0' }}>
+          <div style={{ background: '#374151', color: '#fff', padding: '4px 10px', fontSize: '8pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Grading Key
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={{ padding: '3px 6px', fontSize: '6.5pt', fontWeight: 'bold', textAlign: 'center', color: '#475569', borderBottom: '1px solid #e2e8f0', width: '28px' }}>Grade</th>
+                <th style={{ padding: '3px 6px', fontSize: '6.5pt', fontWeight: 'bold', textAlign: 'center', color: '#475569', borderBottom: '1px solid #e2e8f0', width: '40px' }}>Range</th>
+                <th style={{ padding: '3px 6px', fontSize: '6.5pt', fontWeight: 'bold', textAlign: 'left', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>Remark</th>
+              </tr>
+            </thead>
             <tbody>
-              {GRADING_KEY.map(({ grade, range, remark }) => (
-                <tr key={grade}>
-                  <td style={{ border: BORDER, padding: '2px 5px', fontWeight: 'bold', textAlign: 'center', width: '24px', ...gradeColor(grade) }}>
-                    {grade}
-                  </td>
-                  <td style={{ border: BORDER, padding: '2px 5px', fontSize: '7.5pt' }}>
-                    {range} : {remark}
-                  </td>
+              {GRADING_KEY.map(({ grade, range, remark }, i) => (
+                <tr key={grade} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '3px 6px', textAlign: 'center', fontWeight: 'bold', fontSize: '8.5pt' }}>{grade}</td>
+                  <td style={{ padding: '3px 6px', textAlign: 'center', fontSize: '7.5pt', color: '#475569' }}>{range}</td>
+                  <td style={{ padding: '3px 6px', fontSize: '7.5pt', color: '#374151' }}>{remark}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ marginTop: '8px', fontSize: '6.5pt', color: '#777', fontStyle: 'italic', textAlign: 'center' }}>
-            Computer-generated · {SCHOOL_CITY_TAGLINE}
+          <div style={{ padding: '10px 8px 6px', fontSize: '6.5pt', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic' }}>
+            Computer-generated<br />{SCHOOL_CITY_TAGLINE}
           </div>
         </div>
+      </div>
+
+      {/* ══ FOOTER BAR ══ */}
+      <div style={{ background: '#1a2433', color: '#fff', padding: '5px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7.5pt' }}>
+        <span>
+          <span style={{ opacity: 0.65, marginRight: '4px' }}>School Re-opens:</span>
+          <span style={{ fontWeight: 'bold' }}>{nextTerm.begins ? fmtDate(nextTerm.begins) : '—'}</span>
+        </span>
+        {nextTerm.fees && (
+          <span>
+            <span style={{ opacity: 0.65, marginRight: '4px' }}>Fees:</span>
+            <span style={{ fontWeight: 'bold' }}>{nextTerm.fees}</span>
+          </span>
+        )}
+        <span style={{ opacity: 0.5, fontSize: '6.5pt' }}>{displaySchool}</span>
       </div>
     </div>
   );
