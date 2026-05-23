@@ -7,7 +7,7 @@
  *   node scripts/gen-db-types.mjs --local   # uses local `supabase start` DB
  */
 import { execSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -17,7 +17,9 @@ const outPath = join(root, 'src', 'lib', 'database.generated.ts');
 
 const useLocal = process.argv.includes('--local');
 const sub = useLocal ? '--local' : '--linked';
-const cmd = `npx supabase gen types typescript ${sub}`;
+// Use local supabase.exe if present (Windows), otherwise fall back to npx
+const bin = existsSync(join(root, 'supabase.exe')) ? join(root, 'supabase.exe') : 'npx supabase';
+const cmd = `"${bin}" gen types typescript ${sub}`;
 
 let stdout;
 try {
