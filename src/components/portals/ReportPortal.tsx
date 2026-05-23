@@ -376,31 +376,174 @@ export default function ReportPortal() {
         </div>
       </div>
 
-      {/* Card preview — scrollable on mobile */}
-      <div className="p-4">
-        <div className="overflow-x-auto">
-          <div style={{ minWidth: isLandscape ? 760 : 620 }}>
-            <ResultCard data={cardData} onPrint={() => printResultCard(studentName, isLandscape)} />
-          </div>
-        </div>
+      {/* ── Mobile-native result view ── */}
+      <div className="p-4 space-y-4 max-w-lg mx-auto">
 
+        {/* Term chips */}
         {sorted.length > 1 && (
-          <div className="mt-4 flex flex-wrap gap-2 justify-center">
+          <div className="flex flex-wrap gap-2">
             {sorted.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedSheetIdx(i)}
+              <button key={i} onClick={() => setSelectedSheetIdx(i)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                   i === selectedSheetIdx
                     ? 'bg-green-700 text-white border-green-700'
                     : 'bg-white text-gray-600 border-gray-300 hover:border-green-500'
-                }`}
-              >
+                }`}>
                 {s.term} {s.academic_year}
               </button>
             ))}
           </div>
         )}
+
+        {/* Scores table */}
+        {cardData.subjects.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-bold text-gray-800 text-sm">Academic Performance</h2>
+              <span className="text-xs text-gray-400">{sheet.term} · {sheet.academic_year}</span>
+            </div>
+            {/* Basic/Nursery/KG: show score columns */}
+            {portalData.student.class_level !== 'toddler' && portalData.student.class_level !== 'creche' ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs min-w-[340px]">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-500 uppercase text-center">
+                      <th className="py-2 px-3 text-left font-semibold">Subject</th>
+                      <th className="py-2 px-2">CA1</th>
+                      <th className="py-2 px-2">CA2</th>
+                      <th className="py-2 px-2">Exam</th>
+                      <th className="py-2 px-2 bg-gray-100 font-bold">Total</th>
+                      <th className="py-2 px-2">Grade</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cardData.subjects.filter(s => s.total > 0).map((s, i) => {
+                      const gradeColor = s.grade.startsWith('A') ? 'text-green-700 bg-green-50'
+                        : s.grade.startsWith('B') ? 'text-blue-700 bg-blue-50'
+                        : s.grade.startsWith('C') ? 'text-yellow-700 bg-yellow-50'
+                        : 'text-red-700 bg-red-50';
+                      return (
+                        <tr key={s.subject} className={`border-t border-gray-50 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
+                          <td className="py-2.5 px-3 font-semibold text-gray-800 text-xs uppercase">{s.subject}</td>
+                          <td className="py-2.5 px-2 text-center tabular-nums text-gray-600">{s.ca1 > 0 ? s.ca1 : '—'}</td>
+                          <td className="py-2.5 px-2 text-center tabular-nums text-gray-600">{s.ca2 > 0 ? s.ca2 : '—'}</td>
+                          <td className="py-2.5 px-2 text-center tabular-nums text-gray-600">{s.exam > 0 ? s.exam : '—'}</td>
+                          <td className="py-2.5 px-2 text-center font-bold text-gray-800 bg-gray-100 tabular-nums">{s.total}</td>
+                          <td className="py-2.5 px-2 text-center">
+                            <span className={`px-1.5 py-0.5 rounded font-bold text-xs ${gradeColor}`}>{s.grade}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              /* Toddler/Creche: word-based skill ratings */
+              <div className="divide-y divide-gray-50">
+                {cardData.subjects.map(s => (
+                  <div key={s.subject} className="flex items-center justify-between px-4 py-3">
+                    <span className="text-sm font-medium text-gray-700">{s.subject}</span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                      s.grade === 'E' ? 'bg-green-100 text-green-700' :
+                      s.grade === 'VG' ? 'bg-blue-100 text-blue-700' :
+                      s.grade === 'G' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>{s.grade}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Grand total row */}
+            {cardData.classStats.grandTotal > 0 && (
+              <div className="px-4 py-3 bg-green-50 border-t border-green-100 flex justify-between items-center">
+                <span className="text-sm font-bold text-green-800">Total Score</span>
+                <span className="text-lg font-bold text-green-700">{cardData.classStats.grandTotal}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Attendance */}
+        {(cardData.attendance.totalDays > 0) && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <h3 className="font-bold text-gray-700 text-sm mb-3">Attendance</h3>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              {[
+                { label: 'School Days', value: cardData.attendance.totalDays, color: 'text-gray-700' },
+                { label: 'Present', value: cardData.attendance.daysPresent, color: 'text-green-700' },
+                { label: 'Absent', value: cardData.attendance.daysAbsent, color: 'text-red-600' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-gray-50 rounded-xl py-3">
+                  <div className={`text-xl font-bold ${color}`}>{value}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Behavior */}
+        {cardData.behavior && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <h3 className="font-bold text-gray-700 text-sm mb-3">Character Assessment</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(cardData.behavior).map(([key, val]) => {
+                const stars = typeof val === 'number' ? val : 0;
+                const label = key.charAt(0).toUpperCase() + key.slice(1);
+                return (
+                  <div key={key} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                    <span className="text-xs text-gray-600">{label}</span>
+                    <span className="text-yellow-500 text-sm">{'★'.repeat(stars)}{'☆'.repeat(Math.max(0, 5 - stars))}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Comments */}
+        {(cardData.comments.teacher || cardData.comments.principal) && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+            <h3 className="font-bold text-gray-700 text-sm">Remarks</h3>
+            {cardData.comments.teacher && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-1">Class Teacher</p>
+                <p className="text-sm text-gray-700 italic bg-gray-50 rounded-lg px-3 py-2">{cardData.comments.teacher}</p>
+              </div>
+            )}
+            {cardData.comments.principal && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-1">Proprietress</p>
+                <p className="text-sm text-gray-700 italic bg-gray-50 rounded-lg px-3 py-2">{cardData.comments.principal}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Next term */}
+        {(cardData.nextTerm.begins || cardData.nextTerm.fees) && (
+          <div className="bg-green-50 border border-green-100 rounded-2xl p-4">
+            <h3 className="font-bold text-green-800 text-sm mb-2">Next Term</h3>
+            {cardData.nextTerm.begins && (
+              <p className="text-sm text-green-700">Resumes: <span className="font-semibold">{cardData.nextTerm.begins}</span></p>
+            )}
+            {cardData.nextTerm.fees && (
+              <p className="text-sm text-green-700 mt-1">Fees: <span className="font-semibold">{cardData.nextTerm.fees}</span></p>
+            )}
+          </div>
+        )}
+
+        {/* Print hint */}
+        <p className="text-center text-xs text-gray-400 pb-4">
+          Tap <strong>Print / Save PDF</strong> above to get a printable copy.
+        </p>
+      </div>
+
+      {/* Hidden ResultCard used only for printing — not visible on screen */}
+      <div className="hidden">
+        <ResultCard data={cardData} onPrint={() => printResultCard(studentName, isLandscape)} />
       </div>
     </div>
   );
