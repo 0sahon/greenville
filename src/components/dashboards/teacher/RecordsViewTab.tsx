@@ -36,6 +36,8 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
   const [editing, setEditing] = useState<GradeWithStudent | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [recordsView, setRecordsView] = useState<'flat' | 'subject' | 'type'>('flat');
+  const [filterType, setFilterType] = useState('');
   const [form, setForm] = useState({
     student_id: '', subject: '', assessment_type: '1st CA',
     score: '', max_score: '15', term: 'First Term', academic_year: getDefaultAcademicYear(),
@@ -75,6 +77,7 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
   useEffect(() => { fetchGrades(); }, [fetchGrades]);
 
   const subjects = [...new Set(grades.map(g => g.subject))].sort();
+  const types = [...new Set(grades.map(g => g.assessment_type))].sort();
 
   const filtered = grades.filter(g => {
     const name = `${g.students?.profiles?.first_name ?? ''} ${g.students?.profiles?.last_name ?? ''}`.toLowerCase();
@@ -82,7 +85,8 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
       (!search || name.includes(search.toLowerCase()) || g.subject.toLowerCase().includes(search.toLowerCase()) || g.students?.student_id?.toLowerCase().includes(search.toLowerCase())) &&
       (!filterClass || g.students?.classes?.id === filterClass) &&
       (!filterTerm || g.term === filterTerm) &&
-      (!filterSubject || g.subject === filterSubject)
+      (!filterSubject || g.subject === filterSubject) &&
+      (!filterType || g.assessment_type === filterType)
     );
   });
 
@@ -157,12 +161,25 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
             <option value="">All subjects</option>
             {subjects.map(s => <option key={s}>{s}</option>)}
           </select>
+          <select value={filterType} onChange={e => setFilterType(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="">All types</option>
+            {types.map(t => <option key={t}>{t}</option>)}
+          </select>
           <select value={filterTerm} onChange={e => setFilterTerm(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
             <option value="">All terms</option>
             {TERMS.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-medium">
+            {(['flat', 'subject', 'type'] as const).map(v => (
+              <button key={v} onClick={() => setRecordsView(v)}
+                className={`px-3 py-1.5 ${recordsView === v ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                {v === 'flat' ? 'All' : v === 'subject' ? 'By Subject' : 'By Type'}
+              </button>
+            ))}
+          </div>
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
             <Download className="w-4 h-4" /> CSV
           </button>
@@ -175,56 +192,96 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500 uppercase text-left">
-                  <th className="py-3 px-4">Student</th>
-                  <th className="py-3 px-4">Class</th>
-                  <th className="py-3 px-4">Subject</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Score</th>
-                  <th className="py-3 px-4">Grade</th>
-                  <th className="py-3 px-4">Term</th>
-                  <th className="py-3 px-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(g => {
-                  const { label, color } = nigerianGrade(g.score, g.max_score);
-                  return (
-                    <tr key={g.id} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="py-2.5 px-4">
-                        <div className="font-medium text-gray-800">{g.students?.profiles?.first_name} {g.students?.profiles?.last_name}</div>
-                        <div className="text-xs text-gray-400 font-mono">{g.students?.student_id}</div>
-                      </td>
-                      <td className="py-2.5 px-4 text-gray-600 text-sm">{g.students?.classes?.name ?? '—'}</td>
-                      <td className="py-2.5 px-4 text-gray-700">{g.subject}</td>
-                      <td className="py-2.5 px-4 text-gray-500 text-xs">{g.assessment_type}</td>
-                      <td className="py-2.5 px-4 font-semibold tabular-nums">{g.score}/{g.max_score}</td>
-                      <td className="py-2.5 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span></td>
-                      <td className="py-2.5 px-4 text-gray-400 text-xs">{g.term}</td>
-                      <td className="py-2.5 px-4">
-                        <div className="flex gap-1">
-                          <button onClick={() => openEdit(g)} className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-600"><Edit2 className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => deleteGrade(g.id)} disabled={deleting === g.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400 disabled:opacity-40">
-                            {deleting === g.id ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="text-center py-12 text-gray-400">
-                    {grades.length === 0 ? 'No grades yet — use Grade Sheet to enter scores.' : 'No records match the filters.'}
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        ) : (() => {
+          const colHeaders = (
+            <tr className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500 uppercase text-left">
+              <th className="py-3 px-4">Student</th><th className="py-3 px-4">Class</th>
+              <th className="py-3 px-4">Subject</th><th className="py-3 px-4">Type</th>
+              <th className="py-3 px-4">Score</th><th className="py-3 px-4">Grade</th>
+              <th className="py-3 px-4">Term</th><th className="py-3 px-4">Actions</th>
+            </tr>
+          );
+          const GradeRow = ({ g }: { g: GradeWithStudent }) => {
+            const { label, color } = nigerianGrade(g.score, g.max_score);
+            return (
+              <tr key={g.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="py-2.5 px-4">
+                  <div className="font-medium text-gray-800 text-sm">{g.students?.profiles?.first_name} {g.students?.profiles?.last_name}</div>
+                  <div className="text-xs text-gray-400 font-mono">{g.students?.student_id}</div>
+                </td>
+                <td className="py-2.5 px-4 text-gray-600 text-sm">{g.students?.classes?.name ?? '—'}</td>
+                <td className="py-2.5 px-4 text-gray-700 text-sm">{g.subject}</td>
+                <td className="py-2.5 px-4 text-gray-500 text-xs">{g.assessment_type}</td>
+                <td className="py-2.5 px-4 font-semibold tabular-nums text-sm">{g.score}/{g.max_score}</td>
+                <td className="py-2.5 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span></td>
+                <td className="py-2.5 px-4 text-gray-400 text-xs">{g.term}</td>
+                <td className="py-2.5 px-4">
+                  <div className="flex gap-1">
+                    <button onClick={() => openEdit(g)} className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-600"><Edit2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => deleteGrade(g.id)} disabled={deleting === g.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400 disabled:opacity-40">
+                      {deleting === g.id ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          };
+
+          if (recordsView === 'flat') {
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>{colHeaders}</thead>
+                  <tbody>
+                    {filtered.map(g => <GradeRow key={g.id} g={g} />)}
+                    {filtered.length === 0 && (
+                      <tr><td colSpan={8} className="text-center py-12 text-gray-400">
+                        {grades.length === 0 ? 'No grades yet — use Grade Sheet to enter scores.' : 'No records match the filters.'}
+                      </td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+
+          const groupKey = recordsView === 'subject' ? 'subject' : 'assessment_type';
+          const groups: Record<string, GradeWithStudent[]> = {};
+          filtered.forEach(g => { const k = g[groupKey] ?? '—'; if (!groups[k]) groups[k] = []; groups[k].push(g); });
+          const sortedGroups = Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>{colHeaders}</thead>
+                <tbody>
+                  {sortedGroups.length === 0 && (
+                    <tr><td colSpan={8} className="text-center py-12 text-gray-400">No records match the filters.</td></tr>
+                  )}
+                  {sortedGroups.map(([group, rows]) => {
+                    const avg = rows.length > 0
+                      ? Math.round(rows.reduce((s, r) => s + (r.max_score > 0 ? (r.score / r.max_score) * 100 : 0), 0) / rows.length)
+                      : null;
+                    return (
+                      <>
+                        <tr key={`grp-${group}`} className="bg-indigo-50 border-t-2 border-indigo-200">
+                          <td colSpan={8} className="py-2 px-4">
+                            <div className="flex items-center gap-3">
+                              <span className="font-semibold text-indigo-800 text-sm">{group}</span>
+                              <span className="text-xs text-indigo-400">{rows.length} record{rows.length !== 1 ? 's' : ''}</span>
+                              {avg !== null && <span className="text-xs text-indigo-600 font-medium">Avg {avg}%</span>}
+                            </div>
+                          </td>
+                        </tr>
+                        {rows.map(g => <GradeRow key={g.id} g={g} />)}
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
 
       {showModal && (

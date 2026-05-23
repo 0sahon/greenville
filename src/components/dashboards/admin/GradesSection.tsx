@@ -74,6 +74,9 @@ function RecordsTab({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [publishedIds, setPublishedIds] = useState<Set<string>>(new Set());
+  const [recordsView, setRecordsView] = useState<'flat' | 'subject' | 'type'>('flat');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterType, setFilterType] = useState('');
   const [form, setForm] = useState({
     class_id: '', student_id: '', subject: '', custom_subject: '',
     assessment_type: '1st CA', score: '', max_score: '15',
@@ -113,12 +116,17 @@ function RecordsTab({
   const isToddlerModal = selectedClassLevel === 'toddler';
   const subjectOptions = isToddlerModal ? PRE_KG_SKILLS_LIST : modalSubjects;
 
+  const allSubjects = [...new Set(grades.map(g => g.subject))].sort();
+  const allTypes = [...new Set(grades.map(g => g.assessment_type))].sort();
+
   const filtered = grades.filter(g => {
     const name = `${g.students?.profiles?.first_name ?? ''} ${g.students?.profiles?.last_name ?? ''}`.toLowerCase();
     return (
       (!search || name.includes(search.toLowerCase()) || g.subject.toLowerCase().includes(search.toLowerCase())) &&
       (!filterClass || g.students?.classes?.id === filterClass) &&
-      (!filterTerm || g.term === filterTerm)
+      (!filterTerm || g.term === filterTerm) &&
+      (!filterSubject || g.subject === filterSubject) &&
+      (!filterType || g.assessment_type === filterType)
     );
   });
 
@@ -218,8 +226,27 @@ function RecordsTab({
             <option value="">All terms</option>
             {TERMS.map(t => <option key={t}>{t}</option>)}
           </select>
+          <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">All subjects</option>
+            {allSubjects.map(s => <option key={s}>{s}</option>)}
+          </select>
+          <select value={filterType} onChange={e => setFilterType(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">All types</option>
+            {allTypes.map(t => <option key={t}>{t}</option>)}
+          </select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-medium">
+            {(['flat', 'subject', 'type'] as const).map(v => (
+              <button key={v} onClick={() => setRecordsView(v)}
+                className={`px-3 py-1.5 ${recordsView === v ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+                {v === 'flat' ? 'All' : v === 'subject' ? 'By Subject' : 'By Type'}
+              </button>
+            ))}
+          </div>
           <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
             <Download className="w-4 h-4" /> Export
           </button>
@@ -234,68 +261,104 @@ function RecordsTab({
           <div className="flex justify-center items-center py-16">
             <div className="w-8 h-8 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin" />
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 uppercase">
-                  <th className="py-3 px-4">Student</th><th className="py-3 px-4">Class</th>
-                  <th className="py-3 px-4">Subject</th><th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Score</th><th className="py-3 px-4">Grade</th>
-                  <th className="py-3 px-4">Term</th><th className="py-3 px-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(g => {
-                  const isPreKg = g.assessment_type === 'pre_kg';
-                  const { label, color } = isPreKg ? { label: PRE_KG_RATING_LABELS[g.score] || String(g.score), color: 'text-indigo-700 bg-indigo-50' } : nigerianGrade(g.score, g.max_score);
-                  return (
-                    <tr key={g.id} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-gray-800">{g.students?.profiles?.first_name} {g.students?.profiles?.last_name}</td>
-                      <td className="py-3 px-4 text-gray-600">{g.students?.classes?.name ?? '—'}</td>
-                      <td className="py-3 px-4 text-gray-700">{g.subject}</td>
-                      <td className="py-3 px-4 text-gray-500 text-xs">{isPreKg ? 'Pre-KG Rating' : g.assessment_type}</td>
-                      <td className="py-3 px-4 font-semibold text-gray-800 tabular-nums">{isPreKg ? `${g.score}/5` : `${g.score}/${g.max_score}`}</td>
-                      <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span></td>
-                      <td className="py-3 px-4 text-gray-500 text-xs">{g.term}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1">
-                          {publishedIds.has(g.student_id) && (
-                            <span title="Result card is published" className="p-1 text-amber-500">
-                              <Lock className="w-3 h-3" />
-                            </span>
-                          )}
-                          <button
-                            onClick={() => {
-                              if (publishedIds.has(g.student_id) && !window.confirm(`${g.students?.profiles?.first_name}'s report card is published. Edit this grade anyway?`)) return;
-                              openEdit(g);
-                            }}
-                            className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500">
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (publishedIds.has(g.student_id) && !window.confirm(`${g.students?.profiles?.first_name}'s report card is published. Delete this grade anyway?`)) return;
-                              deleteGrade(g.id);
-                            }}
-                            disabled={deleting === g.id}
-                            className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 disabled:opacity-40">
-                            {deleting === g.id
-                              ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
-                              : <Trash2 className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="text-center py-10 text-gray-400">No grades found</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        ) : (() => {
+          const GradeActions = ({ g }: { g: GradeWithStudent }) => {
+            const isPreKg = g.assessment_type === 'pre_kg';
+            const { label, color } = isPreKg
+              ? { label: PRE_KG_RATING_LABELS[g.score] || String(g.score), color: 'text-indigo-700 bg-indigo-50' }
+              : nigerianGrade(g.score, g.max_score);
+            return (
+              <tr key={g.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="py-2.5 px-4 font-medium text-gray-800 text-sm">{g.students?.profiles?.first_name} {g.students?.profiles?.last_name}</td>
+                <td className="py-2.5 px-4 text-gray-600 text-sm">{g.students?.classes?.name ?? '—'}</td>
+                <td className="py-2.5 px-4 text-gray-700 text-sm">{g.subject}</td>
+                <td className="py-2.5 px-4 text-gray-500 text-xs">{isPreKg ? 'Pre-KG Rating' : g.assessment_type}</td>
+                <td className="py-2.5 px-4 font-semibold text-gray-800 tabular-nums text-sm">{isPreKg ? `${g.score}/5` : `${g.score}/${g.max_score}`}</td>
+                <td className="py-2.5 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span></td>
+                <td className="py-2.5 px-4 text-gray-500 text-xs">{g.term}</td>
+                <td className="py-2.5 px-4">
+                  <div className="flex items-center gap-1">
+                    {publishedIds.has(g.student_id) && (
+                      <span title="Result card is published" className="p-1 text-amber-500"><Lock className="w-3 h-3" /></span>
+                    )}
+                    <button onClick={() => { if (publishedIds.has(g.student_id) && !window.confirm(`${g.students?.profiles?.first_name}'s report card is published. Edit this grade anyway?`)) return; openEdit(g); }}
+                      className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500"><Edit2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => { if (publishedIds.has(g.student_id) && !window.confirm(`${g.students?.profiles?.first_name}'s report card is published. Delete this grade anyway?`)) return; deleteGrade(g.id); }}
+                      disabled={deleting === g.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 disabled:opacity-40">
+                      {deleting === g.id ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          };
+
+          const colHeaders = (
+            <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 uppercase">
+              <th className="py-3 px-4">Student</th><th className="py-3 px-4">Class</th>
+              <th className="py-3 px-4">Subject</th><th className="py-3 px-4">Type</th>
+              <th className="py-3 px-4">Score</th><th className="py-3 px-4">Grade</th>
+              <th className="py-3 px-4">Term</th><th className="py-3 px-4">Actions</th>
+            </tr>
+          );
+
+          if (recordsView === 'flat') {
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>{colHeaders}</thead>
+                  <tbody>
+                    {filtered.map(g => <GradeActions key={g.id} g={g} />)}
+                    {filtered.length === 0 && <tr><td colSpan={8} className="text-center py-10 text-gray-400">No grades found</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+
+          // Group by subject or type
+          const groupKey = recordsView === 'subject' ? 'subject' : 'assessment_type';
+          const groups: Record<string, GradeWithStudent[]> = {};
+          filtered.forEach(g => {
+            const k = g[groupKey] ?? '—';
+            if (!groups[k]) groups[k] = [];
+            groups[k].push(g);
+          });
+          const sortedGroups = Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>{colHeaders}</thead>
+                <tbody>
+                  {sortedGroups.length === 0 && <tr><td colSpan={8} className="text-center py-10 text-gray-400">No grades found</td></tr>}
+                  {sortedGroups.map(([group, rows]) => {
+                    const nonPk = rows.filter(r => r.assessment_type !== 'pre_kg');
+                    const avg = nonPk.length > 0
+                      ? Math.round(nonPk.reduce((s, r) => s + (r.max_score > 0 ? (r.score / r.max_score) * 100 : 0), 0) / nonPk.length)
+                      : null;
+                    return (
+                      <>
+                        <tr key={`grp-${group}`} className="bg-purple-50 border-t-2 border-purple-200">
+                          <td colSpan={8} className="py-2 px-4">
+                            <div className="flex items-center gap-3">
+                              <span className="font-semibold text-purple-800 text-sm">{group}</span>
+                              <span className="text-xs text-purple-500">{rows.length} record{rows.length !== 1 ? 's' : ''}</span>
+                              {avg !== null && (
+                                <span className="text-xs text-purple-600 font-medium">Avg {avg}%</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                        {rows.map(g => <GradeActions key={g.id} g={g} />)}
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
 
       {showModal && (
