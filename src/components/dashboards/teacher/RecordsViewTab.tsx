@@ -93,9 +93,12 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
   });
 
   const exportCSV = () => {
+    const PKG_WORD: Record<number, string> = { 5: 'Excellent', 4: 'Very Good', 3: 'Good', 2: 'Fair', 1: 'Needs Improvement' };
     const rows = [['Student', 'ID', 'Class', 'Subject', 'Type', 'Score', 'Max', 'Grade', 'Term']];
     filtered.forEach(g => {
-      const { label } = nigerianGrade(g.score, g.max_score);
+      const label = g.assessment_type === 'pre_kg'
+        ? (PKG_WORD[g.score] ?? String(g.score))
+        : nigerianGrade(g.score, g.max_score).label;
       rows.push([`${g.students?.profiles?.first_name ?? ''} ${g.students?.profiles?.last_name ?? ''}`.trim(), g.students?.student_id ?? '', g.students?.classes?.name ?? '', g.subject, g.assessment_type, String(g.score), String(g.max_score), label, g.term]);
     });
     const a = document.createElement('a');
@@ -210,7 +213,11 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
             </tr>
           );
           const GradeRow = ({ g }: { g: GradeWithStudent }) => {
-            const { label, color } = nigerianGrade(g.score, g.max_score);
+            const PKG_WORD: Record<number, string> = { 5: 'Excellent', 4: 'Very Good', 3: 'Good', 2: 'Fair', 1: 'Needs Improvement' };
+            const isPreKg = g.assessment_type === 'pre_kg';
+            const { label, color } = isPreKg
+              ? { label: PKG_WORD[g.score] ?? String(g.score), color: 'text-indigo-700 bg-indigo-50' }
+              : nigerianGrade(g.score, g.max_score);
             return (
               <tr key={g.id} className="border-b border-gray-50 hover:bg-gray-50">
                 <td className="py-2.5 px-4">

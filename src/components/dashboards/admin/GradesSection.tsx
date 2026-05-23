@@ -133,7 +133,9 @@ function RecordsTab({
   const exportCSV = () => {
     const rows: string[][] = [['Student', 'Class', 'Subject', 'Type', 'Score', 'Max', 'Grade', 'Term', 'Year']];
     filtered.forEach(g => {
-      const { label } = nigerianGrade(g.score, g.max_score);
+      const label = g.assessment_type === 'pre_kg'
+        ? (PRE_KG_RATING_LABELS[g.score] ?? String(g.score))
+        : nigerianGrade(g.score, g.max_score).label;
       rows.push([
         `${g.students?.profiles?.first_name ?? ''} ${g.students?.profiles?.last_name ?? ''}`.trim(),
         g.students?.classes?.name ?? '', g.subject, g.assessment_type,

@@ -9,7 +9,7 @@ import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../
 import { useSchoolSettings } from '../../../hooks/useSchoolSettings';
 import { getNigerianGrade } from '../../../lib/grading';
 import { printResultCard, CardPrintContent,
-  PRE_KG_SKILLS,
+  PRE_KG_SKILLS, preKgTotalToRating,
   NURSERY_SUBJECTS, buildNurserySubjects, NURSERY_CA_MAX, NURSERY_EXAM_MAX,
   BASIC_SUBJECTS, buildBasicSubjects, BASIC_CA_MAX, BASIC_EXAM_MAX,
 } from './ResultCard';
@@ -439,11 +439,30 @@ export default function ResultsSection({ profile }: Props) {
     const data = buildCardData();
     if (!data) return;
     const { student, term: t, academicYear: yr, subjects: subs, classStats } = data;
+    const school = schoolName || 'Greenville Montessori Schools';
+
+    if (isToddlerStudent) {
+      const PKG_WORD: Record<number, string> = { 5: 'Excellent', 4: 'Very Good', 3: 'Good', 2: 'Fair', 1: 'Needs Improvement' };
+      const rated = subs.filter(s => s.total > 0);
+      const lines = [
+        `🏫 *${school}*`,
+        `📋 *${student.name} — Pre-KG Report*`,
+        `📚 ${student.className} | ${t} ${yr}`,
+        ``,
+        `🎈 *Skill Evaluations:*`,
+        ...rated.map(s => `• ${s.subject}: *${PKG_WORD[preKgTotalToRating(s.total)] ?? '—'}*`),
+        ``,
+        `— ${school}`,
+      ].join('\n');
+      window.open(`https://wa.me/?text=${encodeURIComponent(lines)}`, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     const scored = subs.filter(s => s.total > 0);
     const avg = scored.length > 0 ? Math.round(scored.reduce((a, s) => a + s.total, 0) / scored.length) : 0;
     const { grade, remark } = getNigerianGrade(avg);
     const lines = [
-      `🏫 *${schoolName || 'Greenville Montessori Schools'}*`,
+      `🏫 *${school}*`,
       `📋 *${student.name} — Report Card*`,
       `📚 ${student.className} | ${t} ${yr}`,
       ``,
@@ -453,7 +472,7 @@ export default function ResultsSection({ profile }: Props) {
       `*Subject Results:*`,
       ...scored.map(s => `• ${s.subject}: ${s.total}% (${s.grade})`),
       ``,
-      `— ${schoolName || 'Greenville Montessori Schools'}`,
+      `— ${school}`,
     ].join('\n');
     window.open(`https://wa.me/?text=${encodeURIComponent(lines)}`, '_blank', 'noopener,noreferrer');
   };

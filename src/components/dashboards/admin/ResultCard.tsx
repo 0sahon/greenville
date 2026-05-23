@@ -1220,20 +1220,29 @@ function ToddlerPreKGResultCard({ data }: { data: ResultCardData }) {
             </div>
           </div>
 
-          {/* Total / Average */}
-          <div style={{ fontSize: '7.5pt' }}>
-            <div style={{ marginBottom: '6px' }}>
-              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Total</div>
-              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}>
-                {preKgTotal !== null ? preKgTotal : ''}
+          {/* Overall Evaluation */}
+          <div style={{ fontSize: '7.5pt', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+            <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '4px', textAlign: 'center' }}>Overall Evaluation</div>
+            {preKgAverage !== null ? (() => {
+              const r = Math.round(parseFloat(preKgAverage));
+              const wordMap: Record<number, string> = { 5: 'Excellent', 4: 'Very Good', 3: 'Good', 2: 'Fair', 1: 'Needs Improvement' };
+              const colorMap: Record<number, [string, string]> = {
+                5: ['#16a34a', '#dcfce7'], 4: ['#1d4ed8', '#dbeafe'],
+                3: ['#0f766e', '#ccfbf1'], 2: ['#a16207', '#fef9c3'],
+                1: ['#b91c1c', '#fee2e2'],
+              };
+              const [fg, bg] = colorMap[r] ?? ['#555', '#f1f5f9'];
+              return (
+                <div style={{ background: bg, color: fg, border: `1.5px solid ${fg}`, borderRadius: '8px', padding: '4px 10px', fontWeight: 'bold', fontSize: '8.5pt', textAlign: 'center', fontFamily: "'Fredoka', sans-serif" }}>
+                  {wordMap[r] ?? '—'}
+                </div>
+              );
+            })() : null}
+            {preKgAverage !== null && (
+              <div style={{ color: '#666', fontSize: '7pt', textAlign: 'center' }}>
+                Avg: {preKgAverage} / 5.0
               </div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 'bold', color: NAVY, marginBottom: '2px' }}>Average</div>
-              <div style={{ borderBottom: '1px solid #ccc', minHeight: '15px', fontSize: '9pt', paddingLeft: '4px', fontWeight: 'bold' }}>
-                {preKgAverage !== null ? preKgAverage : ''}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
