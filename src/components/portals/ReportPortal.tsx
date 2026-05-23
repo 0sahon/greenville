@@ -312,6 +312,16 @@ export default function ReportPortal() {
           <p className="text-center text-xs text-gray-400 mt-6">
             Contact the school office to get your child&apos;s Portal PIN.
           </p>
+
+          <div className="text-center mt-4">
+            <button
+              onClick={() => { window.location.href = '/'; }}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back to Website
+            </button>
+          </div>
         </div>
       </div>
     );
