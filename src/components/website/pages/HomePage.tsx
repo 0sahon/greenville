@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Star, Heart, Sparkles, BookOpen, Users, Award, Phone, Camera, Check, LogIn } from 'lucide-react';
+import { ArrowRight, Star, Heart, Sparkles, BookOpen, Users, Award, Phone, Camera, Check, LogIn, KeyRound, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SCHOOL_NAME, SCHOOL_TAGLINE } from '../../../config/schoolBrand';
 
@@ -83,14 +83,23 @@ export default function HomePage({ onParentPortal }: HomePageProps) {
                   <LogIn className="w-5 h-5" />
                   Parent Portal
                 </button>
-                
-                <button 
+
+                <button
                   onClick={handleOurPrograms}
                   className="border-2 border-indigo-600 text-indigo-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-indigo-600 hover:text-white transition-all duration-300 transform hover:scale-105"
                 >
                   Our Programs
                 </button>
               </div>
+
+              <button
+                onClick={() => { window.location.href = '/?portal=1'; }}
+                className="mt-4 inline-flex items-center gap-2 text-sm text-emerald-700 font-semibold hover:text-emerald-900 transition-colors justify-center lg:justify-start group"
+              >
+                <KeyRound className="w-4 h-4" />
+                Have a result PIN? Check your child's result card
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </button>
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-8 mt-12 pt-8 border-t border-gray-200">
@@ -248,6 +257,40 @@ export default function HomePage({ onParentPortal }: HomePageProps) {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Result Portal Banner */}
+      <section className="py-16 bg-gradient-to-br from-emerald-700 to-emerald-900">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-10">
+            <div className="flex-shrink-0">
+              <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-2 border-white/20 shadow-xl">
+                <FileText className="w-12 h-12 text-emerald-200" />
+              </div>
+            </div>
+            <div className="flex-1 text-center lg:text-left">
+              <span className="inline-block bg-emerald-600/60 text-emerald-100 px-3 py-1 rounded-full text-xs font-bold mb-3 border border-emerald-400/30 tracking-wide uppercase">
+                Parent Result Portal
+              </span>
+              <h2 className="text-3xl font-black text-white mb-3 leading-tight">
+                Check Your Child's Result Card
+              </h2>
+              <p className="text-emerald-100 text-base font-medium leading-relaxed max-w-xl">
+                Use the <strong className="text-white">Admission Number</strong> and <strong className="text-white">6-digit PIN</strong> from your child's result slip to view and download their official report card — no login required.
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <button
+                onClick={() => { window.location.href = '/?portal=1'; }}
+                className="bg-white text-emerald-800 px-8 py-4 rounded-full font-extrabold text-lg hover:bg-emerald-50 transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center gap-3 whitespace-nowrap"
+              >
+                <KeyRound className="w-5 h-5" />
+                Check Result Now
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </section>
