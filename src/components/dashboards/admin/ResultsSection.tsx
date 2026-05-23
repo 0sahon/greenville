@@ -848,35 +848,44 @@ export default function ResultsSection({ profile }: Props) {
     const cardHtml = withPins.map(s => {
       const name = `${s.profiles?.first_name ?? ''} ${s.profiles?.last_name ?? ''}`.trim();
       const pin = s.report_pin!;
-      // Format PIN as groups of 3: 482916 → 482 916
       const pinFmt = `${pin.slice(0, 3)} ${pin.slice(3)}`;
+      const className = s.classes?.name ?? '—';
       return `
         <div class="slip">
           <div class="slip-header">
             <img src="/gms-logo.jpg" class="slip-logo" alt="" />
-            <div class="slip-school">${sName.toUpperCase()}</div>
+            <div>
+              <div class="slip-school">${sName.toUpperCase()}</div>
+              <div class="slip-tagline">Parent Result Portal Access Card</div>
+            </div>
           </div>
           <div class="slip-body">
-            <div class="slip-label">STUDENT</div>
-            <div class="slip-name">${name}</div>
+            <div class="slip-name-row">
+              <div class="slip-label">STUDENT NAME</div>
+              <div class="slip-name">${name}</div>
+            </div>
             <div class="slip-row">
               <div>
-                <div class="slip-label">STUDENT ID</div>
+                <div class="slip-label">ADM. NUMBER</div>
                 <div class="slip-id">${s.student_id}</div>
               </div>
               <div>
+                <div class="slip-label">CLASS</div>
+                <div class="slip-id">${className}</div>
+              </div>
+              <div>
                 <div class="slip-label">TERM</div>
-                <div class="slip-id">${selectedTerm} · ${academicYear}</div>
+                <div class="slip-id">${selectedTerm.replace(' Term', '')} ${academicYear}</div>
               </div>
             </div>
             <div class="slip-pin-wrap">
-              <div class="slip-label">PARENT PORTAL PIN</div>
+              <div class="slip-pin-label">PORTAL PIN</div>
               <div class="slip-pin">${pinFmt}</div>
             </div>
           </div>
           <div class="slip-footer">
-            <span>🌐 ${portalUrl}</span>
-            <span>Enter Student ID + PIN to view results</span>
+            <div class="slip-footer-url">🌐 ${portalUrl}</div>
+            <div class="slip-footer-cta">Visit the link above &rarr; enter Adm. No. + PIN to view your child&apos;s results</div>
           </div>
         </div>`;
     }).join('');
@@ -884,19 +893,19 @@ export default function ResultsSection({ profile }: Props) {
     const win = window.open('', '_blank', 'width=900,height=700');
     if (!win) { setToast({ msg: 'Pop-up blocked — allow pop-ups and try again', type: 'error' }); return; }
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
-<title>Portal PINs — ${selectedTerm} ${academicYear}</title>
+<title>Portal PIN Cards — ${selectedTerm} ${academicYear}</title>
 <style>
   @page { size: A4 portrait; margin: 8mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; background: #fff; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
   .slip {
     border: 1.5px solid #1a4731;
-    border-radius: 5mm;
+    border-radius: 4mm;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: 62mm;
+    height: 68mm;
     page-break-inside: avoid;
   }
   .slip-header {
@@ -904,29 +913,45 @@ export default function ResultsSection({ profile }: Props) {
     color: #fff;
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 3mm 4mm;
+    gap: 6px;
+    padding: 2.5mm 4mm;
     flex-shrink: 0;
   }
-  .slip-logo { width: 18px; height: 18px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
-  .slip-school { font-size: 7.5pt; font-weight: bold; letter-spacing: 0.5px; line-height: 1.2; }
-  .slip-body { flex: 1; padding: 2.5mm 4mm 2mm; display: flex; flex-direction: column; gap: 1.5mm; }
-  .slip-label { font-size: 5.5pt; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-  .slip-name { font-size: 10pt; font-weight: bold; color: #111; line-height: 1.2; }
-  .slip-row { display: flex; gap: 8mm; }
-  .slip-id { font-size: 7.5pt; font-weight: bold; color: #222; font-family: monospace; letter-spacing: 1px; }
-  .slip-pin-wrap { background: #f0faf4; border: 1px solid #a3d4b5; border-radius: 3mm; padding: 1.5mm 3mm; margin-top: auto; }
-  .slip-pin { font-size: 17pt; font-weight: 900; color: #1a4731; letter-spacing: 6px; font-family: 'Courier New', monospace; text-align: center; margin-top: 0.5mm; }
+  .slip-logo { width: 22px; height: 22px; object-fit: contain; border-radius: 3px; flex-shrink: 0; background: #fff; padding: 1px; }
+  .slip-school { font-size: 7.5pt; font-weight: bold; letter-spacing: 0.4px; line-height: 1.3; }
+  .slip-tagline { font-size: 5.5pt; opacity: 0.75; letter-spacing: 0.3px; margin-top: 1px; }
+  .slip-body { flex: 1; padding: 2.5mm 4mm 2mm; display: flex; flex-direction: column; gap: 2mm; }
+  .slip-name-row {}
+  .slip-label { font-size: 5pt; font-weight: bold; color: #777; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.5mm; }
+  .slip-name { font-size: 11pt; font-weight: bold; color: #111; line-height: 1.2; }
+  .slip-row { display: flex; gap: 5mm; }
+  .slip-row > div { flex: 1; }
+  .slip-id { font-size: 7pt; font-weight: bold; color: #1a4731; font-family: 'Courier New', monospace; letter-spacing: 0.5px; }
+  .slip-pin-wrap {
+    background: linear-gradient(135deg, #f0faf4 0%, #e6f5ec 100%);
+    border: 1.5px solid #2d7a4f;
+    border-radius: 3mm;
+    padding: 2mm 3mm 1.5mm;
+    margin-top: auto;
+    text-align: center;
+  }
+  .slip-pin-label { font-size: 5pt; font-weight: bold; color: #2d7a4f; text-transform: uppercase; letter-spacing: 1px; }
+  .slip-pin { font-size: 20pt; font-weight: 900; color: #1a4731; letter-spacing: 8px; font-family: 'Courier New', monospace; line-height: 1.1; }
   .slip-footer {
-    background: #f8faf9;
-    border-top: 1px solid #d1e7da;
-    padding: 1.5mm 4mm;
-    font-size: 5.5pt;
-    color: #555;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background: #1a4731;
+    padding: 2mm 4mm;
     flex-shrink: 0;
+  }
+  .slip-footer-url {
+    font-size: 6pt;
+    color: #a3d4b5;
+    font-weight: bold;
+    margin-bottom: 0.5mm;
+    word-break: break-all;
+  }
+  .slip-footer-cta {
+    font-size: 5pt;
+    color: rgba(255,255,255,0.7);
   }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
