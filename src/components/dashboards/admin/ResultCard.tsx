@@ -520,10 +520,11 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
   const grandTotal = scoredNurserySubjects.reduce((sum, n) => sum + (getSubject(n)?.total ?? 0), 0);
 
   return (
+    /* Landscape A4: 297mm × 210mm — content area ~196mm tall after 7mm margins each side */
     <div style={{
       fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '9pt', color: '#000',
       background: '#fff', border: '2px solid #111',
-      display: 'flex', flexDirection: 'column', minHeight: '277mm',
+      display: 'flex', flexDirection: 'column', minHeight: '196mm',
     }}>
 
       {/* ══ DARK HEADER BAND ══ */}
@@ -625,22 +626,22 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
         </tbody>
       </table>
 
-      {/* ══ BOTTOM SECTION — fills remaining page height ══ */}
-      <div style={{ display: 'flex', flex: 1, borderTop: '2px solid #1a2433', minHeight: '90mm' }}>
+      {/* ══ BOTTOM SECTION — shorter for landscape A4 ══ */}
+      <div style={{ display: 'flex', flex: 1, borderTop: '2px solid #1a2433', minHeight: '50mm' }}>
 
         {/* LEFT: Comments */}
-        <div style={{ flex: 1, borderRight: '1px solid #cbd5e1', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ flex: 1, borderRight: '1px solid #cbd5e1', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
             <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Class Teacher&apos;s Comment:</div>
             <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.teacher}</div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '22px', paddingRight: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', paddingRight: '20px' }}>
               <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
             </div>
           </div>
           <div>
             <div style={{ fontSize: '7.5pt', fontWeight: 'bold', color: '#1a2433', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Head of School&apos;s Comment:</div>
             <div style={{ borderBottom: '1px solid #94a3b8', minHeight: '16px', fontSize: '8.5pt', fontStyle: 'italic', paddingLeft: '4px', paddingBottom: '2px', color: '#1e293b' }}>{comments.principal}</div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '22px', paddingRight: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', paddingRight: '20px' }}>
               <div style={{ borderTop: '1px solid #1a2433', paddingTop: '2px', fontSize: '6.5pt', color: '#475569', textAlign: 'center' }}>Signature &amp; Date</div>
             </div>
           </div>
