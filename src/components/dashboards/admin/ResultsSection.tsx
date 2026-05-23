@@ -839,6 +839,106 @@ export default function ResultsSection({ profile }: Props) {
     setIsBulkLoading(false);
   }, [students, selectedTerm, academicYear, resultSheets, schoolName, settings, subjectVisibility]);
 
+  const printPinSlips = () => {
+    const withPins = students.filter(s => s.report_pin);
+    if (withPins.length === 0) { setToast({ msg: 'No students have PINs yet — generate PINs first', type: 'error' }); return; }
+    const portalUrl = `${window.location.origin}${window.location.pathname}?portal=1`;
+    const sName = schoolName || 'Greenville Montessori Schools';
+
+    const cardHtml = withPins.map(s => {
+      const name = `${s.profiles?.first_name ?? ''} ${s.profiles?.last_name ?? ''}`.trim();
+      const pin = s.report_pin!;
+      // Format PIN as groups of 3: 482916 → 482 916
+      const pinFmt = `${pin.slice(0, 3)} ${pin.slice(3)}`;
+      return `
+        <div class="slip">
+          <div class="slip-header">
+            <img src="/gms-logo.jpg" class="slip-logo" alt="" />
+            <div class="slip-school">${sName.toUpperCase()}</div>
+          </div>
+          <div class="slip-body">
+            <div class="slip-label">STUDENT</div>
+            <div class="slip-name">${name}</div>
+            <div class="slip-row">
+              <div>
+                <div class="slip-label">STUDENT ID</div>
+                <div class="slip-id">${s.student_id}</div>
+              </div>
+              <div>
+                <div class="slip-label">TERM</div>
+                <div class="slip-id">${selectedTerm} · ${academicYear}</div>
+              </div>
+            </div>
+            <div class="slip-pin-wrap">
+              <div class="slip-label">PARENT PORTAL PIN</div>
+              <div class="slip-pin">${pinFmt}</div>
+            </div>
+          </div>
+          <div class="slip-footer">
+            <span>🌐 ${portalUrl}</span>
+            <span>Enter Student ID + PIN to view results</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (!win) { setToast({ msg: 'Pop-up blocked — allow pop-ups and try again', type: 'error' }); return; }
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>Portal PINs — ${selectedTerm} ${academicYear}</title>
+<style>
+  @page { size: A4 portrait; margin: 8mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #fff; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .slip {
+    border: 1.5px solid #1a4731;
+    border-radius: 5mm;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 62mm;
+    page-break-inside: avoid;
+  }
+  .slip-header {
+    background: #1a4731;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3mm 4mm;
+    flex-shrink: 0;
+  }
+  .slip-logo { width: 18px; height: 18px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
+  .slip-school { font-size: 7.5pt; font-weight: bold; letter-spacing: 0.5px; line-height: 1.2; }
+  .slip-body { flex: 1; padding: 2.5mm 4mm 2mm; display: flex; flex-direction: column; gap: 1.5mm; }
+  .slip-label { font-size: 5.5pt; font-weight: bold; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .slip-name { font-size: 10pt; font-weight: bold; color: #111; line-height: 1.2; }
+  .slip-row { display: flex; gap: 8mm; }
+  .slip-id { font-size: 7.5pt; font-weight: bold; color: #222; font-family: monospace; letter-spacing: 1px; }
+  .slip-pin-wrap { background: #f0faf4; border: 1px solid #a3d4b5; border-radius: 3mm; padding: 1.5mm 3mm; margin-top: auto; }
+  .slip-pin { font-size: 17pt; font-weight: 900; color: #1a4731; letter-spacing: 6px; font-family: 'Courier New', monospace; text-align: center; margin-top: 0.5mm; }
+  .slip-footer {
+    background: #f8faf9;
+    border-top: 1px solid #d1e7da;
+    padding: 1.5mm 4mm;
+    font-size: 5.5pt;
+    color: #555;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head><body>
+<div class="grid">${cardHtml}</div>
+</body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
   const toggleSelect = (id: string) => setSelectedIds(prev => {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
@@ -1116,6 +1216,14 @@ export default function ResultsSection({ profile }: Props) {
                 className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 text-white rounded-lg text-xs font-semibold hover:bg-gray-800 disabled:opacity-60 shadow-sm">
                 <Printer className="w-3.5 h-3.5" />
                 {isBulkLoading ? 'Loading…' : 'Print All'}
+              </button>
+            )}
+            {/* Print PIN Slips */}
+            {students.some(s => s.report_pin) && (
+              <button onClick={printPinSlips}
+                className="flex items-center gap-1.5 px-3 py-2 bg-teal-700 text-white rounded-lg text-xs font-semibold hover:bg-teal-800 shadow-sm"
+                title="Print parent portal PIN cards for this class">
+                <KeyRound className="w-3.5 h-3.5" /> Print PINs
               </button>
             )}
             {/* Class-wide portal visibility */}
