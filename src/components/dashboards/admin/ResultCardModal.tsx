@@ -38,6 +38,7 @@ export interface MetaForm {
 export interface StudentInfo {
   id: string;
   student_id: string;
+  report_pin?: string | null;
   profiles: { first_name: string; last_name: string; email: string } | null;
   classes: { name: string; level: string } | null;
   gender: string | null;

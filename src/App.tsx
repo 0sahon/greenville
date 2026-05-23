@@ -13,6 +13,7 @@ const TeacherDashboard = lazy(() => import('./components/dashboards/TeacherDashb
 const ParentDashboard  = lazy(() => import('./components/dashboards/ParentDashboard'));
 const StudentDashboard = lazy(() => import('./components/dashboards/StudentDashboard'));
 const KidsLanding      = lazy(() => import('./components/kids/KidsLanding'));
+const ReportPortal     = lazy(() => import('./components/portals/ReportPortal'));
 
 const Spinner = () => (
   <div className="min-h-screen bg-gradient-to-br from-orange-50 via-blue-50 to-green-50 flex items-center justify-center">
@@ -28,7 +29,20 @@ function App() {
   const [showMainWebsite, setShowMainWebsite] = useState(true);
   const [showKidsZone, setShowKidsZone] = useState(false);
 
+  // Public result portal — accessible at ?portal=1 without login
+  const isPortal = new URLSearchParams(window.location.search).has('portal');
+
   if (loading) return <Spinner />;
+
+  if (isPortal) {
+    return (
+      <ErrorBoundary label="Result Portal">
+        <Suspense fallback={<Spinner />}>
+          <ReportPortal />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
 
   if (showKidsZone) {
     return (

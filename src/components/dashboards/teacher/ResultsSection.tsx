@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Search, ChevronDown, Eye, CheckCircle, Clock, X, Save,
   Trash2, AlertTriangle, MessageCircle, Download, EyeOff,
+  KeyRound, Copy, RefreshCw, Globe,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
@@ -26,6 +27,7 @@ interface Props { profile: ProfileRow; }
 interface StudentInfo {
   id: string;
   student_id: string;
+  report_pin?: string | null;
   profiles: { first_name: string; last_name: string; email: string } | null;
   classes: { id: string; name: string; level: string } | null;
   gender: string | null;
@@ -89,6 +91,42 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [preKgRatings, setPreKgRatings] = useState<Partial<Record<string, number>>>({});
   const [nurseryScores, setNurseryScores] = useState<NurseryScores>({});
   const [basicScores, setBasicScores] = useState<BasicScores>({});
+  const [pinVisibility, setPinVisibility] = useState<Record<string, boolean>>({});
+  const [generatingPin, setGeneratingPin] = useState<string | null>(null);
+  const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
+
+  const togglePublished = async (studentId: string, current: boolean) => {
+    setTogglingPublish(studentId);
+    try {
+      const { error } = await supabase.from('result_sheets')
+        .update({ is_published: !current })
+        .eq('student_id', studentId)
+        .eq('term', selectedTerm)
+        .eq('academic_year', academicYear);
+      if (error) throw error;
+      setResultSheets(prev => ({ ...prev, [studentId]: { ...prev[studentId], is_published: !current } }));
+      setToast({ msg: !current ? 'Result published to parent portal' : 'Result hidden from parent portal', type: 'success' });
+    } catch (e: unknown) {
+      setToast({ msg: e instanceof Error ? e.message : 'Update failed', type: 'error' });
+    } finally {
+      setTogglingPublish(null);
+    }
+  };
+
+  const generatePin = async (studentId: string) => {
+    const pin = String(Math.floor(100000 + Math.random() * 900000));
+    setGeneratingPin(studentId);
+    try {
+      const { error } = await supabase.from('students').update({ report_pin: pin }).eq('id', studentId);
+      if (error) throw error;
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, report_pin: pin } : s));
+      setToast({ msg: 'PIN generated', type: 'success' });
+    } catch (e: unknown) {
+      setToast({ msg: e instanceof Error ? e.message : 'Failed to generate PIN', type: 'error' });
+    } finally {
+      setGeneratingPin(null);
+    }
+  };
 
   const isToddlerStudent = activeStudent?.classes?.level === 'toddler';
   const isNurseryStudent = activeStudent?.classes?.level === 'creche';
@@ -108,7 +146,7 @@ export default function TeacherResultsSection({ profile }: Props) {
     try {
       const { data: studs } = await supabase
         .from('students')
-        .select('id, student_id, profiles:profile_id(first_name, last_name, email), classes:class_id(id, name, level), gender, date_of_birth')
+        .select('id, student_id, report_pin, profiles:profile_id(first_name, last_name, email), classes:class_id(id, name, level), gender, date_of_birth')
         .eq('class_id', selectedClass)
         .eq('is_active', true)
         .order('student_id');
@@ -592,6 +630,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                     <th className="py-3 px-4">Student</th>
                     <th className="py-3 px-4">ID</th>
                     <th className="py-3 px-4">Sheet Status</th>
+                    <th className="py-3 px-4">Portal PIN</th>
                     <th className="py-3 px-4">Actions</th>
                   </tr>
                 </thead>
@@ -617,11 +656,65 @@ export default function TeacherResultsSection({ profile }: Props) {
                         <td className="py-3 px-4">
                           {!sheet ? (
                             <span className="flex items-center gap-1 text-xs text-gray-400"><Clock className="w-3.5 h-3.5" /> Not created</span>
-                          ) : isPublished ? (
-                            <span className="flex items-center gap-1 text-xs text-green-600 font-medium"><CheckCircle className="w-3.5 h-3.5" /> Published</span>
                           ) : (
-                            <span className="flex items-center gap-1 text-xs text-yellow-600 font-medium"><FileText className="w-3.5 h-3.5" /> Draft</span>
+                            <button
+                              onClick={() => togglePublished(s.id, !!isPublished)}
+                              disabled={togglingPublish === s.id}
+                              className={`flex items-center gap-1 text-xs font-medium rounded-lg px-2 py-1 border transition-colors ${
+                                isPublished
+                                  ? 'text-green-700 border-green-200 bg-green-50 hover:bg-green-100'
+                                  : 'text-yellow-700 border-yellow-200 bg-yellow-50 hover:bg-yellow-100'
+                              }`}
+                              title={isPublished ? 'Click to hide from parent portal' : 'Click to publish to parent portal'}
+                            >
+                              {togglingPublish === s.id
+                                ? <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                : isPublished ? <Globe className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />
+                              }
+                              {isPublished ? 'Published' : 'Draft'}
+                            </button>
                           )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5">
+                            {s.report_pin ? (
+                              <>
+                                <span className="font-mono text-xs text-gray-700 tracking-widest w-14 text-center">
+                                  {pinVisibility[s.id] ? s.report_pin : '••••••'}
+                                </span>
+                                <button
+                                  onClick={() => setPinVisibility(v => ({ ...v, [s.id]: !v[s.id] }))}
+                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                  title={pinVisibility[s.id] ? 'Hide PIN' : 'Show PIN'}
+                                >
+                                  {pinVisibility[s.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const url = `${window.location.origin}${window.location.pathname}?portal=1`;
+                                    navigator.clipboard.writeText(`Student ID: ${s.student_id}\nPIN: ${s.report_pin}\nPortal: ${url}`);
+                                    setToast({ msg: 'Portal info copied!', type: 'success' });
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-indigo-600"
+                                  title="Copy portal link + PIN"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-xs text-gray-400">No PIN</span>
+                            )}
+                            <button
+                              onClick={() => generatePin(s.id)}
+                              disabled={generatingPin === s.id}
+                              className="p-1 text-gray-400 hover:text-green-700 disabled:opacity-40"
+                              title={s.report_pin ? 'Regenerate PIN' : 'Generate PIN'}
+                            >
+                              {generatingPin === s.id
+                                ? <span className="w-3.5 h-3.5 border-2 border-gray-300 border-t-green-600 rounded-full animate-spin inline-block" />
+                                : s.report_pin ? <RefreshCw className="w-3.5 h-3.5" /> : <KeyRound className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
                         </td>
                         <td className="py-3 px-4">
                           <button onClick={() => openCard(s)}
@@ -634,7 +727,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                     );
                   })}
                   {filteredStudents.length === 0 && (
-                    <tr><td colSpan={5} className="text-center py-10 text-gray-400">No students found</td></tr>
+                    <tr><td colSpan={6} className="text-center py-10 text-gray-400">No students found</td></tr>
                   )}
                 </tbody>
               </table>

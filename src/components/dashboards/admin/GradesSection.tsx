@@ -782,8 +782,9 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name' | 
   const [academicYear, setAcademicYear] = useState(getDefaultAcademicYear());
   const [subjectStats, setSubjectStats] = useState<SubjectStat[]>([]);
   const [studentStats, setStudentStats] = useState<StudentStat[]>([]);
+  const [categoryStats, setCategoryStats] = useState<{ type: string; avg: number; count: number; high: number; low: number }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<'subjects' | 'students'>('subjects');
+  const [view, setView] = useState<'subjects' | 'students' | 'category'>('subjects');
 
   const selectedClassLevel = classes.find(c => c.id === classId)?.level ?? '';
   const isToddlerClass = selectedClassLevel === 'toddler';
@@ -888,6 +889,26 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name' | 
         };
       }).sort((a: StudentStat, b: StudentStat) => b.avg - a.avg);
       setStudentStats(stStats);
+
+      // Category (assessment type) aggregation
+      const byCat: Record<string, { total: number; count: number; high: number; low: number }> = {};
+      grades.filter(g => g.assessment_type !== 'pre_kg').forEach(g => {
+        const pct = g.max_score > 0 ? (g.score / g.max_score) * 100 : 0;
+        if (!byCat[g.assessment_type]) byCat[g.assessment_type] = { total: 0, count: 0, high: 0, low: 100 };
+        byCat[g.assessment_type].total += pct;
+        byCat[g.assessment_type].count++;
+        if (pct > byCat[g.assessment_type].high) byCat[g.assessment_type].high = pct;
+        if (pct < byCat[g.assessment_type].low)  byCat[g.assessment_type].low  = pct;
+      });
+      setCategoryStats(Object.entries(byCat)
+        .map(([type, { total, count, high, low }]) => ({
+          type,
+          avg:  Math.round(total / count * 10) / 10,
+          count,
+          high: Math.round(high * 10) / 10,
+          low:  Math.round(low  * 10) / 10,
+        }))
+        .sort((a, b) => b.avg - a.avg));
     } finally {
       setLoading(false);
     }
@@ -967,11 +988,11 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name' | 
             </div>
           )}
 
-          <div className="flex bg-gray-100 rounded-xl p-1 max-w-xs">
-            {(['subjects', 'students'] as const).map(v => (
+          <div className="flex bg-gray-100 rounded-xl p-1 max-w-sm">
+            {(['subjects', 'students', ...(!isToddlerClass ? ['category'] as const : [])] as ('subjects' | 'students' | 'category')[]).map(v => (
               <button key={v} onClick={() => setView(v)}
                 className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-all ${view === v ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
-                {v === 'subjects' ? (isToddlerClass ? 'By Skill' : 'By Subject') : 'By Student'}
+                {v === 'subjects' ? (isToddlerClass ? 'By Skill' : 'By Subject') : v === 'students' ? 'By Student' : 'By Category'}
               </button>
             ))}
           </div>
@@ -1104,7 +1125,48 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name' | 
                 </table>
               </div>
             )
-          )}
+          ) : view === 'category' ? (
+            categoryStats.length === 0 ? (
+              <div className="text-center py-10 text-gray-400 text-sm">No grades recorded for this term.</div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                      <th className="py-3 px-4">Assessment Type</th>
+                      <th className="py-3 px-4">Records</th>
+                      <th className="py-3 px-4">Class Avg</th>
+                      <th className="py-3 px-4">Grade</th>
+                      <th className="py-3 px-4">Highest</th>
+                      <th className="py-3 px-4">Lowest</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categoryStats.map(c => {
+                      const { grade, color } = getNigerianGrade(c.avg);
+                      return (
+                        <tr key={c.type} className="border-b border-gray-50 hover:bg-gray-50">
+                          <td className="py-3 px-4 font-semibold text-gray-800">{c.type}</td>
+                          <td className="py-3 px-4 text-gray-500">{c.count}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full bg-purple-500" style={{ width: `${c.avg}%` }} />
+                              </div>
+                              <span className="font-semibold text-gray-800 tabular-nums">{c.avg}%</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{grade}</span></td>
+                          <td className="py-3 px-4 text-green-600 font-medium tabular-nums">{c.high}%</td>
+                          <td className="py-3 px-4 text-red-500 tabular-nums">{c.low}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          ) : null}
         </>
       )}
     </div>

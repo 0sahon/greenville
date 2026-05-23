@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FileText, Search, ChevronDown, X, Eye, CheckCircle, Clock,
   BarChart3, GraduationCap, Printer, Download, Settings,
+  KeyRound, Copy, RefreshCw, EyeOff, Globe,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
@@ -81,6 +82,22 @@ export default function ResultsSection({ profile }: Props) {
   const [nurseryScores, setNurseryScores] = useState<NurseryScores>({});
   const [basicScores, setBasicScores] = useState<BasicScores>({});
   const [activeCardError, setActiveCardError] = useState<string | null>(null);
+  const [pinVisibility, setPinVisibility] = useState<Record<string, boolean>>({});
+  const [generatingPin, setGeneratingPin] = useState<string | null>(null);
+
+  const generatePin = async (studentId: string) => {
+    const pin = String(Math.floor(100000 + Math.random() * 900000));
+    setGeneratingPin(studentId);
+    try {
+      const { error } = await supabase.from('students').update({ report_pin: pin }).eq('id', studentId);
+      if (error) throw error;
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, report_pin: pin } : s));
+    } catch (e: unknown) {
+      console.error('PIN generation failed', e);
+    } finally {
+      setGeneratingPin(null);
+    }
+  };
 
   const isToddlerStudent = activeStudent?.classes?.level === 'toddler';
   const isNurseryStudent = activeStudent?.classes?.level === 'creche';
@@ -147,7 +164,7 @@ export default function ResultsSection({ profile }: Props) {
     try {
       const { data: studs } = await supabase
         .from('students')
-        .select('id, student_id, profiles:profile_id(first_name, last_name, email), classes:class_id(name, level), gender, date_of_birth')
+        .select('id, student_id, report_pin, profiles:profile_id(first_name, last_name, email), classes:class_id(name, level), gender, date_of_birth')
         .eq('class_id', selectedClass).eq('is_active', true).order('student_id');
 
       const studList = (studs || []) as StudentInfo[];
@@ -810,6 +827,73 @@ export default function ResultsSection({ profile }: Props) {
       : new Set(filteredStudents.map(s => s.id))
   );
 
+  const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
+
+  const togglePublished = async (studentId: string, current: boolean) => {
+    setTogglingPublish(studentId);
+    try {
+      const { error } = await supabase.from('result_sheets')
+        .update({ is_published: !current })
+        .eq('student_id', studentId)
+        .eq('term', selectedTerm)
+        .eq('academic_year', academicYear);
+      if (error) throw error;
+      setResultSheets(prev => ({ ...prev, [studentId]: { ...prev[studentId], is_published: !current } }));
+    } catch (e: unknown) {
+      setToast({ msg: e instanceof Error ? e.message : 'Update failed', type: 'error' });
+    } finally {
+      setTogglingPublish(null);
+    }
+  };
+
+  const bulkSetPublished = async (publish: boolean) => {
+    const ids = [...selectedIds].filter(id => resultSheets[id]);
+    if (ids.length === 0) { setToast({ msg: 'No result sheets found for selected students', type: 'error' }); return; }
+    setIsBulkLoading(true);
+    try {
+      const { error } = await supabase.from('result_sheets')
+        .update({ is_published: publish })
+        .in('student_id', ids)
+        .eq('term', selectedTerm)
+        .eq('academic_year', academicYear);
+      if (error) throw error;
+      setResultSheets(prev => {
+        const next = { ...prev };
+        ids.forEach(id => { if (next[id]) next[id] = { ...next[id], is_published: publish }; });
+        return next;
+      });
+      setToast({ msg: `${ids.length} result${ids.length !== 1 ? 's' : ''} ${publish ? 'published' : 'unpublished'}`, type: 'success' });
+    } catch (e: unknown) {
+      setToast({ msg: e instanceof Error ? e.message : 'Bulk update failed', type: 'error' });
+    } finally {
+      setIsBulkLoading(false);
+    }
+  };
+
+  const classSetPublished = async (publish: boolean) => {
+    const ids = students.filter(s => resultSheets[s.id]).map(s => s.id);
+    if (ids.length === 0) { setToast({ msg: 'No result sheets found for this class', type: 'error' }); return; }
+    setIsBulkLoading(true);
+    try {
+      const { error } = await supabase.from('result_sheets')
+        .update({ is_published: publish })
+        .in('student_id', ids)
+        .eq('term', selectedTerm)
+        .eq('academic_year', academicYear);
+      if (error) throw error;
+      setResultSheets(prev => {
+        const next = { ...prev };
+        ids.forEach(id => { if (next[id]) next[id] = { ...next[id], is_published: publish }; });
+        return next;
+      });
+      setToast({ msg: `All ${ids.length} results ${publish ? 'published to parent portal' : 'hidden from parent portal'}`, type: 'success' });
+    } catch (e: unknown) {
+      setToast({ msg: e instanceof Error ? e.message : 'Bulk update failed', type: 'error' });
+    } finally {
+      setIsBulkLoading(false);
+    }
+  };
+
   const filteredStudents = students.filter(s => {
     const name = `${s.profiles?.first_name} ${s.profiles?.last_name}`.toLowerCase();
     return !search || name.includes(search.toLowerCase()) || s.student_id.toLowerCase().includes(search.toLowerCase());
@@ -1013,9 +1097,24 @@ export default function ResultsSection({ profile }: Props) {
                 {isBulkLoading ? 'Loading…' : 'Print All'}
               </button>
             )}
-            {/* Print / Export Selected */}
-            {selectedIds.size > 0 && (
+            {/* Class-wide portal visibility */}
+            {students.length > 0 && (
               <div className="flex gap-1.5">
+                <button onClick={() => classSetPublished(true)} disabled={isBulkLoading}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-60 shadow-sm"
+                  title="Publish all results for this class to parent portal">
+                  <Globe className="w-3.5 h-3.5" /> Publish All
+                </button>
+                <button onClick={() => classSetPublished(false)} disabled={isBulkLoading}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-orange-500 text-white rounded-lg text-xs font-semibold hover:bg-orange-600 disabled:opacity-60 shadow-sm"
+                  title="Hide all results from parent portal">
+                  <EyeOff className="w-3.5 h-3.5" /> Hide All
+                </button>
+              </div>
+            )}
+            {/* Print / Export + Publish Selected */}
+            {selectedIds.size > 0 && (
+              <div className="flex gap-1.5 flex-wrap">
                 <button onClick={printSelected} disabled={isBulkLoading}
                   className="flex items-center gap-1.5 px-3 py-2 bg-indigo-700 text-white rounded-lg text-xs font-semibold hover:bg-indigo-800 disabled:opacity-60 shadow-sm">
                   <Printer className="w-3.5 h-3.5" />
@@ -1025,6 +1124,14 @@ export default function ResultsSection({ profile }: Props) {
                   className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-60 shadow-sm">
                   <Download className="w-3.5 h-3.5" />
                   Export PDF ({selectedIds.size})
+                </button>
+                <button onClick={() => bulkSetPublished(true)} disabled={isBulkLoading}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-60 shadow-sm">
+                  <Globe className="w-3.5 h-3.5" /> Publish ({selectedIds.size})
+                </button>
+                <button onClick={() => bulkSetPublished(false)} disabled={isBulkLoading}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-orange-500 text-white rounded-lg text-xs font-semibold hover:bg-orange-600 disabled:opacity-60 shadow-sm">
+                  <EyeOff className="w-3.5 h-3.5" /> Unpublish ({selectedIds.size})
                 </button>
               </div>
             )}
@@ -1152,6 +1259,7 @@ export default function ResultsSection({ profile }: Props) {
                     <th className="py-3 px-4">Student</th>
                     <th className="py-3 px-4">Student ID</th>
                     <th className="py-3 px-4">Result Status</th>
+                    <th className="py-3 px-4">Portal PIN</th>
                     <th className="py-3 px-4">Actions</th>
                   </tr>
                 </thead>
@@ -1181,11 +1289,64 @@ export default function ResultsSection({ profile }: Props) {
                         <td className="py-3 px-4">
                           {!sheet ? (
                             <span className="flex items-center gap-1 text-xs text-gray-400"><Clock className="w-3.5 h-3.5" /> Not generated</span>
-                          ) : isPublished ? (
-                            <span className="flex items-center gap-1 text-xs text-green-600 font-medium"><CheckCircle className="w-3.5 h-3.5" /> Published</span>
                           ) : (
-                            <span className="flex items-center gap-1 text-xs text-yellow-600 font-medium"><FileText className="w-3.5 h-3.5" /> Draft</span>
+                            <button
+                              onClick={() => togglePublished(s.id, !!isPublished)}
+                              disabled={togglingPublish === s.id}
+                              className={`flex items-center gap-1 text-xs font-medium rounded-lg px-2 py-1 border transition-colors ${
+                                isPublished
+                                  ? 'text-green-700 border-green-200 bg-green-50 hover:bg-green-100'
+                                  : 'text-yellow-700 border-yellow-200 bg-yellow-50 hover:bg-yellow-100'
+                              }`}
+                              title={isPublished ? 'Click to hide from parent portal' : 'Click to publish to parent portal'}
+                            >
+                              {togglingPublish === s.id
+                                ? <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                : isPublished ? <Globe className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />
+                              }
+                              {isPublished ? 'Published' : 'Draft'}
+                            </button>
                           )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5">
+                            {s.report_pin ? (
+                              <>
+                                <span className="font-mono text-xs text-gray-700 tracking-widest w-14 text-center">
+                                  {pinVisibility[s.id] ? s.report_pin : '••••••'}
+                                </span>
+                                <button
+                                  onClick={() => setPinVisibility(v => ({ ...v, [s.id]: !v[s.id] }))}
+                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                  title={pinVisibility[s.id] ? 'Hide PIN' : 'Show PIN'}
+                                >
+                                  {pinVisibility[s.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const url = `${window.location.origin}${window.location.pathname}?portal=1`;
+                                    navigator.clipboard.writeText(`Student ID: ${s.student_id}\nPIN: ${s.report_pin}\nPortal: ${url}`);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-indigo-600"
+                                  title="Copy portal link + PIN"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-xs text-gray-400">No PIN</span>
+                            )}
+                            <button
+                              onClick={() => generatePin(s.id)}
+                              disabled={generatingPin === s.id}
+                              className="p-1 text-gray-400 hover:text-green-700 disabled:opacity-40"
+                              title={s.report_pin ? 'Regenerate PIN' : 'Generate PIN'}
+                            >
+                              {generatingPin === s.id
+                                ? <span className="w-3.5 h-3.5 border-2 border-gray-300 border-t-green-600 rounded-full animate-spin inline-block" />
+                                : s.report_pin ? <RefreshCw className="w-3.5 h-3.5" /> : <KeyRound className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
                         </td>
                         <td className="py-3 px-4">
                           <button onClick={() => openResult(s)}
@@ -1198,7 +1359,7 @@ export default function ResultsSection({ profile }: Props) {
                     );
                   })}
                   {filteredStudents.length === 0 && (
-                    <tr><td colSpan={5} className="text-center py-10 text-gray-400">No students found</td></tr>
+                    <tr><td colSpan={6} className="text-center py-10 text-gray-400">No students found</td></tr>
                   )}
                 </tbody>
               </table>
