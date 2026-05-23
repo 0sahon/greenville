@@ -1211,6 +1211,47 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name' | 
                 </table>
               </div>
             )
+          ) : view === 'category' ? (
+            categoryStats.length === 0 ? (
+              <div className="text-center py-10 text-gray-400 text-sm">No grades recorded for this term.</div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                      <th className="py-3 px-4">Assessment Type</th>
+                      <th className="py-3 px-4">Records</th>
+                      <th className="py-3 px-4">Class Avg</th>
+                      <th className="py-3 px-4">Grade</th>
+                      <th className="py-3 px-4">Highest</th>
+                      <th className="py-3 px-4">Lowest</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categoryStats.map(c => {
+                      const { grade, color } = getNigerianGrade(c.avg);
+                      return (
+                        <tr key={c.type} className="border-b border-gray-50 hover:bg-gray-50">
+                          <td className="py-3 px-4 font-semibold text-gray-800">{c.type}</td>
+                          <td className="py-3 px-4 text-gray-500">{c.count}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full bg-purple-500" style={{ width: `${c.avg}%` }} />
+                              </div>
+                              <span className="font-semibold text-gray-800 tabular-nums">{c.avg}%</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{grade}</span></td>
+                          <td className="py-3 px-4 text-green-600 font-medium tabular-nums">{c.high}%</td>
+                          <td className="py-3 px-4 text-red-500 tabular-nums">{c.low}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
           ) : (
             studentStats.length === 0 ? (
               <div className="text-center py-10 text-gray-400 text-sm">No students in this class.</div>
@@ -1268,48 +1309,7 @@ function ClassSummaryTab({ classes }: { classes: Pick<ClassRow, 'id' | 'name' | 
                 </table>
               </div>
             )
-          ) : view === 'category' ? (
-            categoryStats.length === 0 ? (
-              <div className="text-center py-10 text-gray-400 text-sm">No grades recorded for this term.</div>
-            ) : (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 uppercase">
-                      <th className="py-3 px-4">Assessment Type</th>
-                      <th className="py-3 px-4">Records</th>
-                      <th className="py-3 px-4">Class Avg</th>
-                      <th className="py-3 px-4">Grade</th>
-                      <th className="py-3 px-4">Highest</th>
-                      <th className="py-3 px-4">Lowest</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {categoryStats.map(c => {
-                      const { grade, color } = getNigerianGrade(c.avg);
-                      return (
-                        <tr key={c.type} className="border-b border-gray-50 hover:bg-gray-50">
-                          <td className="py-3 px-4 font-semibold text-gray-800">{c.type}</td>
-                          <td className="py-3 px-4 text-gray-500">{c.count}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div className="h-full rounded-full bg-purple-500" style={{ width: `${c.avg}%` }} />
-                              </div>
-                              <span className="font-semibold text-gray-800 tabular-nums">{c.avg}%</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{grade}</span></td>
-                          <td className="py-3 px-4 text-green-600 font-medium tabular-nums">{c.high}%</td>
-                          <td className="py-3 px-4 text-red-500 tabular-nums">{c.low}%</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )
-          ) : null}
+          )}
         </>
       )}
     </div>
