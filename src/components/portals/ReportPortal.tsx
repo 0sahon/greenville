@@ -99,13 +99,15 @@ function buildCardData(student: PortalStudent, sheet: PortalSheet): ResultCardDa
       if (!bySkill[g.subject]) bySkill[g.subject] = [];
       bySkill[g.subject].push(g.score);
     });
+    const ratingLabel: Record<number, string> = { 5: 'E', 4: 'VG', 3: 'G', 2: 'F', 1: 'NI' };
     subjects = Object.entries(bySkill).map(([subject, vals]) => {
       const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const rating = preKgTotalToRating(avg);
       return {
         subject,
         ca1: 0, ca2: 0, exam: 0,
-        total: avg,
-        grade: String(preKgTotalToRating(avg)),
+        total: rating,
+        grade: ratingLabel[rating] ?? String(rating),
         remark: '',
       };
     });
@@ -445,18 +447,19 @@ export default function ReportPortal() {
                   <div key={s.subject} className="flex items-center justify-between px-4 py-3">
                     <span className="text-sm font-medium text-gray-700">{s.subject}</span>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                      s.grade === 'E' ? 'bg-green-100 text-green-700' :
+                      s.grade === 'E'  ? 'bg-green-100 text-green-700' :
                       s.grade === 'VG' ? 'bg-blue-100 text-blue-700' :
-                      s.grade === 'G' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
+                      s.grade === 'G'  ? 'bg-teal-100 text-teal-700' :
+                      s.grade === 'F'  ? 'bg-yellow-100 text-yellow-700' :
+                                         'bg-red-100 text-red-700'
                     }`}>{s.grade}</span>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Grand total row */}
-            {cardData.classStats.grandTotal > 0 && (
+            {/* Grand total row — not shown for toddler/creche skill ratings */}
+            {cardData.classStats.grandTotal > 0 && !isLandscape && (
               <div className="px-4 py-3 bg-green-50 border-t border-green-100 flex justify-between items-center">
                 <span className="text-sm font-bold text-green-800">Total Score</span>
                 <span className="text-lg font-bold text-green-700">{cardData.classStats.grandTotal}</span>
