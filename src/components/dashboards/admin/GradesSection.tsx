@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { BarChart3, Search, Download, Plus, X, Edit2, Trash2, Layers, BookOpen, Lock, FileDown, Upload } from 'lucide-react';
+import { BarChart3, Search, Download, Plus, X, Edit2, Trash2, Layers, BookOpen, Lock, FileDown, Upload, Check } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import type { ProfileRow, GradeRow, GradeInsert, ClassRow } from '../../../lib/supabase';
@@ -26,6 +26,9 @@ const ASSESSMENT_TYPES = ['Home Work', '1st CA', '2nd CA', 'Project', 'Exam', 'T
 const DEFAULT_MAX: Record<string, number> = { 'Home Work': 10, '1st CA': 15, '2nd CA': 15, 'Project': 10, 'Exam': 50, 'Test': 30, 'Pre-KG Rating': 5 };
 const PRE_KG_SKILLS_LIST = ['Literacy','Understanding','Obedience','Care of Self','Individual Behaviour','Punctuality','Numeracy','Bible Studies','Creative Play','Phonics','Scribbling','Social Habit'];
 const PRE_KG_RATING_LABELS: Record<number, string> = { 5: 'Excellent', 4: 'Very Good', 3: 'Good', 2: 'Fair', 1: 'Needs Improvement' };
+
+const TYPE_ORDER = ['Home Work', 'homework', '1st CA', '1st ca', '2nd CA', '2nd ca', 'Project', 'project', 'Exam', 'exam', 'Test', 'CA', 'Assignment', 'Quiz'];
+const typeRank = (t: string) => { const i = TYPE_ORDER.findIndex(x => x.toLowerCase() === t.toLowerCase()); return i === -1 ? 99 : i; };
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
@@ -76,6 +79,9 @@ function RecordsTab({
   const [publishedIds, setPublishedIds] = useState<Set<string>>(new Set());
   const [recordsView, setRecordsView] = useState<'student' | 'flat' | 'subject' | 'type' | 'matrix'>('student');
   const [expandedStudents, setExpandedStudents] = useState<Set<string>>(new Set());
+  const [editingRow, setEditingRow] = useState<{ studentId: string; subjectKey: string } | null>(null);
+  const [editScores, setEditScores] = useState<Record<string, { id: string; score: number; max_score: number }>>({});
+  const [savingInline, setSavingInline] = useState(false);
   const [filterSubject, setFilterSubject] = useState('');
   const [filterType, setFilterType] = useState('');
   const [form, setForm] = useState({
@@ -148,6 +154,32 @@ function RecordsTab({
     a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows.map(r => r.map(q).join(',')).join('\n'));
     a.download = 'grades.csv'; a.click();
   };
+
+  const startInlineEdit = useCallback((studentId: string, subjectKey: string, sgrades: GradeWithStudent[]) => {
+    const scores: Record<string, { id: string; score: number; max_score: number }> = {};
+    sgrades.forEach(g => { scores[g.assessment_type] = { id: g.id, score: g.score, max_score: g.max_score }; });
+    setEditScores(scores);
+    setEditingRow({ studentId, subjectKey });
+  }, []);
+
+  const cancelInlineEdit = useCallback(() => { setEditingRow(null); setEditScores({}); }, []);
+
+  const saveInlineEdit = useCallback(async () => {
+    if (!editingRow) return;
+    setSavingInline(true);
+    try {
+      await Promise.all(Object.entries(editScores).map(([, { id, score }]) =>
+        supabase.from('grades').update({ score }).eq('id', id)
+      ));
+      onToast('Grades updated', 'success');
+      setEditingRow(null);
+      setEditScores({});
+      onRefresh();
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'Save failed', 'error');
+    }
+    setSavingInline(false);
+  }, [editingRow, editScores, onToast, onRefresh]);
 
   const openAdd = () => {
     setEditing(null);
@@ -346,11 +378,20 @@ function RecordsTab({
                 {studentOrder.map(({ id, name, className }) => {
                   const studentGrades = filtered.filter(g => g.student_id === id);
                   const nonPk = studentGrades.filter(g => g.assessment_type !== 'pre_kg');
-                  const avg = nonPk.length > 0
-                    ? Math.round(nonPk.reduce((s, g) => s + (g.max_score > 0 ? (g.score / g.max_score) * 100 : 0), 0) / nonPk.length)
-                    : null;
+                  const totalScore = nonPk.reduce((s, g) => s + g.score, 0);
+                  const totalMax = nonPk.reduce((s, g) => s + g.max_score, 0);
+                  const avgPct = totalMax > 0 ? (totalScore / totalMax * 100) : null;
                   const isOpen = expandedStudents.has(id);
                   const isLocked = publishedIds.has(id);
+
+                  // Group by subject + term so multi-term entries stay separate
+                  const subjectGroups = new Map<string, GradeWithStudent[]>();
+                  studentGrades.forEach(g => {
+                    const key = `${g.subject}|||${g.term}`;
+                    if (!subjectGroups.has(key)) subjectGroups.set(key, []);
+                    subjectGroups.get(key)!.push(g);
+                  });
+
                   return (
                     <div key={id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                       {/* Student header — click to expand */}
@@ -370,50 +411,128 @@ function RecordsTab({
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-gray-400">{studentGrades.length} record{studentGrades.length !== 1 ? 's' : ''}</span>
-                          {avg !== null && (
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${nigerianGrade(avg, 100).color}`}>
-                              Avg {avg}% · {nigerianGrade(avg, 100).label}
+                          {avgPct !== null && (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${nigerianGrade(totalScore, totalMax).color}`}>
+                              Avg {avgPct.toFixed(2)}% · {nigerianGrade(totalScore, totalMax).label}
                             </span>
                           )}
                           <span className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}>▾</span>
                         </div>
                       </button>
-                      {/* Expanded records */}
+
+                      {/* Expanded — grouped by subject + term, compact chips per row */}
                       {isOpen && (
                         <div className="border-t border-gray-100 overflow-x-auto">
-                          <table className="w-full text-sm">
+                          <table className="w-full text-sm min-w-[540px]">
                             <thead>
-                              <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
-                                <th className="py-2 px-4">Subject</th>
-                                <th className="py-2 px-4">Type</th>
-                                <th className="py-2 px-4">Score</th>
-                                <th className="py-2 px-4">Grade</th>
-                                <th className="py-2 px-4">Term</th>
-                                <th className="py-2 px-4">Actions</th>
+                              <tr className="bg-gray-50 text-left text-xs text-gray-400 uppercase tracking-wide">
+                                <th className="py-2 px-3 sticky left-0 bg-gray-50 z-10 border-r border-gray-100 whitespace-nowrap">Subject</th>
+                                <th className="py-2 px-3">Scores</th>
+                                <th className="py-2 px-3 whitespace-nowrap">Total</th>
+                                <th className="py-2 px-3">%</th>
+                                <th className="py-2 px-3">Grade</th>
+                                <th className="py-2 px-3 whitespace-nowrap">Term</th>
+                                <th className="py-2 px-3"></th>
                               </tr>
                             </thead>
                             <tbody>
-                              {studentGrades.map(g => {
-                                const isPreKg = g.assessment_type === 'pre_kg';
-                                const { label, color } = isPreKg
-                                  ? { label: PRE_KG_RATING_LABELS[g.score] || String(g.score), color: 'text-indigo-700 bg-indigo-50' }
-                                  : nigerianGrade(g.score, g.max_score);
+                              {[...subjectGroups.entries()].map(([key, sgrades]) => {
+                                const [subject, term] = key.split('|||');
+                                const isEditing = editingRow?.studentId === id && editingRow.subjectKey === key;
+                                const isPk = sgrades.some(g => g.assessment_type === 'pre_kg');
+                                const sorted = [...sgrades].sort((a, b) => typeRank(a.assessment_type) - typeRank(b.assessment_type));
+
+                                const rowTotal = sgrades.reduce((s, g) => s + g.score, 0);
+                                const rowMax = sgrades.reduce((s, g) => s + g.max_score, 0);
+                                const editTotal = Object.values(editScores).reduce((s, v) => s + (v.score || 0), 0);
+                                const displayTotal = isEditing ? editTotal : rowTotal;
+                                const pct = rowMax > 0 ? (displayTotal / rowMax * 100) : 0;
+                                const { label, color } = nigerianGrade(displayTotal, rowMax);
+
                                 return (
-                                  <tr key={g.id} className="border-t border-gray-50 hover:bg-gray-50">
-                                    <td className="py-2 px-4 font-medium text-gray-800">{g.subject}</td>
-                                    <td className="py-2 px-4 text-gray-500 text-xs">{isPreKg ? 'Pre-KG Rating' : g.assessment_type}</td>
-                                    <td className="py-2 px-4 font-semibold tabular-nums">{isPreKg ? `${g.score}/5` : `${g.score}/${g.max_score}`}</td>
-                                    <td className="py-2 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span></td>
-                                    <td className="py-2 px-4 text-gray-500 text-xs">{g.term}</td>
-                                    <td className="py-2 px-4">
-                                      <div className="flex items-center gap-1">
-                                        <button onClick={() => { if (isLocked && !window.confirm(`${name}'s report card is published. Edit anyway?`)) return; openEdit(g); }}
-                                          className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500"><Edit2 className="w-3.5 h-3.5" /></button>
-                                        <button onClick={() => { if (isLocked && !window.confirm(`${name}'s report card is published. Delete anyway?`)) return; deleteGrade(g.id); }}
-                                          disabled={deleting === g.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 disabled:opacity-40">
-                                          {deleting === g.id ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                        </button>
-                                      </div>
+                                  <tr key={key} className="border-t border-gray-50 hover:bg-gray-50/50 align-middle">
+                                    {/* Sticky subject */}
+                                    <td className="py-2 px-3 font-semibold text-gray-800 text-xs sticky left-0 bg-white z-10 border-r border-gray-100 whitespace-nowrap max-w-[110px]" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {subject}
+                                    </td>
+                                    {/* Inline score chips / inputs */}
+                                    <td className="py-2 px-3">
+                                      {isPk ? (
+                                        <span className="text-xs text-gray-600">{sgrades[0].score}/5 — {PRE_KG_RATING_LABELS[sgrades[0].score] || ''}</span>
+                                      ) : (
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          {sorted.map(g => isEditing ? (
+                                            <label key={g.id} className="flex items-center gap-0.5">
+                                              <span className="text-[10px] text-gray-400 whitespace-nowrap mr-0.5">{g.assessment_type}</span>
+                                              <input
+                                                type="number" min={0} max={g.max_score}
+                                                value={editScores[g.assessment_type]?.score ?? g.score}
+                                                onChange={e => setEditScores(prev => ({
+                                                  ...prev,
+                                                  [g.assessment_type]: { ...prev[g.assessment_type], score: Math.min(g.max_score, Math.max(0, Number(e.target.value) || 0)) }
+                                                }))}
+                                                className="w-12 border border-purple-300 rounded px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                              />
+                                              <span className="text-[10px] text-gray-400">/{g.max_score}</span>
+                                            </label>
+                                          ) : (
+                                            <span key={g.id} className="inline-flex items-center gap-1 bg-gray-100 hover:bg-gray-200 rounded px-1.5 py-0.5 text-xs transition-colors">
+                                              <span className="text-gray-400">{g.assessment_type}</span>
+                                              <span className="text-gray-300">·</span>
+                                              <span className="font-semibold text-gray-700">{g.score}/{g.max_score}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </td>
+                                    {/* Total raw */}
+                                    <td className="py-2 px-3 tabular-nums text-xs font-semibold text-gray-700 whitespace-nowrap">
+                                      {isPk ? '—' : `${displayTotal}/${rowMax}`}
+                                    </td>
+                                    {/* Percentage — accurate decimal */}
+                                    <td className="py-2 px-3 tabular-nums text-xs text-gray-600 whitespace-nowrap">
+                                      {isPk ? '—' : `${pct.toFixed(2)}%`}
+                                    </td>
+                                    {/* Grade badge */}
+                                    <td className="py-2 px-3">
+                                      {!isPk && <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span>}
+                                    </td>
+                                    {/* Term */}
+                                    <td className="py-2 px-3 text-xs text-gray-500 whitespace-nowrap">{term}</td>
+                                    {/* Actions */}
+                                    <td className="py-2 px-3 whitespace-nowrap">
+                                      {isEditing ? (
+                                        <div className="flex items-center gap-1">
+                                          <button onClick={saveInlineEdit} disabled={savingInline}
+                                            className="p-1.5 bg-green-500 hover:bg-green-600 rounded-lg text-white transition-colors disabled:opacity-50" title="Save">
+                                            {savingInline
+                                              ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                              : <Check className="w-3 h-3" />}
+                                          </button>
+                                          <button onClick={cancelInlineEdit}
+                                            className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors" title="Cancel">
+                                            <X className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            onClick={() => { if (isLocked && !window.confirm(`${name}'s report card is published. Edit anyway?`)) return; startInlineEdit(id, key, sgrades); }}
+                                            className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500 transition-colors" title="Edit inline">
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                          </button>
+                                          {sgrades.length === 1 && (
+                                            <button
+                                              onClick={() => { if (isLocked && !window.confirm(`${name}'s report card is published. Delete anyway?`)) return; deleteGrade(sgrades[0].id); }}
+                                              disabled={deleting === sgrades[0].id}
+                                              className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-colors disabled:opacity-40" title="Delete">
+                                              {deleting === sgrades[0].id
+                                                ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                                                : <Trash2 className="w-3.5 h-3.5" />}
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
                                     </td>
                                   </tr>
                                 );
