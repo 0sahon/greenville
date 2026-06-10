@@ -74,7 +74,8 @@ function RecordsTab({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [publishedIds, setPublishedIds] = useState<Set<string>>(new Set());
-  const [recordsView, setRecordsView] = useState<'flat' | 'subject' | 'type' | 'matrix'>('flat');
+  const [recordsView, setRecordsView] = useState<'student' | 'flat' | 'subject' | 'type' | 'matrix'>('student');
+  const [expandedStudents, setExpandedStudents] = useState<Set<string>>(new Set());
   const [filterSubject, setFilterSubject] = useState('');
   const [filterType, setFilterType] = useState('');
   const [form, setForm] = useState({
@@ -242,10 +243,10 @@ function RecordsTab({
         <div className="flex items-center gap-2">
           {/* View toggle */}
           <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs font-medium">
-            {(['flat', 'subject', 'type'] as const).map(v => (
+            {(['student', 'flat', 'subject', 'type'] as const).map(v => (
               <button key={v} onClick={() => setRecordsView(v)}
                 className={`px-3 py-1.5 ${recordsView === v ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
-                {v === 'flat' ? 'All' : v === 'subject' ? 'By Subject' : 'By Type'}
+                {v === 'student' ? 'By Student' : v === 'flat' ? 'All Rows' : v === 'subject' ? 'By Subject' : 'By Type'}
               </button>
             ))}
             {/* Matrix view — only when a toddler class is selected */}
@@ -310,6 +311,123 @@ function RecordsTab({
               <th className="py-3 px-4">Term</th><th className="py-3 px-4">Actions</th>
             </tr>
           );
+
+          // ── By Student view ──
+          if (recordsView === 'student') {
+            // Build unique student order from filtered rows
+            const studentOrder: { id: string; name: string; className: string }[] = [];
+            const seen = new Set<string>();
+            filtered.forEach(g => {
+              if (!seen.has(g.student_id)) {
+                seen.add(g.student_id);
+                studentOrder.push({
+                  id: g.student_id,
+                  name: `${g.students?.profiles?.first_name ?? ''} ${g.students?.profiles?.last_name ?? ''}`.trim() || 'Unknown',
+                  className: g.students?.classes?.name ?? '—',
+                });
+              }
+            });
+            if (studentOrder.length === 0) {
+              return <div className="text-center py-12 text-gray-400 text-sm">No records found.</div>;
+            }
+            const toggleExpand = (id: string) =>
+              setExpandedStudents(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+            const expandAll = () => setExpandedStudents(new Set(studentOrder.map(s => s.id)));
+            const collapseAll = () => setExpandedStudents(new Set());
+            const allExpanded = studentOrder.every(s => expandedStudents.has(s.id));
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-xs text-gray-500">{studentOrder.length} student{studentOrder.length !== 1 ? 's' : ''} · {filtered.length} record{filtered.length !== 1 ? 's' : ''}</p>
+                  <button onClick={allExpanded ? collapseAll : expandAll} className="text-xs text-purple-600 hover:text-purple-800 font-medium">
+                    {allExpanded ? 'Collapse all' : 'Expand all'}
+                  </button>
+                </div>
+                {studentOrder.map(({ id, name, className }) => {
+                  const studentGrades = filtered.filter(g => g.student_id === id);
+                  const nonPk = studentGrades.filter(g => g.assessment_type !== 'pre_kg');
+                  const avg = nonPk.length > 0
+                    ? Math.round(nonPk.reduce((s, g) => s + (g.max_score > 0 ? (g.score / g.max_score) * 100 : 0), 0) / nonPk.length)
+                    : null;
+                  const isOpen = expandedStudents.has(id);
+                  const isLocked = publishedIds.has(id);
+                  return (
+                    <div key={id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                      {/* Student header — click to expand */}
+                      <button
+                        onClick={() => toggleExpand(id)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-purple-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs flex-shrink-0">
+                            {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-800 text-sm">{name}</p>
+                            <p className="text-xs text-gray-400">{className}</p>
+                          </div>
+                          {isLocked && <span title="Report card published" className="text-amber-500"><Lock className="w-3.5 h-3.5" /></span>}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-400">{studentGrades.length} record{studentGrades.length !== 1 ? 's' : ''}</span>
+                          {avg !== null && (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${nigerianGrade(avg, 100).color}`}>
+                              Avg {avg}% · {nigerianGrade(avg, 100).label}
+                            </span>
+                          )}
+                          <span className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}>▾</span>
+                        </div>
+                      </button>
+                      {/* Expanded records */}
+                      {isOpen && (
+                        <div className="border-t border-gray-100 overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+                                <th className="py-2 px-4">Subject</th>
+                                <th className="py-2 px-4">Type</th>
+                                <th className="py-2 px-4">Score</th>
+                                <th className="py-2 px-4">Grade</th>
+                                <th className="py-2 px-4">Term</th>
+                                <th className="py-2 px-4">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {studentGrades.map(g => {
+                                const isPreKg = g.assessment_type === 'pre_kg';
+                                const { label, color } = isPreKg
+                                  ? { label: PRE_KG_RATING_LABELS[g.score] || String(g.score), color: 'text-indigo-700 bg-indigo-50' }
+                                  : nigerianGrade(g.score, g.max_score);
+                                return (
+                                  <tr key={g.id} className="border-t border-gray-50 hover:bg-gray-50">
+                                    <td className="py-2 px-4 font-medium text-gray-800">{g.subject}</td>
+                                    <td className="py-2 px-4 text-gray-500 text-xs">{isPreKg ? 'Pre-KG Rating' : g.assessment_type}</td>
+                                    <td className="py-2 px-4 font-semibold tabular-nums">{isPreKg ? `${g.score}/5` : `${g.score}/${g.max_score}`}</td>
+                                    <td className="py-2 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{label}</span></td>
+                                    <td className="py-2 px-4 text-gray-500 text-xs">{g.term}</td>
+                                    <td className="py-2 px-4">
+                                      <div className="flex items-center gap-1">
+                                        <button onClick={() => { if (isLocked && !window.confirm(`${name}'s report card is published. Edit anyway?`)) return; openEdit(g); }}
+                                          className="p-1.5 hover:bg-purple-50 rounded-lg text-purple-500"><Edit2 className="w-3.5 h-3.5" /></button>
+                                        <button onClick={() => { if (isLocked && !window.confirm(`${name}'s report card is published. Delete anyway?`)) return; deleteGrade(g.id); }}
+                                          disabled={deleting === g.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 disabled:opacity-40">
+                                          {deleting === g.id ? <div className="w-3.5 h-3.5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
 
           // ── Skill Matrix view (toddler classes only) ──
           if (recordsView === 'matrix') {

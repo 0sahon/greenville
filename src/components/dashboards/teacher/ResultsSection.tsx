@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 import {
   FileText, Search, ChevronDown, ChevronLeft, ChevronRight, Eye, CheckCircle, Clock, X, Save,
   Trash2, AlertTriangle, MessageCircle, Download, EyeOff, Sparkles,
-  KeyRound, Copy, RefreshCw, Globe,
+  KeyRound, Copy, RefreshCw, Globe, Printer,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import { getNigerianGrade } from '../../../lib/grading';
 import ResultCard, {
-  printResultCard, PRE_KG_SKILLS, PRE_KG_COMMENTS,
+  printResultCard, CardPrintContent, PRE_KG_SKILLS, PRE_KG_COMMENTS,
   NURSERY_SUBJECTS, buildNurserySubjects, NURSERY_CA_MAX, NURSERY_EXAM_MAX,
   BASIC_SUBJECTS, buildBasicSubjects, BASIC_CA_MAX, BASIC_EXAM_MAX,
 } from '../admin/ResultCard';
@@ -81,6 +81,7 @@ const PRE_KG_DOMAINS = [
 ] as const;
 const PRE_KG_FACES  = ['', '😔', '😐', '🙂', '😊', '🌟'] as const;
 const PRE_KG_FACE_LABELS = ['', 'Needs Work', 'Fair', 'Good', 'Very Good', 'Excellent'] as const;
+const ASSESS_MAX_CONTRIB: Record<string, number> = { homework: 10, '1st ca': 15, '2nd ca': 15, project: 10, exam: 50 };
 
 export default function TeacherResultsSection({ profile }: Props) {
   const [myClasses, setMyClasses] = useState<{ id: string; name: string; level: string }[]>([]);
@@ -100,6 +101,13 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [bulkSubject, setBulkSubject] = useState('');
   const [bulkScores, setBulkScores] = useState<Record<string, { ca1: number; ca2: number; exam: number; project: number; homework: number }>>({});
   const [savingBulk, setSavingBulk] = useState(false);
+  const [completionFilter, setCompletionFilter] = useState<'all' | 'complete' | 'partial' | 'empty'>('all');
+  const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [subjectInsights, setSubjectInsights] = useState<Record<string, { avg: number; scored: number }>>({});
+  const [showInsights, setShowInsights] = useState(false);
+  const [bulkCards, setBulkCards] = useState<ResultCardData[]>([]);
+  const [bulkPrinting, setBulkPrinting] = useState(false);
+  const bulkRef = useRef<HTMLDivElement>(null);
 
   // Modal state
   const [activeStudent, setActiveStudent] = useState<StudentInfo | null>(null);
@@ -352,12 +360,128 @@ export default function TeacherResultsSection({ profile }: Props) {
         if (error) throw error;
       }
       setToast({ msg: `${bulkSubject} scores saved for ${students.length} students`, type: 'success' });
+      await loadSubjectInsights();
+      setShowInsights(true);
     } catch (e: unknown) {
       setToast({ msg: e instanceof Error ? e.message : 'Save failed', type: 'error' });
     } finally {
       setSavingBulk(false);
     }
   };
+
+  const loadSubjectInsights = async () => {
+    if (students.length === 0) return;
+    const { data } = await supabase
+      .from('grades')
+      .select('student_id, subject, assessment_type, score, max_score')
+      .in('student_id', students.map(s => s.id))
+      .eq('term', selectedTerm)
+      .eq('academic_year', academicYear);
+    if (!data) return;
+    const perStudentSubject: Record<string, Record<string, number>> = {};
+    for (const row of data as { student_id: string; subject: string; assessment_type: string; score: number; max_score: number }[]) {
+      const key = `${row.student_id}|${row.subject}`;
+      if (!perStudentSubject[key]) perStudentSubject[key] = {};
+      const maxContrib = ASSESS_MAX_CONTRIB[row.assessment_type] ?? 0;
+      perStudentSubject[key][row.assessment_type] = row.max_score > 0 ? (row.score / row.max_score) * maxContrib : 0;
+    }
+    const subjectTotals: Record<string, number[]> = {};
+    for (const [key, scores] of Object.entries(perStudentSubject)) {
+      const subject = key.split('|')[1];
+      const total = Object.values(scores).reduce((a, b) => a + b, 0);
+      if (total > 0) {
+        if (!subjectTotals[subject]) subjectTotals[subject] = [];
+        subjectTotals[subject].push(total);
+      }
+    }
+    const insights: Record<string, { avg: number; scored: number }> = {};
+    for (const [sub, totals] of Object.entries(subjectTotals)) {
+      insights[sub] = { avg: Math.round(totals.reduce((a, b) => a + b, 0) / totals.length), scored: totals.length };
+    }
+    setSubjectInsights(insights);
+  };
+
+  const printAll = useCallback(async () => {
+    if (students.length === 0) return;
+    setBulkPrinting(true);
+    try {
+      const { data: gradeRows } = await supabase
+        .from('grades')
+        .select('id,subject,assessment_type,score,max_score,student_id,term,academic_year')
+        .in('student_id', students.map(s => s.id))
+        .eq('term', selectedTerm)
+        .eq('academic_year', academicYear);
+      const allGrades = (gradeRows || []) as GradeRow[];
+      const level = myClasses.find(c => c.id === selectedClass)?.level ?? '';
+      const isToddler = level === 'toddler';
+      const isBasic   = ['basic1','basic2','basic3','basic4','basic5'].includes(level);
+      const isNursery = level === 'creche';
+      const totalByStudent: Record<string, number> = {};
+      students.forEach(s => {
+        const sg = allGrades.filter(g => g.student_id === s.id);
+        totalByStudent[s.id] = isToddler
+          ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [(g.subject || '').trim(), g.score]))).reduce((a, sub) => a + sub.total, 0)
+          : computeSubjects(sg).reduce((a, sub) => a + sub.total, 0);
+      });
+      const allTotals = Object.values(totalByStudent).filter(t => t > 0);
+      const sorted = [...allTotals].sort((a, b) => b - a);
+      const classAvg = allTotals.length > 0 ? Math.round(allTotals.reduce((a, b) => a + b, 0) / allTotals.length) : 0;
+      const visSubs = isBasic ? getVisibleSubjects('basic', BASIC_SUBJECTS) : isNursery ? getVisibleSubjects('nursery', NURSERY_SUBJECTS) : undefined;
+      const cards: ResultCardData[] = students.map(student => {
+        const sg = allGrades.filter(g => g.student_id === student.id);
+        const mySubjects = isToddler
+          ? buildPreKgSubjects(Object.fromEntries(sg.filter(g => g.assessment_type === 'pre_kg').map(g => [(g.subject || '').trim(), g.score])))
+          : computeSubjects(sg);
+        const myTotal = mySubjects.reduce((a, s) => a + s.total, 0);
+        const position = sorted.indexOf(myTotal) + 1 || sorted.length + 1;
+        const meta = resultSheets[student.id] || defaultMeta;
+        return {
+          student: { name: `${student.profiles?.first_name} ${student.profiles?.last_name}`, studentId: student.student_id, className: student.classes?.name || '—', classLevel: level, gender: student.gender || '', dob: student.date_of_birth || '' },
+          term: selectedTerm, academicYear,
+          subjects: mySubjects,
+          classStats: { position, totalStudents: students.length, grandTotal: myTotal, highestInClass: sorted[0] ?? 0, lowestInClass: sorted[sorted.length - 1] ?? 0, classAverage: classAvg },
+          behavior: { punctuality: meta.punctuality ?? 3, neatness: meta.neatness ?? 3, honesty: meta.honesty ?? 3, cooperation: meta.cooperation ?? 3, attentiveness: meta.attentiveness ?? 3, politeness: meta.politeness ?? 3 },
+          attendance: { daysPresent: meta.days_present, daysAbsent: meta.days_absent, totalDays: meta.total_school_days },
+          comments: { teacher: meta.teacher_comment || '', principal: meta.principal_comment || '' },
+          nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees || '' },
+          schoolName: SCHOOL_NAME, schoolAddress: '',
+          visibleSubjects: visSubs,
+        };
+      });
+      setBulkCards(cards);
+    } catch {
+      setToast({ msg: 'Failed to prepare cards for printing', type: 'error' });
+      setBulkPrinting(false);
+    }
+  }, [students, selectedTerm, academicYear, resultSheets, selectedClass, myClasses, buildPreKgSubjects, getVisibleSubjects]);
+
+  const isLandscapeClass = ['creche', 'toddler'].includes(myClasses.find(c => c.id === selectedClass)?.level ?? '');
+
+  useEffect(() => {
+    if (bulkCards.length === 0) return;
+    const t = setTimeout(() => {
+      const el = bulkRef.current;
+      if (!el) { setBulkCards([]); setBulkPrinting(false); return; }
+      const win = window.open('', '_blank', 'width=1200,height=850');
+      if (!win) { setBulkCards([]); setBulkPrinting(false); setToast({ msg: 'Pop-up blocked — allow pop-ups and try again', type: 'error' }); return; }
+      const pageSize = isLandscapeClass ? 'A4 landscape' : 'A4 portrait';
+      win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>Report Cards — ${selectedTerm} ${academicYear}</title>
+<style>
+  @page { size: ${pageSize}; margin: 6mm 8mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; background: #fff; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #ccc; padding: 3px 5px; }
+  img { max-width: 100%; }
+  .card-page { page-break-after: always; }
+  .card-page:last-child { page-break-after: auto; }
+</style></head><body>${el.innerHTML}</body></html>`);
+      win.document.close();
+      setTimeout(() => { win.print(); setBulkCards([]); setBulkPrinting(false); }, 700);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [bulkCards, selectedTerm, academicYear, isLandscapeClass]);
 
   const loadStudents = useCallback(async () => {
     if (!selectedClass) { setStudents([]); return; }
@@ -786,8 +910,42 @@ export default function TeacherResultsSection({ profile }: Props) {
 
   const filteredStudents = students.filter(s => {
     const name = `${s.profiles?.first_name} ${s.profiles?.last_name}`.toLowerCase();
-    return !search || name.includes(search.toLowerCase()) || s.student_id.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = !search || name.includes(search.toLowerCase()) || s.student_id.toLowerCase().includes(search.toLowerCase());
+    const matchesCompletion = completionFilter === 'all' || getCompletionStatus(s.id) === completionFilter;
+    return matchesSearch && matchesCompletion;
   });
+
+  const completionCounts = {
+    complete: students.filter(s => getCompletionStatus(s.id) === 'complete').length,
+    partial:  students.filter(s => getCompletionStatus(s.id) === 'partial').length,
+    empty:    students.filter(s => getCompletionStatus(s.id) === 'empty').length,
+  };
+
+  const bulkPublish = async () => {
+    const toPublish = students.filter(s => {
+      const sheet = resultSheets[s.id];
+      return sheet && !sheet.is_published;
+    });
+    if (toPublish.length === 0) { setToast({ msg: 'No unpublished sheets found', type: 'error' }); return; }
+    setBulkPublishing(true);
+    try {
+      const { error } = await supabase.from('result_sheets')
+        .update({ is_published: true })
+        .in('student_id', toPublish.map(s => s.id))
+        .eq('term', selectedTerm)
+        .eq('academic_year', academicYear);
+      if (error) throw error;
+      setResultSheets(prev => {
+        const n = { ...prev };
+        toPublish.forEach(s => { n[s.id] = { ...n[s.id], is_published: true }; });
+        return n;
+      });
+      setToast({ msg: `✓ Published ${toPublish.length} report card${toPublish.length !== 1 ? 's' : ''}`, type: 'success' });
+    } catch (e: unknown) {
+      setToast({ msg: e instanceof Error ? e.message : 'Bulk publish failed', type: 'error' });
+    }
+    setBulkPublishing(false);
+  };
 
   // ── Smart navigation ──────────────────────────────────────────────
   const activeStudentIdx = activeStudent ? filteredStudents.findIndex(s => s.id === activeStudent.id) : -1;
@@ -966,6 +1124,64 @@ export default function TeacherResultsSection({ profile }: Props) {
             </div>
           )}
 
+          {/* ── Completion progress bar ── */}
+          {students.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+              {/* Progress bar */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="font-semibold text-gray-700">Completion</span>
+                  <span className="flex items-center gap-1 text-green-700"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" />{completionCounts.complete} Complete</span>
+                  <span className="flex items-center gap-1 text-amber-700"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />{completionCounts.partial} Partial</span>
+                  <span className="flex items-center gap-1 text-gray-400"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />{completionCounts.empty} Empty</span>
+                </div>
+                <button
+                  onClick={bulkPublish}
+                  disabled={bulkPublishing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  title="Publish all unpublished sheets to parent portal"
+                >
+                  {bulkPublishing
+                    ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <Globe className="w-3 h-3" />}
+                  {bulkPublishing ? 'Publishing…' : 'Publish All'}
+                </button>
+              </div>
+              {/* Visual bar */}
+              {students.length > 0 && (
+                <div className="h-2 rounded-full bg-gray-100 overflow-hidden flex">
+                  <div className="bg-green-500 transition-all duration-500" style={{ width: `${(completionCounts.complete / students.length) * 100}%` }} />
+                  <div className="bg-amber-400 transition-all duration-500" style={{ width: `${(completionCounts.partial / students.length) * 100}%` }} />
+                </div>
+              )}
+              {/* Filter pills — only useful in per-student mode */}
+              {entryMode === 'student' && (
+                <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                  <span className="text-xs text-gray-400 mr-1">Filter:</span>
+                  {(['all', 'complete', 'partial', 'empty'] as const).map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setCompletionFilter(f)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+                        completionFilter === f
+                          ? f === 'complete' ? 'bg-green-600 text-white border-green-600'
+                          : f === 'partial'  ? 'bg-amber-500 text-white border-amber-500'
+                          : f === 'empty'    ? 'bg-gray-500 text-white border-gray-500'
+                          : 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      {f === 'all' ? `All (${students.length})` : f === 'complete' ? `Complete (${completionCounts.complete})` : f === 'partial' ? `Partial (${completionCounts.partial})` : `Empty (${completionCounts.empty})`}
+                    </button>
+                  ))}
+                  {completionFilter !== 'all' && (
+                    <button onClick={() => setCompletionFilter('all')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-1">× Clear</button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── Bulk class-sheet entry panel ── */}
           {entryMode === 'bulk' && bulkSubjectList.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -1127,6 +1343,43 @@ export default function TeacherResultsSection({ profile }: Props) {
             </div>
           )}
 
+          {/* ── Subject insights panel ── */}
+          {Object.keys(subjectInsights).length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setShowInsights(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-sm font-semibold text-gray-700">📊 Class Subject Performance</span>
+                <span className="text-xs text-gray-400">{showInsights ? '▲ Hide' : '▼ Show'}</span>
+              </button>
+              {showInsights && (
+                <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(bulkSubjectList as readonly string[])
+                    .filter(sub => subjectInsights[sub])
+                    .map(sub => {
+                      const { avg, scored } = subjectInsights[sub];
+                      const pct = Math.round((avg / 100) * 100);
+                      const color = avg >= 70 ? 'bg-green-500' : avg >= 50 ? 'bg-amber-400' : 'bg-red-400';
+                      const textColor = avg >= 70 ? 'text-green-700' : avg >= 50 ? 'text-amber-700' : 'text-red-700';
+                      return (
+                        <div key={sub} className="border border-gray-100 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-semibold text-gray-700 truncate">{sub}</span>
+                            <span className={`text-xs font-bold ${textColor}`}>{avg}/100</span>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-1">{scored}/{students.length} students scored</p>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+
           {entryMode === 'student' && students.length > 0 && (
             <div className="flex flex-wrap justify-end gap-2">
               {students.some(s => !s.report_pin) && (
@@ -1146,6 +1399,17 @@ export default function TeacherResultsSection({ profile }: Props) {
                   <KeyRound className="w-3.5 h-3.5" /> Print PINs
                 </button>
               )}
+              <button
+                onClick={printAll}
+                disabled={bulkPrinting || students.length === 0}
+                className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 text-white rounded-lg text-xs font-semibold hover:bg-gray-800 disabled:opacity-50 shadow-sm"
+                title="Print all report cards for this class"
+              >
+                {bulkPrinting
+                  ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <Printer className="w-3.5 h-3.5" />}
+                {bulkPrinting ? 'Preparing…' : `Print All (${students.length})`}
+              </button>
             </div>
           )}
 
@@ -1371,14 +1635,19 @@ export default function TeacherResultsSection({ profile }: Props) {
                         </div>
                       ) : (
                         <>
-                          <ResultCard
-                            data={cardData}
-                            onPrint={() => {
-                              const lvl = activeStudent?.classes?.level;
-                              const landscape = lvl === 'creche' || lvl === 'toddler';
-                              printResultCard(`${activeStudent.profiles?.first_name} ${activeStudent.profiles?.last_name}`, landscape);
-                            }}
-                          />
+                          {/* Scrollable wrapper — lets fixed-width card scroll on mobile instead of being squished */}
+                          <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
+                            <div style={{ minWidth: isToddlerStudent ? 760 : 620 }}>
+                              <ResultCard
+                                data={cardData}
+                                onPrint={() => {
+                                  const lvl = activeStudent?.classes?.level;
+                                  const landscape = lvl === 'creche' || lvl === 'toddler';
+                                  printResultCard(`${activeStudent.profiles?.first_name} ${activeStudent.profiles?.last_name}`, landscape);
+                                }}
+                              />
+                            </div>
+                          </div>
                           {/* Share / Export actions */}
                           <div className="flex flex-wrap gap-2">
                             <button
@@ -1829,6 +2098,17 @@ export default function TeacherResultsSection({ profile }: Props) {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Hidden off-screen container for batch print rendering */}
+      {bulkCards.length > 0 && (
+        <div ref={bulkRef} style={{ position: 'fixed', left: '-99999px', top: 0, width: isLandscapeClass ? '297mm' : '210mm', pointerEvents: 'none' }} aria-hidden="true">
+          {bulkCards.map((card, i) => (
+            <div key={i} className="card-page" style={{ pageBreakAfter: i < bulkCards.length - 1 ? 'always' : 'auto' }}>
+              <CardPrintContent data={card} />
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, Plus, Eye, Edit2, ToggleLeft, ToggleRight, Download, X, 
-  ChevronLeft, ChevronRight, Copy, Check, KeyRound, Sparkles, 
-  UserPlus, Users, GraduationCap, AlertCircle, ArrowUpRight
+import {
+  Search, Plus, Eye, Edit2, ToggleLeft, ToggleRight, Download, X,
+  ChevronLeft, ChevronRight, Copy, Check, KeyRound, Sparkles,
+  UserPlus, Users, GraduationCap, AlertCircle, ArrowUpRight,
+  TrendingUp, TrendingDown, Minus, BarChart3,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import type { ProfileRow, StudentRow, ClassRow, ClassLevel, StudentGender } from '../../../lib/supabase';
@@ -82,6 +83,12 @@ export default function StudentsSection({ profile: _profile }: Props) {
   const [resetTarget, setResetTarget] = useState<StudentWithRelations | null>(null);
   const [resetSaving, setResetSaving] = useState(false);
 
+  // Academic history
+  const [viewTab, setViewTab] = useState<'info' | 'history'>('info');
+  const [historyLoading, setHistoryLoading] = useState(false);
+  type TermRecord = { term: string; year: string; avg: number | null; subjects: { subject: string; total: number }[]; published: boolean };
+  const [termHistory, setTermHistory] = useState<TermRecord[]>([]);
+
   // Stepper state for multi-step smart student creation form
   const [formStep, setFormStep] = useState<1 | 2>(1);
   const [isEmailAuto, setIsEmailAuto] = useState(true);
@@ -99,6 +106,49 @@ export default function StudentsSection({ profile: _profile }: Props) {
     fetchStudents();
     supabase.from('classes').select('id, name, level').then(({ data }) => setClasses(data || []));
   }, []);
+
+  // Load academic history when viewStudent changes
+  useEffect(() => {
+    if (!viewStudent) { setTermHistory([]); setViewTab('info'); return; }
+    setHistoryLoading(true);
+    const ASSESS_MAX: Record<string, number> = { homework: 10, '1st ca': 15, '2nd ca': 15, project: 10, exam: 50 };
+    Promise.all([
+      supabase.from('grades').select('subject,assessment_type,score,max_score,term,academic_year').eq('student_id', viewStudent.id),
+      supabase.from('result_sheets').select('term,academic_year,is_published').eq('student_id', viewStudent.id),
+    ]).then(([gradesRes, sheetsRes]) => {
+      const grades = (gradesRes.data || []) as { subject: string; assessment_type: string; score: number; max_score: number; term: string; academic_year: string }[];
+      const sheets = (sheetsRes.data || []) as { term: string; academic_year: string; is_published: boolean }[];
+      // Group grades by term+year
+      const groups = new Map<string, typeof grades>();
+      grades.forEach(g => {
+        const key = `${g.term}||${g.academic_year}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(g);
+      });
+      const TERM_ORDER = ['First Term', 'Second Term', 'Third Term'];
+      const records: TermRecord[] = [...groups.entries()].map(([key, rows]) => {
+        const [term, year] = key.split('||');
+        // Per-student-subject total using standard weight
+        const bySubject: Record<string, number> = {};
+        rows.filter(r => r.assessment_type !== 'pre_kg').forEach(r => {
+          const maxW = ASSESS_MAX[r.assessment_type.toLowerCase()] ?? 0;
+          const contrib = r.max_score > 0 ? (r.score / r.max_score) * maxW : 0;
+          bySubject[r.subject] = (bySubject[r.subject] ?? 0) + contrib;
+        });
+        const subjectList = Object.entries(bySubject).map(([subject, total]) => ({ subject, total: Math.round(total) })).sort((a, b) => b.total - a.total);
+        const totals = subjectList.map(s => s.total).filter(t => t > 0);
+        const avg = totals.length > 0 ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : null;
+        const sheet = sheets.find(s => s.term === term && s.academic_year === year);
+        return { term, year, avg, subjects: subjectList, published: sheet?.is_published ?? false };
+      }).sort((a, b) => {
+        const ya = parseInt(a.year.split('/')[0]), yb = parseInt(b.year.split('/')[0]);
+        if (ya !== yb) return yb - ya;
+        return TERM_ORDER.indexOf(b.term) - TERM_ORDER.indexOf(a.term);
+      });
+      setTermHistory(records);
+      setHistoryLoading(false);
+    });
+  }, [viewStudent]);
 
   // Auto-generate email based on first and last name
   useEffect(() => {
@@ -500,47 +550,114 @@ export default function StudentsSection({ profile: _profile }: Props) {
       {/* View Student Details Modal */}
       {viewStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs" onClick={() => setViewStudent(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-100" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
-              <div>
-                <h3 className="font-bold text-gray-900 text-lg">Academic Profile</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Comprehensive enrollment record and registration specifics.</p>
-              </div>
-              <button onClick={() => setViewStudent(null)} className="p-2 hover:bg-gray-200 rounded-xl transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
-            </div>
-            <div className="p-6">
-              <div className="flex items-center gap-4 mb-6 bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100/50">
-                <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold text-2xl shadow-md shadow-indigo-600/10">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col border border-gray-100" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">
                   {viewStudent.profiles?.first_name?.[0]}{viewStudent.profiles?.last_name?.[0]}
                 </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 text-lg">{viewStudent.profiles?.first_name} {viewStudent.profiles?.last_name}</h4>
-                  <span className="inline-flex items-center gap-1 font-mono text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg font-bold mt-1">
-                    ID: {viewStudent.student_id}
-                  </span>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-gray-900 truncate">{viewStudent.profiles?.first_name} {viewStudent.profiles?.last_name}</h3>
+                  <span className="font-mono text-xs text-indigo-600 font-semibold">{viewStudent.student_id} · {viewStudent.classes?.name || 'Unassigned'}</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
-                {[
-                  ['Email Address', viewStudent.profiles?.email], 
-                  ['Contact Phone', viewStudent.profiles?.phone || '—'],
-                  ['Current Class', viewStudent.classes?.name || 'Unassigned'], 
-                  ['Montessori Level', (viewStudent.classes?.level != null ? LEVEL_LABELS[viewStudent.classes.level] : null) || '—'],
-                  ['Student Gender', viewStudent.gender || '—'], 
-                  ['Date of Birth', viewStudent.date_of_birth || '—'],
-                  ['Enrollment Date', viewStudent.enrollment_date || '—'], 
-                  ['Portal Status', viewStudent.is_active ? 'Active' : 'Inactive'],
-                  ['Home Address', viewStudent.address || '—', true], 
-                  ['Emergency Contact Name', viewStudent.emergency_contact || '—'],
-                  ['Emergency Phone', viewStudent.emergency_phone || '—'], 
-                  ['Medical Conditions', viewStudent.medical_conditions || 'None declared', true],
-                ].map(([k, v, fullWidth]) => (
-                  <div key={k as string} className={`${fullWidth ? 'col-span-2' : ''} bg-gray-50/50 p-2.5 rounded-xl border border-gray-100`}>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{k as string}</p>
-                    <p className="text-gray-800 font-semibold mt-1">{v as string}</p>
+              <button onClick={() => setViewStudent(null)} className="p-2 hover:bg-gray-200 rounded-xl transition-colors flex-shrink-0"><X className="w-5 h-5 text-gray-500" /></button>
+            </div>
+            {/* Tabs */}
+            <div className="flex border-b border-gray-100 flex-shrink-0">
+              {([['info', 'Profile'], ['history', 'Academic History']] as const).map(([id, label]) => (
+                <button key={id} onClick={() => setViewTab(id)}
+                  className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${viewTab === id ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 p-6">
+              {viewTab === 'info' && (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
+                  {[
+                    ['Email Address', viewStudent.profiles?.email],
+                    ['Contact Phone', viewStudent.profiles?.phone || '—'],
+                    ['Current Class', viewStudent.classes?.name || 'Unassigned'],
+                    ['Montessori Level', (viewStudent.classes?.level != null ? LEVEL_LABELS[viewStudent.classes.level] : null) || '—'],
+                    ['Student Gender', viewStudent.gender || '—'],
+                    ['Date of Birth', viewStudent.date_of_birth || '—'],
+                    ['Enrollment Date', viewStudent.enrollment_date || '—'],
+                    ['Portal Status', viewStudent.is_active ? 'Active' : 'Inactive'],
+                    ['Home Address', viewStudent.address || '—', true],
+                    ['Emergency Contact Name', viewStudent.emergency_contact || '—'],
+                    ['Emergency Phone', viewStudent.emergency_phone || '—'],
+                    ['Medical Conditions', viewStudent.medical_conditions || 'None declared', true],
+                  ].map(([k, v, fullWidth]) => (
+                    <div key={k as string} className={`${fullWidth ? 'col-span-2' : ''} bg-gray-50/50 p-2.5 rounded-xl border border-gray-100`}>
+                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{k as string}</p>
+                      <p className="text-gray-800 font-semibold mt-1">{v as string}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {viewTab === 'history' && (
+                historyLoading ? (
+                  <div className="flex justify-center py-12"><div className="w-6 h-6 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" /></div>
+                ) : termHistory.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium text-sm">No academic records yet</p>
+                    <p className="text-xs mt-1">Grades and result cards will appear here once entered.</p>
                   </div>
-                ))}
-              </div>
+                ) : (
+                  <div className="space-y-3">
+                    {termHistory.map((rec, idx) => {
+                      const prev = termHistory[idx + 1];
+                      const trend = rec.avg !== null && prev?.avg !== null && prev?.avg !== undefined
+                        ? rec.avg > prev.avg ? 'up' : rec.avg < prev.avg ? 'down' : 'flat'
+                        : null;
+                      return (
+                        <div key={`${rec.term}-${rec.year}`} className="border border-gray-200 rounded-2xl overflow-hidden">
+                          {/* Term header */}
+                          <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
+                            <div>
+                              <p className="font-semibold text-gray-800 text-sm">{rec.term}</p>
+                              <p className="text-xs text-gray-400">{rec.year}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {rec.published && <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">Published</span>}
+                              {rec.avg !== null && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-sm font-bold ${rec.avg >= 70 ? 'text-green-700' : rec.avg >= 50 ? 'text-amber-700' : 'text-red-600'}`}>
+                                    {rec.avg}/100
+                                  </span>
+                                  {trend === 'up'   && <TrendingUp   className="w-4 h-4 text-green-500" />}
+                                  {trend === 'down' && <TrendingDown className="w-4 h-4 text-red-500" />}
+                                  {trend === 'flat' && <Minus        className="w-4 h-4 text-gray-400" />}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {/* Subject rows */}
+                          {rec.subjects.length > 0 && (
+                            <div className="divide-y divide-gray-50">
+                              {rec.subjects.map(sub => (
+                                <div key={sub.subject} className="flex items-center px-4 py-2">
+                                  <span className="flex-1 text-xs text-gray-700 font-medium">{sub.subject}</span>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                      <div className={`h-full rounded-full ${sub.total >= 70 ? 'bg-green-500' : sub.total >= 50 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${Math.min(100, sub.total)}%` }} />
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-600 tabular-nums w-8 text-right">{sub.total}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              )}
             </div>
           </div>
         </div>
