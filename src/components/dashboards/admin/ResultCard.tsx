@@ -131,6 +131,12 @@ export function printResultCard(studentName: string, landscape = false) {
   setTimeout(() => { win.print(); }, 600);
 }
 
+/* ── B&W-safe grade badge style — shared by Primary and Nursery cards ── */
+const GB: React.CSSProperties = {
+  display: 'inline-block', border: '1.5px solid #000', fontWeight: 'bold',
+  padding: '1px 4px', textAlign: 'center', minWidth: '22px', fontSize: '8pt',
+};
+
 /* ─── PRIMARY / BASIC Result Card — matches physical "LOWER AND MIDDLE BASIC REPORT SHEET" ── */
 function PrimaryResultCard({ data }: { data: ResultCardData }) {
   const { student, term, academicYear, subjects, behavior, attendance, comments, nextTerm, schoolName, visibleSubjects } = data;
@@ -180,12 +186,6 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
     { id: 'g', label: 'Courtesy (Greeting and Respect) and Grace', score: bScore(behavior.politeness) },
     { id: 'h', label: 'Level of Independence',                      score: '' },
   ];
-
-  /* ── B&W-safe grade badge ── */
-  const GB: React.CSSProperties = {
-    display: 'inline-block', border: '1.5px solid #000', fontWeight: 'bold',
-    padding: '1px 4px', textAlign: 'center', minWidth: '22px', fontSize: '8pt',
-  };
 
   const scoredRows = displayedBasicSubjects
     .map(name => ({ name, s: getSubject(name) }))
