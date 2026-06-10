@@ -71,8 +71,19 @@ function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error';
   );
 }
 
+/* ─── Pre-KG emoji domain config ────────────────────────────────── */
+const PRE_KG_DOMAINS = [
+  { domain: 'Language & Literacy',  icon: '📚', skills: ['Literacy', 'Phonics', 'Scribbling'] },
+  { domain: 'Numbers & Thinking',   icon: '🔢', skills: ['Numeracy', 'Understanding'] },
+  { domain: 'Character & Conduct',  icon: '⭐', skills: ['Obedience', 'Individual Behaviour', 'Care of Self', 'Punctuality'] },
+  { domain: 'Social & Creative',    icon: '🎨', skills: ['Social Habit', 'Creative Play'] },
+  { domain: 'Faith & Values',       icon: '✝️', skills: ['Bible Studies'] },
+] as const;
+const PRE_KG_FACES  = ['', '😔', '😐', '🙂', '😊', '🌟'] as const;
+const PRE_KG_FACE_LABELS = ['', 'Needs Work', 'Fair', 'Good', 'Very Good', 'Excellent'] as const;
+
 export default function TeacherResultsSection({ profile }: Props) {
-  const [myClasses, setMyClasses] = useState<{ id: string; name: string }[]>([]);
+  const [myClasses, setMyClasses] = useState<{ id: string; name: string; level: string }[]>([]);
   const [students, setStudents] = useState<StudentInfo[]>([]);
   const [resultSheets, setResultSheets] = useState<Record<string, ResultSheetMeta>>({});
   const [loading, setLoading] = useState(false);
@@ -83,6 +94,12 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [classDefaults, setClassDefaults] = useState({ total_school_days: 0, next_term_begins: '', next_term_fees: '' });
   const [showClassDefaults, setShowClassDefaults] = useState(false);
+
+  // Bulk class-sheet entry
+  const [entryMode, setEntryMode] = useState<'student' | 'bulk'>('student');
+  const [bulkSubject, setBulkSubject] = useState('');
+  const [bulkScores, setBulkScores] = useState<Record<string, { ca1: number; ca2: number; exam: number; project: number; homework: number }>>({});
+  const [savingBulk, setSavingBulk] = useState(false);
 
   // Modal state
   const [activeStudent, setActiveStudent] = useState<StudentInfo | null>(null);
@@ -266,12 +283,79 @@ export default function TeacherResultsSection({ profile }: Props) {
   const isBasicStudent   = ['basic1','basic2','basic3','basic4','basic5'].includes(activeStudent?.classes?.level ?? '');
 
   useEffect(() => {
-    supabase.from('classes').select('id, name').eq('teacher_id', profile.id).order('name').then(({ data }) => {
-      const cls = (data || []) as { id: string; name: string }[];
+    supabase.from('classes').select('id, name, level').eq('teacher_id', profile.id).order('name').then(({ data }) => {
+      const cls = (data || []) as { id: string; name: string; level: string }[];
       setMyClasses(cls);
       if (cls.length > 0) setSelectedClass(cls[0].id);
     });
   }, [profile.id]);
+
+  // Derive current class level for bulk mode subject list
+  const currentClassLevel = myClasses.find(c => c.id === selectedClass)?.level ?? '';
+  const bulkSubjectList: readonly string[] =
+    ['basic1','basic2','basic3','basic4','basic5'].includes(currentClassLevel) ? BASIC_SUBJECTS :
+    currentClassLevel === 'creche' ? NURSERY_SUBJECTS : [];
+  const bulkCAMax   = currentClassLevel === 'creche' ? NURSERY_CA_MAX   : BASIC_CA_MAX;
+  const bulkExamMax = currentClassLevel === 'creche' ? NURSERY_EXAM_MAX : BASIC_EXAM_MAX;
+
+  // Load existing scores when bulk subject changes
+  useEffect(() => {
+    if (entryMode !== 'bulk' || !bulkSubject || students.length === 0) return;
+    supabase.from('grades')
+      .select('student_id, assessment_type, score')
+      .in('student_id', students.map(s => s.id))
+      .eq('subject', bulkSubject)
+      .eq('term', selectedTerm)
+      .eq('academic_year', academicYear)
+      .then(({ data }) => {
+        const loaded: Record<string, { ca1: number; ca2: number; exam: number; project: number; homework: number }> = {};
+        (data || []).forEach((g: { student_id: string; assessment_type: string; score: number }) => {
+          if (!loaded[g.student_id]) loaded[g.student_id] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+          const t = (g.assessment_type || '').toLowerCase();
+          if (t === '1st ca')   loaded[g.student_id].ca1     = g.score;
+          if (t === '2nd ca')   loaded[g.student_id].ca2     = g.score;
+          if (t === 'exam')     loaded[g.student_id].exam    = g.score;
+          if (t === 'project')  loaded[g.student_id].project = g.score;
+          if (t === 'homework') loaded[g.student_id].homework = g.score;
+        });
+        setBulkScores(loaded);
+      });
+  }, [entryMode, bulkSubject, selectedTerm, academicYear, students]);
+
+  const saveBulkScores = async () => {
+    if (!bulkSubject) { setToast({ msg: 'Select a subject first', type: 'error' }); return; }
+    setSavingBulk(true);
+    try {
+      // Delete existing grades for this subject+term+year for all class students
+      await supabase.from('grades')
+        .delete()
+        .in('student_id', students.map(s => s.id))
+        .eq('subject', bulkSubject)
+        .eq('term', selectedTerm)
+        .eq('academic_year', academicYear);
+
+      // Build rows for students with at least one score > 0
+      const rows: { student_id: string; subject: string; assessment_type: string; score: number; max_score: number; term: string; academic_year: string; graded_by: string }[] = [];
+      for (const s of students) {
+        const sc = bulkScores[s.id];
+        if (!sc) continue;
+        if (sc.homework > 0) rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: 'homework', score: sc.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        if (sc.ca1 > 0)      rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: '1st ca',   score: sc.ca1,     max_score: bulkCAMax,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        if (sc.ca2 > 0)      rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: '2nd ca',   score: sc.ca2,     max_score: bulkCAMax,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        if (sc.project > 0)  rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: 'project',  score: sc.project, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        if (sc.exam > 0)     rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: 'exam',     score: sc.exam,    max_score: bulkExamMax, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+      }
+      if (rows.length > 0) {
+        const { error } = await supabase.from('grades').insert(rows);
+        if (error) throw error;
+      }
+      setToast({ msg: `${bulkSubject} scores saved for ${students.length} students`, type: 'success' });
+    } catch (e: unknown) {
+      setToast({ msg: e instanceof Error ? e.message : 'Save failed', type: 'error' });
+    } finally {
+      setSavingBulk(false);
+    }
+  };
 
   const loadStudents = useCallback(async () => {
     if (!selectedClass) { setStudents([]); return; }
@@ -798,7 +882,186 @@ export default function TeacherResultsSection({ profile }: Props) {
             </div>
           )}
 
-          {students.length > 0 && (
+          {/* ── Entry mode toggle (hide for toddler — no subject scores) ── */}
+          {students.length > 0 && bulkSubjectList.length > 0 && (
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl p-1 w-fit">
+              <button
+                onClick={() => setEntryMode('student')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${entryMode === 'student' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Per Student
+              </button>
+              <button
+                onClick={() => { setEntryMode('bulk'); if (!bulkSubject) setBulkSubject(bulkSubjectList[0] as string); }}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${entryMode === 'bulk' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                📋 Class Sheet
+              </button>
+            </div>
+          )}
+
+          {/* ── Bulk class-sheet entry panel ── */}
+          {entryMode === 'bulk' && bulkSubjectList.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              {/* Subject selector */}
+              <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <span className="text-sm font-semibold text-gray-700">Subject:</span>
+                <div className="flex flex-wrap gap-1.5 flex-1">
+                  {(bulkSubjectList as readonly string[]).map(sub => (
+                    <button
+                      key={sub}
+                      onClick={() => setBulkSubject(sub)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${bulkSubject === sub ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-700'}`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {bulkSubject && (
+                <>
+                  <div className="px-4 py-2 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between">
+                    <p className="text-xs text-indigo-700 font-medium">
+                      <span className="font-bold">{bulkSubject}</span> — HW &amp; Proj /10 · CA /{bulkCAMax} · Exam /{bulkExamMax} · Press <kbd className="bg-white border border-indigo-200 rounded px-1 font-mono">Tab</kbd> or <kbd className="bg-white border border-indigo-200 rounded px-1 font-mono">↵</kbd> to move between students
+                    </p>
+                    <button
+                      onClick={saveBulkScores}
+                      disabled={savingBulk}
+                      className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {savingBulk ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      {savingBulk ? 'Saving…' : `Save All (${students.length})`}
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[560px]">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase">
+                          <th className="sticky left-0 z-10 bg-gray-50 py-2 px-4 text-left w-36 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">#  Student</th>
+                          <th className="py-2 px-2 text-center">HW<br /><span className="font-normal normal-case text-gray-400">/10</span></th>
+                          <th className="py-2 px-2 text-center">1st CA<br /><span className="font-normal normal-case text-gray-400">/{bulkCAMax}</span></th>
+                          <th className="py-2 px-2 text-center">2nd CA<br /><span className="font-normal normal-case text-gray-400">/{bulkCAMax}</span></th>
+                          <th className="py-2 px-2 text-center">Proj<br /><span className="font-normal normal-case text-gray-400">/10</span></th>
+                          <th className="py-2 px-2 text-center">Exam<br /><span className="font-normal normal-case text-gray-400">/{bulkExamMax}</span></th>
+                          <th className="py-2 px-2 text-center">Total<br /><span className="font-normal normal-case text-gray-400">/100</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredStudents.map((s, idx) => {
+                          const sc = bulkScores[s.id] ?? { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+                          const ca1  = sc.ca1  > 0 ? Math.round((sc.ca1  / bulkCAMax)   * 15) : 0;
+                          const ca2  = sc.ca2  > 0 ? Math.round((sc.ca2  / bulkCAMax)   * 15) : 0;
+                          const exam = sc.exam > 0 ? Math.round((sc.exam / bulkExamMax) * 50) : 0;
+                          const proj = sc.project  > 0 ? Math.round((sc.project  / 10) * 10) : 0;
+                          const hw   = sc.homework > 0 ? Math.round((sc.homework / 10) * 10) : 0;
+                          const total = ca1 + ca2 + proj + hw + exam;
+                          const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
+                          const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-600' : 'text-gray-300';
+                          const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60';
+                          const totalStudents = filteredStudents.length;
+                          const setScore = (field: 'homework' | 'ca1' | 'ca2' | 'project' | 'exam', val: number) => {
+                            setBulkScores(prev => ({ ...prev, [s.id]: { ...(prev[s.id] ?? { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 }), [field]: val } }));
+                          };
+                          const onKeyNav = (e: React.KeyboardEvent<HTMLInputElement>, field: string) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              // Move to same field of next student
+                              const nextId = filteredStudents[idx + 1]?.id;
+                              if (nextId) {
+                                const next = document.querySelector<HTMLInputElement>(`input[data-bulk="${nextId}-${field}"]`);
+                                next?.focus();
+                                next?.select();
+                              }
+                            }
+                          };
+                          return (
+                            <tr key={s.id} className={`border-b border-gray-100 ${rowBg}`}>
+                              <td className={`sticky left-0 z-10 py-2 px-4 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] ${rowBg}`}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-400 w-4">{idx + 1}</span>
+                                  <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-[10px] flex-shrink-0">
+                                    {s.profiles?.first_name?.[0]}{s.profiles?.last_name?.[0]}
+                                  </div>
+                                  <span className="font-medium text-gray-800 text-xs truncate max-w-[90px]">{s.profiles?.first_name} {s.profiles?.last_name}</span>
+                                </div>
+                              </td>
+                              {([
+                                { f: 'homework' as const, max: 10 },
+                                { f: 'ca1' as const,      max: bulkCAMax },
+                                { f: 'ca2' as const,      max: bulkCAMax },
+                                { f: 'project' as const,  max: 10 },
+                                { f: 'exam' as const,     max: bulkExamMax },
+                              ]).map(({ f, max }) => (
+                                <td key={f} className="py-1 px-1 text-center">
+                                  <input
+                                    type="number" inputMode="numeric" min={0} max={max}
+                                    data-bulk={`${s.id}-${f}`}
+                                    value={sc[f] || ''}
+                                    onChange={e => setScore(f, Math.min(Number(e.target.value), max))}
+                                    onKeyDown={e => onKeyNav(e, f)}
+                                    onFocus={e => (e.target as HTMLInputElement).select()}
+                                    className="w-14 border border-gray-200 rounded-lg px-1 py-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                    tabIndex={idx * 5 + ['homework','ca1','ca2','project','exam'].indexOf(f) + 1}
+                                    placeholder={idx === 0 && f === 'homework' ? '0' : ''}
+                                  />
+                                </td>
+                              ))}
+                              <td className="py-2 px-2 text-center">
+                                <span className={`font-bold text-sm ${gc}`}>
+                                  {total > 0 ? total : '—'}
+                                  {grade && total > 0 && <span className="text-[10px] ml-0.5">({grade})</span>}
+                                </span>
+                                {total > 0 && (
+                                  <div className="text-[10px] text-gray-400">{Math.round(total / totalStudents * 10) / 10 > 0 ? '' : ''}</div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      {/* Class average footer */}
+                      {filteredStudents.length > 0 && (() => {
+                        const totals = filteredStudents.map(s => {
+                          const sc = bulkScores[s.id] ?? { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
+                          const ca1  = sc.ca1  > 0 ? Math.round((sc.ca1  / bulkCAMax)   * 15) : 0;
+                          const ca2  = sc.ca2  > 0 ? Math.round((sc.ca2  / bulkCAMax)   * 15) : 0;
+                          const exam = sc.exam > 0 ? Math.round((sc.exam / bulkExamMax) * 50) : 0;
+                          const proj = sc.project  > 0 ? Math.round((sc.project  / 10) * 10) : 0;
+                          const hw   = sc.homework > 0 ? Math.round((sc.homework / 10) * 10) : 0;
+                          return ca1 + ca2 + proj + hw + exam;
+                        }).filter(t => t > 0);
+                        if (totals.length === 0) return null;
+                        const avg = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
+                        return (
+                          <tfoot>
+                            <tr className="border-t-2 border-indigo-200 bg-indigo-50">
+                              <td colSpan={6} className="py-2 px-4 text-xs font-semibold text-indigo-700 sticky left-0 bg-indigo-50">
+                                Class average ({totals.length}/{filteredStudents.length} scored)
+                              </td>
+                              <td className="py-2 px-2 text-center font-bold text-indigo-700">{avg}</td>
+                            </tr>
+                          </tfoot>
+                        );
+                      })()}
+                    </table>
+                  </div>
+                  <div className="flex justify-end p-3 border-t border-gray-100">
+                    <button
+                      onClick={saveBulkScores}
+                      disabled={savingBulk}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 shadow-sm"
+                    >
+                      {savingBulk ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                      {savingBulk ? 'Saving…' : `Save ${bulkSubject} Scores`}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {entryMode === 'student' && students.length > 0 && (
             <div className="flex flex-wrap justify-end gap-2">
               {students.some(s => !s.report_pin) && (
                 <button onClick={bulkGeneratePins} disabled={bulkGeneratingPins}
@@ -820,7 +1083,7 @@ export default function TeacherResultsSection({ profile }: Props) {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          {entryMode === 'student' && <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             {loading ? (
               <div className="flex justify-center items-center py-16">
                 <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
@@ -937,7 +1200,7 @@ export default function TeacherResultsSection({ profile }: Props) {
               </table>
               </div>
             )}
-          </div>
+          </div>}
         </>
       )}
 
@@ -1166,62 +1429,66 @@ export default function TeacherResultsSection({ profile }: Props) {
                         </div>
                       )}
 
-                      {/* ── Pre-KG Skill Ratings (toddler class only) ── */}
+                      {/* ── Pre-KG Skill Ratings — emoji face, domain-grouped ── */}
                       {isToddlerStudent && (
                         <div>
-                          <h4 className="font-semibold text-gray-800 text-sm mb-1">Skill Ratings — Toddler Pre-KG</h4>
-                          <p className="text-xs text-gray-400 mb-3">Select a rating for each skill area. Click a button for quick entry or choose from the dropdown.</p>
-                          <div className="grid grid-cols-1 gap-3">
-                            {PRE_KG_SKILLS.map(skill => {
-                              const current = preKgRatings[skill.name] || 0;
-                              return (
-                                <div key={skill.name} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-                                  <div className="flex items-center justify-between gap-2 mb-2">
-                                    <span className="text-sm font-semibold text-gray-700">{skill.name}</span>
-                                    {current > 0 && (
-                                      <span className="text-xs text-indigo-600 font-medium italic truncate max-w-[200px]">
-                                        {PRE_KG_COMMENTS[skill.name]?.[current]?.[0]}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {/* Quick-select buttons */}
-                                  <div className="flex flex-wrap gap-1.5 mb-2">
-                                    {[
-                                      { r: 5, label: 'Excellent',         cls: 'bg-green-100 text-green-800 border-green-300' },
-                                      { r: 4, label: 'Very Good',         cls: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-                                      { r: 3, label: 'Good',              cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-                                      { r: 2, label: 'Fair',              cls: 'bg-orange-100 text-orange-800 border-orange-300' },
-                                      { r: 1, label: 'Needs Improvement', cls: 'bg-red-100 text-red-800 border-red-300' },
-                                    ].map(({ r, label, cls }) => (
-                                      <button
-                                        key={r}
-                                        onClick={() => updatePreKgRating(skill.name, current === r ? 0 : r)}
-                                        className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-all ${
-                                          current === r
-                                            ? cls + ' ring-2 ring-offset-1 ring-indigo-400'
-                                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-                                        }`}
-                                      >
-                                        {label}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  {/* Manual select dropdown */}
-                                  <select
-                                    value={current}
-                                    onChange={e => updatePreKgRating(skill.name, Number(e.target.value))}
-                                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                                  >
-                                    <option value={0}>— Not rated —</option>
-                                    {[5, 4, 3, 2, 1].map(r => (
-                                      <option key={r} value={r}>
-                                        {['', 'Needs Improvement', 'Fair', 'Good', 'Very Good', 'Excellent'][r]} — {PRE_KG_COMMENTS[skill.name]?.[r]?.[0]}
-                                      </option>
-                                    ))}
-                                  </select>
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h4 className="font-semibold text-gray-800 text-sm">Skill Ratings — Pre-KG</h4>
+                              <p className="text-xs text-gray-400 mt-0.5">Tap a face to rate each skill. 😔 Needs Work · 😐 Fair · 🙂 Good · 😊 Very Good · 🌟 Excellent</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const all: Partial<Record<string, number>> = {};
+                                PRE_KG_SKILLS.forEach(s => { all[s.name] = 3; });
+                                setPreKgRatings(all);
+                                setSubjects(buildPreKgSubjects(all));
+                              }}
+                              className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100"
+                            >
+                              🙂 Set all Good
+                            </button>
+                          </div>
+                          <div className="space-y-4">
+                            {PRE_KG_DOMAINS.map(({ domain, icon, skills }) => (
+                              <div key={domain} className="border border-gray-200 rounded-2xl overflow-hidden">
+                                <div className="px-4 py-2 bg-indigo-50 border-b border-indigo-100">
+                                  <span className="text-sm font-bold text-indigo-800">{icon} {domain}</span>
                                 </div>
-                              );
-                            })}
+                                <div className="divide-y divide-gray-100">
+                                  {(skills as readonly string[]).map(skillName => {
+                                    const current = preKgRatings[skillName] || 0;
+                                    const comment = PRE_KG_COMMENTS[skillName]?.[current]?.[0] ?? '';
+                                    return (
+                                      <div key={skillName} className="flex flex-wrap items-center gap-2 px-4 py-3 bg-white">
+                                        <span className="text-sm font-medium text-gray-700 flex-1 min-w-[120px]">{skillName}</span>
+                                        <div className="flex items-center gap-1">
+                                          {[1,2,3,4,5].map(r => (
+                                            <button
+                                              key={r}
+                                              onClick={() => updatePreKgRating(skillName, current === r ? 0 : r)}
+                                              title={PRE_KG_FACE_LABELS[r]}
+                                              className={`text-2xl leading-none rounded-full w-10 h-10 flex items-center justify-center transition-all border-2 ${
+                                                current === r
+                                                  ? 'border-indigo-400 bg-indigo-50 scale-110 shadow-sm'
+                                                  : 'border-transparent opacity-40 hover:opacity-80 hover:scale-105'
+                                              }`}
+                                            >
+                                              {PRE_KG_FACES[r]}
+                                            </button>
+                                          ))}
+                                        </div>
+                                        {current > 0 && (
+                                          <span className="text-[11px] text-indigo-600 font-medium italic w-full mt-0.5">
+                                            {PRE_KG_FACE_LABELS[current]}{comment ? ` — ${comment}` : ''}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}

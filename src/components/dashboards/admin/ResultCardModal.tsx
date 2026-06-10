@@ -10,6 +10,16 @@ import ResultCard, {
 } from './ResultCard';
 import type { ResultCardData, SubjectResult, NurseryScores, BasicScores } from './ResultCard';
 
+const PRE_KG_DOMAINS = [
+  { domain: 'Language & Literacy',  icon: '📚', skills: ['Literacy', 'Phonics', 'Scribbling'] },
+  { domain: 'Numbers & Thinking',   icon: '🔢', skills: ['Numeracy', 'Understanding'] },
+  { domain: 'Character & Conduct',  icon: '⭐', skills: ['Obedience', 'Individual Behaviour', 'Care of Self', 'Punctuality'] },
+  { domain: 'Social & Creative',    icon: '🎨', skills: ['Social Habit', 'Creative Play'] },
+  { domain: 'Faith & Values',       icon: '✝️', skills: ['Bible Studies'] },
+] as const;
+const PRE_KG_FACES       = ['', '😔', '😐', '🙂', '😊', '🌟'] as const;
+const PRE_KG_FACE_LABELS = ['', 'Needs Work', 'Fair', 'Good', 'Very Good', 'Excellent'] as const;
+
 export const defaultMeta = {
   teacher_comment: '', principal_comment: '',
   punctuality: 3, neatness: 3, honesty: 3, cooperation: 3, attentiveness: 3, politeness: 3,
@@ -369,60 +379,61 @@ export default function ResultCardModal({
                 </div>
               )}
 
-              {/* Pre-KG Skill Ratings */}
+              {/* Pre-KG Skill Ratings — emoji face, domain-grouped */}
               {isToddlerStudent && (
                 <div>
-                  <h4 className="font-semibold text-gray-800 text-sm mb-1">Skill Ratings — Toddler Pre-KG</h4>
-                  <p className="text-xs text-gray-400 mb-3">Select a rating for each skill area. Quick buttons or use the dropdown for manual selection.</p>
-                  <div className="grid grid-cols-1 gap-3">
-                    {PRE_KG_SKILLS.map(skill => {
-                      const current = preKgRatings[skill.name] || 0;
-                      return (
-                        <div key={skill.name} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-                          <div className="flex items-center justify-between gap-2 mb-2">
-                            <span className="text-sm font-semibold text-gray-700">{skill.name}</span>
-                            {current > 0 && (
-                              <span className="text-xs text-green-700 font-medium italic truncate max-w-[220px]">
-                                {PRE_KG_COMMENTS[skill.name]?.[current]?.[0]}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-1.5 mb-2">
-                            {[
-                              { r: 5, label: 'Excellent',         cls: 'bg-green-100 text-green-800 border-green-300' },
-                              { r: 4, label: 'Very Good',         cls: 'bg-blue-100 text-blue-800 border-blue-300' },
-                              { r: 3, label: 'Good',              cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-                              { r: 2, label: 'Fair',              cls: 'bg-orange-100 text-orange-800 border-orange-300' },
-                              { r: 1, label: 'Needs Improvement', cls: 'bg-red-100 text-red-800 border-red-300' },
-                            ].map(({ r, label, cls }) => (
-                              <button
-                                key={r}
-                                onClick={() => onPreKgRating(skill.name, current === r ? 0 : r)}
-                                className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-all ${
-                                  current === r
-                                    ? cls + ' ring-2 ring-offset-1 ring-green-400'
-                                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-                                }`}
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                          <select
-                            value={current}
-                            onChange={e => onPreKgRating(skill.name, Number(e.target.value))}
-                            className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                          >
-                            <option value={0}>— Not rated —</option>
-                            {[5, 4, 3, 2, 1].map(r => (
-                              <option key={r} value={r}>
-                                {['', 'Needs Improvement', 'Fair', 'Good', 'Very Good', 'Excellent'][r]} — {PRE_KG_COMMENTS[skill.name]?.[r]?.[0]}
-                              </option>
-                            ))}
-                          </select>
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold text-gray-800 text-sm">Skill Ratings — Pre-KG</h4>
+                      <p className="text-xs text-gray-400 mt-0.5">Tap a face to rate each skill. 😔 Needs Work · 😐 Fair · 🙂 Good · 😊 Very Good · 🌟 Excellent</p>
+                    </div>
+                    <button
+                      onClick={() => { PRE_KG_SKILLS.forEach(s => onPreKgRating(s.name, 3)); }}
+                      className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100"
+                    >
+                      🙂 Set all Good
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {PRE_KG_DOMAINS.map(({ domain, icon, skills }) => (
+                      <div key={domain} className="border border-gray-200 rounded-2xl overflow-hidden">
+                        <div className="px-4 py-2 bg-green-50 border-b border-green-100">
+                          <span className="text-sm font-bold text-green-800">{icon} {domain}</span>
                         </div>
-                      );
-                    })}
+                        <div className="divide-y divide-gray-100">
+                          {(skills as readonly string[]).map(skillName => {
+                            const current = preKgRatings[skillName] || 0;
+                            const comment = PRE_KG_COMMENTS[skillName]?.[current]?.[0] ?? '';
+                            return (
+                              <div key={skillName} className="flex flex-wrap items-center gap-2 px-4 py-3 bg-white">
+                                <span className="text-sm font-medium text-gray-700 flex-1 min-w-[120px]">{skillName}</span>
+                                <div className="flex items-center gap-1">
+                                  {[1,2,3,4,5].map(r => (
+                                    <button
+                                      key={r}
+                                      onClick={() => onPreKgRating(skillName, current === r ? 0 : r)}
+                                      title={PRE_KG_FACE_LABELS[r]}
+                                      className={`text-2xl leading-none rounded-full w-10 h-10 flex items-center justify-center transition-all border-2 ${
+                                        current === r
+                                          ? 'border-green-400 bg-green-50 scale-110 shadow-sm'
+                                          : 'border-transparent opacity-40 hover:opacity-80 hover:scale-105'
+                                      }`}
+                                    >
+                                      {PRE_KG_FACES[r]}
+                                    </button>
+                                  ))}
+                                </div>
+                                {current > 0 && (
+                                  <span className="text-[11px] text-green-700 font-medium italic w-full mt-0.5">
+                                    {PRE_KG_FACE_LABELS[current]}{comment ? ` — ${comment}` : ''}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
