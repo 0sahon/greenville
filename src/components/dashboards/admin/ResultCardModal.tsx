@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Download, MessageCircle, EyeOff, Save, Trash2, AlertTriangle, CopyCheck } from 'lucide-react';
+import { X, Download, MessageCircle, EyeOff, Save, Trash2, AlertTriangle, CopyCheck, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { getNigerianGrade } from '../../../lib/grading';
 import ResultCard, {
@@ -87,6 +87,10 @@ interface Props {
   onShareWhatsApp: () => void;
   onToast: (msg: string, type: 'success' | 'error') => void;
   activeCardError?: string | null;
+  onPrev?: () => void;
+  onNext?: () => void;
+  studentPosition?: string;
+  isDirty?: boolean;
 }
 
 export default function ResultCardModal({
@@ -101,6 +105,7 @@ export default function ResultCardModal({
   deleteConfirm, onDeleteConfirm, onDelete,
   hasResultSheet, onShareWhatsApp, onToast,
   activeCardError,
+  onPrev, onNext, studentPosition, isDirty,
 }: Props) {
   const [copyingLastTerm, setCopyingLastTerm] = useState(false);
 
@@ -146,14 +151,30 @@ export default function ResultCardModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-4">
 
         {/* Modal header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
-          <div>
-            <h3 className="font-bold text-gray-900 text-base">
-              {student.profiles?.first_name} {student.profiles?.last_name} — Report Card
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">{term} · {academicYear} · {student.classes?.name}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
+          <div className="flex items-center gap-2 min-w-0">
+            <button onClick={onPrev} disabled={!onPrev} title="Previous student (Alt+←)"
+              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-green-50 hover:border-green-300 hover:text-green-700 disabled:opacity-25 disabled:cursor-not-allowed flex-shrink-0">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-gray-900 text-base truncate">
+                  {student.profiles?.first_name} {student.profiles?.last_name} — Report Card
+                </h3>
+                {isDirty && <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" title="Unsaved changes" />}
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {term} · {academicYear} · {student.classes?.name}
+                {studentPosition && <span className="ml-2 text-green-700 font-medium">{studentPosition}</span>}
+              </p>
+            </div>
+            <button onClick={onNext} disabled={!onNext} title="Next student (Alt+→)"
+              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-green-50 hover:border-green-300 hover:text-green-700 disabled:opacity-25 disabled:cursor-not-allowed flex-shrink-0">
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
               <button onClick={() => onTabChange('preview')} className={`px-3 py-1.5 ${modalTab === 'preview' ? 'bg-green-700 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Preview</button>
               <button onClick={() => onTabChange('edit')} className={`px-3 py-1.5 ${modalTab === 'edit' ? 'bg-green-700 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>Edit Details</button>
@@ -529,7 +550,30 @@ export default function ResultCardModal({
 
                     {/* Teacher remark */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-medium text-gray-600">Class Teacher&apos;s Remark</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-gray-600">Class Teacher&apos;s Remark</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const activeSubjectsLocal = cardData?.subjects ?? [];
+                            const scored = activeSubjectsLocal.filter(s => s.total > 0);
+                            if (!scored.length) { onToast('Enter scores first to generate a smart comment', 'error'); return; }
+                            const avg = Math.round(scored.reduce((s, r) => s + r.total, 0) / scored.length);
+                            const name = (student.profiles?.first_name) || 'This student';
+                            let comment = '';
+                            if (avg >= 85)      comment = `${name} has delivered an outstanding performance this term with a ${avg}% average — truly exceptional!`;
+                            else if (avg >= 75) comment = `${name} has performed very well this term, achieving a ${avg}% average. A dedicated and hardworking student.`;
+                            else if (avg >= 65) comment = `${name} showed good effort this term with a ${avg}% average. Continue to aim higher next term.`;
+                            else if (avg >= 50) comment = `${name} showed fair performance this term (${avg}%). More focus and effort is needed to improve.`;
+                            else                comment = `${name} needs to work much harder next term — a ${avg}% average shows room for significant improvement.`;
+                            setMetaForm(f => ({ ...f, teacher_comment: comment }));
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100"
+                          title="Auto-generate comment from scores"
+                        >
+                          <Sparkles className="w-3 h-3" /> Auto
+                        </button>
+                      </div>
                       <input type="text" value={metaForm.teacher_comment}
                         onChange={e => setMetaForm(f => ({ ...f, teacher_comment: e.target.value }))}
                         placeholder="Tap a suggestion below or type…"

@@ -85,6 +85,7 @@ export default function ResultsSection({ profile }: Props) {
   const [nurseryScores, setNurseryScores] = useState<NurseryScores>({});
   const [basicScores, setBasicScores] = useState<BasicScores>({});
   const [activeCardError, setActiveCardError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const [pinVisibility, setPinVisibility] = useState<Record<string, boolean>>({});
   const [generatingPin, setGeneratingPin] = useState<string | null>(null);
   const [bulkGeneratingPins, setBulkGeneratingPins] = useState(false);
@@ -501,7 +502,7 @@ export default function ResultsSection({ profile }: Props) {
   const closeModal = useCallback(() => {
     setActiveStudent(null); setActiveSubjects([]); setActiveClassStats(null);
     setDeleteConfirm(false); setPreKgRatings({}); setNurseryScores({}); setBasicScores({});
-    setActiveCardError(null);
+    setActiveCardError(null); setIsDirty(false);
   }, []);
 
   useModalHistory(!!activeStudent, closeModal);
@@ -637,6 +638,7 @@ export default function ResultsSection({ profile }: Props) {
       }
 
       setToast({ msg: 'Report card saved successfully', type: 'success' });
+      setIsDirty(false);
       setResultSheets(prev => ({ ...prev, [activeStudent.id]: { ...metaForm } }));
       loadClassData();
     } catch (e: unknown) {
@@ -1082,6 +1084,17 @@ export default function ResultsSection({ profile }: Props) {
     const name = `${s.profiles?.first_name} ${s.profiles?.last_name}`.toLowerCase();
     return !search || name.includes(search.toLowerCase()) || s.student_id.toLowerCase().includes(search.toLowerCase());
   });
+
+  // ── Smart modal navigation ─────────────────────────────────────────
+  const activeStudentIdx = activeStudent ? filteredStudents.findIndex(s => s.id === activeStudent.id) : -1;
+  const prevStudent = activeStudentIdx > 0 ? filteredStudents[activeStudentIdx - 1] : null;
+  const nextStudent = activeStudentIdx < filteredStudents.length - 1 ? filteredStudents[activeStudentIdx + 1] : null;
+
+  const navigateStudent = (student: StudentInfo) => {
+    if (isDirty && !window.confirm('You have unsaved changes. Navigate without saving?')) return;
+    setIsDirty(false);
+    openResult(student);
+  };
 
   // Grade color helper for overview table
   const gradeColor = (g: string) => g.startsWith('A') ? 'text-green-700' : g.startsWith('B') ? 'text-blue-700' : g.startsWith('C') ? 'text-yellow-700' : (g === '—' || g === '') ? 'text-gray-400' : 'text-red-700';
@@ -1625,6 +1638,10 @@ export default function ResultsSection({ profile }: Props) {
           onShareWhatsApp={shareViaWhatsApp}
           onToast={(msg, type) => setToast({ msg, type })}
           activeCardError={activeCardError}
+          onPrev={prevStudent ? () => navigateStudent(prevStudent) : undefined}
+          onNext={nextStudent ? () => navigateStudent(nextStudent) : undefined}
+          studentPosition={activeStudentIdx >= 0 ? `${activeStudentIdx + 1} / ${filteredStudents.length}` : undefined}
+          isDirty={isDirty}
         />
       )}
 

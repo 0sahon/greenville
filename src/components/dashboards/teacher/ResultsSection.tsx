@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 import {
-  FileText, Search, ChevronDown, Eye, CheckCircle, Clock, X, Save,
-  Trash2, AlertTriangle, MessageCircle, Download, EyeOff,
+  FileText, Search, ChevronDown, ChevronLeft, ChevronRight, Eye, CheckCircle, Clock, X, Save,
+  Trash2, AlertTriangle, MessageCircle, Download, EyeOff, Sparkles,
   KeyRound, Copy, RefreshCw, Globe,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
@@ -117,6 +117,7 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [generatingPin, setGeneratingPin] = useState<string | null>(null);
   const [bulkGeneratingPins, setBulkGeneratingPins] = useState(false);
   const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   const closeModal = useCallback(() => {
     setActiveStudent(null);
@@ -126,6 +127,7 @@ export default function TeacherResultsSection({ profile }: Props) {
     setPreKgRatings({});
     setNurseryScores({});
     setBasicScores({});
+    setIsDirty(false);
   }, []);
   useModalHistory(!!activeStudent, closeModal);
 
@@ -422,6 +424,7 @@ export default function TeacherResultsSection({ profile }: Props) {
     const newSubs = buildNurserySubjects(updated);
     setSubjects(newSubs);
     setCardData(prev => prev ? { ...prev, subjects: newSubs } : null);
+    setIsDirty(true);
   };
 
   const updateBasicScore = (subject: string, field: 'ca1' | 'ca2' | 'exam' | 'project' | 'homework', value: number) => {
@@ -433,6 +436,7 @@ export default function TeacherResultsSection({ profile }: Props) {
     const newSubs = buildBasicSubjects(updated);
     setSubjects(newSubs);
     setCardData(prev => prev ? { ...prev, subjects: newSubs } : null);
+    setIsDirty(true);
   };
   const getVisibleSubjects = (levelGroup: 'basic' | 'nursery', allSubjects: readonly string[]): string[] | undefined => {
     const hasSettings = Object.keys(subjectVisibility).some(k => k.startsWith(`${levelGroup}:`));
@@ -617,6 +621,7 @@ export default function TeacherResultsSection({ profile }: Props) {
     const newSubs = buildPreKgSubjects(updated);
     setSubjects(newSubs);
     setCardData(prev => prev ? { ...prev, subjects: newSubs } : null);
+    setIsDirty(true);
   };
 
   // Sync cardData behavior/comments/attendance when metaForm changes in Edit tab
@@ -641,9 +646,16 @@ export default function TeacherResultsSection({ profile }: Props) {
   const updateMeta = (patch: Partial<ResultSheetMeta>) => {
     setMetaForm(prev => {
       const updated = { ...prev, ...patch };
+      // Auto-calc days absent when days present or total school days changes
+      if ('days_present' in patch || 'total_school_days' in patch) {
+        const total = updated.total_school_days || 0;
+        const present = updated.days_present || 0;
+        if (total > 0) updated.days_absent = Math.max(0, total - present);
+      }
       syncCardData(updated);
       return updated;
     });
+    setIsDirty(true);
   };
 
   const saveMeta = async () => {
@@ -744,6 +756,7 @@ export default function TeacherResultsSection({ profile }: Props) {
       }
 
       setToast({ msg: 'Report card saved successfully', type: 'success' });
+      setIsDirty(false);
       setResultSheets(prev => ({ ...prev, [activeStudent.id]: metaForm }));
       loadStudents();
     } catch (e: unknown) {
@@ -775,6 +788,59 @@ export default function TeacherResultsSection({ profile }: Props) {
     const name = `${s.profiles?.first_name} ${s.profiles?.last_name}`.toLowerCase();
     return !search || name.includes(search.toLowerCase()) || s.student_id.toLowerCase().includes(search.toLowerCase());
   });
+
+  // ── Smart navigation ──────────────────────────────────────────────
+  const activeStudentIdx = activeStudent ? filteredStudents.findIndex(s => s.id === activeStudent.id) : -1;
+  const prevStudent = activeStudentIdx > 0 ? filteredStudents[activeStudentIdx - 1] : null;
+  const nextStudent = activeStudentIdx < filteredStudents.length - 1 ? filteredStudents[activeStudentIdx + 1] : null;
+
+  const navigateStudent = (student: StudentInfo) => {
+    if (isDirty && !window.confirm('You have unsaved changes. Navigate without saving?')) return;
+    setIsDirty(false);
+    openCard(student);
+  };
+
+  // ── Auto-generate teacher comment from scores ─────────────────────
+  const autoGenerateComment = () => {
+    const scored = subjects.filter(s => s.total > 0);
+    if (scored.length === 0) { setToast({ msg: 'Enter scores first to generate a smart comment', type: 'error' }); return; }
+    const avg = Math.round(scored.reduce((s, r) => s + r.total, 0) / scored.length);
+    const name = activeStudent?.profiles?.first_name || 'This student';
+    let comment = '';
+    if (avg >= 85)      comment = `${name} has delivered an outstanding performance this term with a ${avg}% average — truly exceptional. Keep it up!`;
+    else if (avg >= 75) comment = `${name} has performed very well this term, achieving a ${avg}% average. A dedicated and hardworking student.`;
+    else if (avg >= 65) comment = `${name} showed good effort this term with a ${avg}% average. Continue to aim higher next term.`;
+    else if (avg >= 50) comment = `${name} showed fair performance this term (${avg}%). More focus and effort is needed to improve.`;
+    else                comment = `${name} needs to work much harder next term — a ${avg}% average shows room for significant improvement.`;
+    updateMeta({ teacher_comment: comment });
+  };
+
+  // ── Completion status badge ───────────────────────────────────────
+  const getCompletionStatus = (studentId: string): 'complete' | 'partial' | 'empty' => {
+    const sheet = resultSheets[studentId];
+    if (!sheet) return 'empty';
+    const hasComment    = !!(sheet.teacher_comment?.trim());
+    const hasAttendance = (sheet.total_school_days || 0) > 0;
+    const hasScores     = subjects.length > 0 || true; // grades are in a separate table
+    if (hasComment && hasAttendance && hasScores) return 'complete';
+    return 'partial';
+  };
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────
+  useEffect(() => {
+    if (!activeStudent) return;
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      if (e.key === 'Escape' && !typing) { closeModal(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveMeta(); return; }
+      if (e.altKey && e.key === 'ArrowLeft'  && prevStudent) { e.preventDefault(); navigateStudent(prevStudent); return; }
+      if (e.altKey && e.key === 'ArrowRight' && nextStudent) { e.preventDefault(); navigateStudent(nextStudent); return; }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStudent, prevStudent, nextStudent]);
 
   return (
     <div className="space-y-5">
@@ -1119,7 +1185,24 @@ export default function TeacherResultsSection({ profile }: Props) {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 font-mono text-xs text-gray-500">{s.student_id}</td>
+                        <td className="py-3 px-4 font-mono text-xs text-gray-500">
+                          <div>{s.student_id}</div>
+                          {(() => {
+                            const status = getCompletionStatus(s.id);
+                            return (
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-medium mt-0.5 ${
+                                status === 'complete' ? 'text-green-600' :
+                                status === 'partial'  ? 'text-amber-600' : 'text-gray-400'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  status === 'complete' ? 'bg-green-500' :
+                                  status === 'partial'  ? 'bg-amber-400' : 'bg-gray-300'
+                                }`} />
+                                {status === 'complete' ? 'Complete' : status === 'partial' ? 'Partial' : 'Empty'}
+                              </span>
+                            );
+                          })()}
+                        </td>
                         <td className="py-3 px-4">
                           {!sheet ? (
                             <span className="flex items-center gap-1 text-xs text-gray-400"><Clock className="w-3.5 h-3.5" /> Not created</span>
@@ -1219,11 +1302,38 @@ export default function TeacherResultsSection({ profile }: Props) {
 
             {/* Modal Header */}
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
-              <div className="min-w-0">
-                <h3 className="font-bold text-gray-900 truncate">
-                  {activeStudent.profiles?.first_name} {activeStudent.profiles?.last_name}
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">{selectedTerm} · {academicYear} · {activeStudent.classes?.name}</p>
+              <div className="flex items-center gap-2 min-w-0">
+                {/* Prev / Next navigation */}
+                <button
+                  onClick={() => prevStudent && navigateStudent(prevStudent)}
+                  disabled={!prevStudent}
+                  title={prevStudent ? `← ${prevStudent.profiles?.first_name} ${prevStudent.profiles?.last_name} (Alt+←)` : ''}
+                  className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-25 disabled:cursor-not-allowed flex-shrink-0"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-gray-900 truncate">
+                      {activeStudent.profiles?.first_name} {activeStudent.profiles?.last_name}
+                    </h3>
+                    {isDirty && <span className="flex-shrink-0 w-2 h-2 rounded-full bg-amber-400" title="Unsaved changes" />}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {selectedTerm} · {academicYear} · {activeStudent.classes?.name}
+                    {activeStudentIdx >= 0 && (
+                      <span className="ml-2 text-indigo-500 font-medium">{activeStudentIdx + 1} / {filteredStudents.length}</span>
+                    )}
+                  </p>
+                </div>
+                <button
+                  onClick={() => nextStudent && navigateStudent(nextStudent)}
+                  disabled={!nextStudent}
+                  title={nextStudent ? `→ ${nextStudent.profiles?.first_name} ${nextStudent.profiles?.last_name} (Alt+→)` : ''}
+                  className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-25 disabled:cursor-not-allowed flex-shrink-0"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
@@ -1575,7 +1685,18 @@ export default function TeacherResultsSection({ profile }: Props) {
                         </p>
                         <div className="space-y-3">
                           <div className="space-y-1.5">
-                            <label className="block text-xs font-medium text-gray-600">Class Teacher's Remark</label>
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-medium text-gray-600">Class Teacher's Remark</label>
+                              <button
+                                type="button"
+                                onClick={autoGenerateComment}
+                                disabled={subjects.filter(s => s.total > 0).length === 0}
+                                className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                title="Auto-generate comment from scores"
+                              >
+                                <Sparkles className="w-3 h-3" /> Auto
+                              </button>
+                            </div>
                             <textarea rows={2} value={metaForm.teacher_comment}
                               onChange={e => updateMeta({ teacher_comment: e.target.value })}
                               placeholder="Tap a suggestion or type…"
