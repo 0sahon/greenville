@@ -119,13 +119,19 @@ export default function StudentsSection({ profile: _profile }: Props) {
     ? classes.filter(c => c.level === filterLevel)
     : classes;
 
-  const filtered = students.filter(s => {
-    const name = `${s.profiles?.first_name} ${s.profiles?.last_name}`.toLowerCase();
-    const matchSearch = !search || name.includes(search.toLowerCase()) || s.student_id?.toLowerCase().includes(search.toLowerCase());
-    const matchLevel = !filterLevel || s.classes?.level === filterLevel;
-    const matchClass = !filterClass || s.class_id === filterClass;
-    return matchSearch && matchLevel && matchClass;
-  });
+  const filtered = students
+    .filter(s => {
+      const name = `${s.profiles?.first_name} ${s.profiles?.last_name}`.toLowerCase();
+      const matchSearch = !search || name.includes(search.toLowerCase()) || s.student_id?.toLowerCase().includes(search.toLowerCase());
+      const matchLevel = !filterLevel || s.classes?.level === filterLevel;
+      const matchClass = !filterClass || s.class_id === filterClass;
+      return matchSearch && matchLevel && matchClass;
+    })
+    .sort((a, b) => {
+      const nameA = `${a.profiles?.first_name ?? ''} ${a.profiles?.last_name ?? ''}`.trim().toLowerCase();
+      const nameB = `${b.profiles?.first_name ?? ''} ${b.profiles?.last_name ?? ''}`.trim().toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
 
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
