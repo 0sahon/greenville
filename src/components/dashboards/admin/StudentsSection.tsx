@@ -64,6 +64,7 @@ export default function StudentsSection({ profile: _profile }: Props) {
   const [classes, setClasses] = useState<Pick<ClassRow, 'id' | 'name' | 'level'>[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterLevel, setFilterLevel] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -114,11 +115,16 @@ export default function StudentsSection({ profile: _profile }: Props) {
     }
   }, [form.first_name, form.last_name, showAdd, isEmailAuto]);
 
+  const filteredClasses = filterLevel
+    ? classes.filter(c => c.level === filterLevel)
+    : classes;
+
   const filtered = students.filter(s => {
     const name = `${s.profiles?.first_name} ${s.profiles?.last_name}`.toLowerCase();
     const matchSearch = !search || name.includes(search.toLowerCase()) || s.student_id?.toLowerCase().includes(search.toLowerCase());
+    const matchLevel = !filterLevel || s.classes?.level === filterLevel;
     const matchClass = !filterClass || s.class_id === filterClass;
-    return matchSearch && matchClass;
+    return matchSearch && matchLevel && matchClass;
   });
 
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -345,20 +351,35 @@ export default function StudentsSection({ profile: _profile }: Props) {
       <div className="flex flex-wrap gap-3 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
         <div className="relative flex-1 min-w-64">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input 
-            placeholder="Search by name, email or GMS registration ID..." 
-            value={search} 
+          <input
+            placeholder="Search by name, email or GMS registration ID..."
+            value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50/50" 
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50/50"
           />
         </div>
-        <select 
-          value={filterClass} 
+        {/* Level / classification filter */}
+        <select
+          value={filterLevel}
+          onChange={e => { setFilterLevel(e.target.value); setFilterClass(''); setPage(1); }}
+          className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm font-medium text-gray-700"
+        >
+          <option value="">All Levels</option>
+          {(Object.keys(LEVEL_LABELS) as (keyof typeof LEVEL_LABELS)[])
+            .filter(lvl => classes.some(c => c.level === lvl))
+            .map(lvl => {
+              const count = students.filter(s => s.classes?.level === lvl && s.is_active).length;
+              return <option key={lvl} value={lvl}>{LEVEL_LABELS[lvl]} ({count})</option>;
+            })}
+        </select>
+        {/* Class filter — narrows to selected level's classes */}
+        <select
+          value={filterClass}
           onChange={e => { setFilterClass(e.target.value); setPage(1); }}
           className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm font-medium text-gray-700"
         >
-          <option value="">All Academic Classes</option>
-          {classes.map(c => <option key={c.id} value={c.id}>{c.name} ({LEVEL_LABELS[c.level]})</option>)}
+          <option value="">All Classes{filterLevel ? ` in ${LEVEL_LABELS[filterLevel as keyof typeof LEVEL_LABELS]}` : ''}</option>
+          {filteredClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
 
