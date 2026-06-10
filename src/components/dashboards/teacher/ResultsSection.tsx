@@ -910,6 +910,15 @@ export default function TeacherResultsSection({ profile }: Props) {
     setDeleteConfirm(false);
   };
 
+  const getCompletionStatus = (studentId: string): 'complete' | 'partial' | 'empty' => {
+    const sheet = resultSheets[studentId];
+    if (!sheet) return 'empty';
+    const hasComment    = !!(sheet.teacher_comment?.trim());
+    const hasAttendance = (sheet.total_school_days || 0) > 0;
+    if (hasComment && hasAttendance) return 'complete';
+    return 'partial';
+  };
+
   const filteredStudents = students.filter(s => {
     const name = `${s.profiles?.first_name} ${s.profiles?.last_name}`.toLowerCase();
     const matchesSearch = !search || name.includes(search.toLowerCase()) || s.student_id.toLowerCase().includes(search.toLowerCase());
@@ -973,17 +982,6 @@ export default function TeacherResultsSection({ profile }: Props) {
     else if (avg >= 50) comment = `${name} showed fair performance this term (${avg}%). More focus and effort is needed to improve.`;
     else                comment = `${name} needs to work much harder next term — a ${avg}% average shows room for significant improvement.`;
     updateMeta({ teacher_comment: comment });
-  };
-
-  // ── Completion status badge ───────────────────────────────────────
-  const getCompletionStatus = (studentId: string): 'complete' | 'partial' | 'empty' => {
-    const sheet = resultSheets[studentId];
-    if (!sheet) return 'empty';
-    const hasComment    = !!(sheet.teacher_comment?.trim());
-    const hasAttendance = (sheet.total_school_days || 0) > 0;
-    const hasScores     = subjects.length > 0 || true; // grades are in a separate table
-    if (hasComment && hasAttendance && hasScores) return 'complete';
-    return 'partial';
   };
 
   // ── Keyboard shortcuts ────────────────────────────────────────────
