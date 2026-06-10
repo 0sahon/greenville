@@ -83,6 +83,16 @@ const PRE_KG_FACES  = ['', '😔', '😐', '🙂', '😊', '🌟'] as const;
 const PRE_KG_FACE_LABELS = ['', 'Needs Work', 'Fair', 'Good', 'Very Good', 'Excellent'] as const;
 const ASSESS_MAX_CONTRIB: Record<string, number> = { homework: 10, '1st ca': 15, '2nd ca': 15, project: 10, exam: 50 };
 
+function buildPreKgSubjects(ratings: Partial<Record<string, number>>): SubjectResult[] {
+  return PRE_KG_SKILLS
+    .filter(s => (ratings[s.name] ?? 0) > 0)
+    .map(s => {
+      const r = ratings[s.name] ?? 0;
+      const ca1 = Math.round((r / 5) * 20);
+      return { subject: s.name, ca1, ca2: 0, exam: 0, total: ca1, grade: '', remark: '' };
+    });
+}
+
 export default function TeacherResultsSection({ profile }: Props) {
   const [myClasses, setMyClasses] = useState<{ id: string; name: string; level: string }[]>([]);
   const [students, setStudents] = useState<StudentInfo[]>([]);
@@ -126,6 +136,7 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [bulkGeneratingPins, setBulkGeneratingPins] = useState(false);
   const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [subjectVisibility, setSubjectVisibility] = useState<Record<string, boolean>>({});
 
   const closeModal = useCallback(() => {
     setActiveStudent(null);
@@ -401,6 +412,12 @@ export default function TeacherResultsSection({ profile }: Props) {
     setSubjectInsights(insights);
   };
 
+  const getVisibleSubjects = (levelGroup: 'basic' | 'nursery', allSubjects: readonly string[]): string[] | undefined => {
+    const hasSettings = Object.keys(subjectVisibility).some(k => k.startsWith(`${levelGroup}:`));
+    if (!hasSettings) return undefined;
+    return (allSubjects as string[]).filter(s => subjectVisibility[`${levelGroup}:${s}`] !== false);
+  };
+
   const printAll = useCallback(async () => {
     if (students.length === 0) return;
     setBulkPrinting(true);
@@ -453,7 +470,7 @@ export default function TeacherResultsSection({ profile }: Props) {
       setToast({ msg: 'Failed to prepare cards for printing', type: 'error' });
       setBulkPrinting(false);
     }
-  }, [students, selectedTerm, academicYear, resultSheets, selectedClass, myClasses, buildPreKgSubjects, getVisibleSubjects]);
+  }, [students, selectedTerm, academicYear, resultSheets, selectedClass, myClasses, subjectVisibility, getVisibleSubjects]);
 
   const isLandscapeClass = ['creche', 'toddler'].includes(myClasses.find(c => c.id === selectedClass)?.level ?? '');
 
@@ -518,8 +535,6 @@ export default function TeacherResultsSection({ profile }: Props) {
 
   useEffect(() => { loadStudents(); }, [loadStudents]);
 
-  const [subjectVisibility, setSubjectVisibility] = useState<Record<string, boolean>>({});
-
   useEffect(() => {
     supabase.from('subject_settings').select('level_group, subject, is_visible').then(({ data }) => {
       if (!data) return;
@@ -531,14 +546,6 @@ export default function TeacherResultsSection({ profile }: Props) {
     });
   }, []);
 
-  const buildPreKgSubjects = (ratings: Partial<Record<string, number>>): SubjectResult[] =>
-    PRE_KG_SKILLS
-      .filter(s => (ratings[s.name] ?? 0) > 0)
-      .map(s => {
-        const r = ratings[s.name] ?? 0;
-        const ca1 = Math.round((r / 5) * 20);
-        return { subject: s.name, ca1, ca2: 0, exam: 0, total: ca1, grade: '', remark: '' };
-      });
   const updateNurseryScore = (subject: string, field: 'ca1' | 'ca2' | 'exam' | 'project' | 'homework', value: number) => {
     const updated: NurseryScores = {
       ...nurseryScores,
@@ -561,11 +568,6 @@ export default function TeacherResultsSection({ profile }: Props) {
     setSubjects(newSubs);
     setCardData(prev => prev ? { ...prev, subjects: newSubs } : null);
     setIsDirty(true);
-  };
-  const getVisibleSubjects = (levelGroup: 'basic' | 'nursery', allSubjects: readonly string[]): string[] | undefined => {
-    const hasSettings = Object.keys(subjectVisibility).some(k => k.startsWith(`${levelGroup}:`));
-    if (!hasSettings) return undefined;
-    return (allSubjects as string[]).filter(s => subjectVisibility[`${levelGroup}:${s}`] !== false);
   };
 
   const shareViaWhatsApp = () => {
