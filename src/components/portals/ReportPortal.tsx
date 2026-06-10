@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Download, Printer, ChevronDown, ArrowLeft, KeyRound, Eye, EyeOff, Phone } from 'lucide-react';
+import { Download, Printer, ChevronDown, ArrowLeft, KeyRound, Eye, EyeOff, Phone, Bell } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import ResultCard, {
   printResultCard,
@@ -188,12 +188,26 @@ export default function ReportPortal() {
   const [noResultsName, setNoResultsName] = useState<string | null>(null);
   const [selectedSheetIdx, setSelectedSheetIdx] = useState(0);
   const [visible, setVisible] = useState(false);
+  const [feeNotice, setFeeNotice] = useState<{ enabled: boolean; text: string }>({ enabled: false, text: '' });
 
   const idRef  = useRef<HTMLInputElement>(null);
   const pinRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus Student ID on mount
   useEffect(() => { idRef.current?.focus(); }, []);
+
+  // Fetch fee notice from school settings
+  useEffect(() => {
+    supabase.from('school_settings')
+      .select('key, value')
+      .in('key', ['fee_notice_enabled', 'fee_notice_text'])
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string> = {};
+        (data as { key: string; value: unknown }[]).forEach(r => { map[r.key] = String(r.value ?? ''); });
+        setFeeNotice({ enabled: map.fee_notice_enabled === 'true', text: map.fee_notice_text ?? '' });
+      });
+  }, []);
 
   // Push history when results load so back button returns to PIN form
   useEffect(() => {
@@ -445,6 +459,17 @@ export default function ReportPortal() {
                 {s.term} {s.academic_year}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Fee notice banner */}
+        {feeNotice.enabled && feeNotice.text.trim() && (
+          <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-300 rounded-2xl">
+            <Bell className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-amber-800 mb-0.5 uppercase tracking-wide">Notice from the School</p>
+              <p className="text-sm text-amber-800 leading-relaxed">{feeNotice.text}</p>
+            </div>
           </div>
         )}
 

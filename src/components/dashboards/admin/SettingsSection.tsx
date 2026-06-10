@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Save, RefreshCw, X, Plus, Trash2 } from 'lucide-react';
+import { Settings, Save, RefreshCw, X, Plus, Trash2, Bell, ToggleLeft, ToggleRight } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import type { ProfileRow, SchoolSettingsRow } from '../../../lib/supabase';
 import { SCHOOL_NAME } from '../../../config/schoolBrand';
@@ -68,12 +68,16 @@ export default function SettingsSection({ profile: _profile }: Props) {
     const academicYear = (settings.current_academic_year as string) ?? '2024/2025';
     const terms = Array.isArray(settings.terms) ? settings.terms : ['First Term', 'Second Term', 'Third Term'];
     const currency = (settings.currency as string) ?? '₦';
+    const feeNoticeEnabled = (settings.fee_notice_enabled as string) ?? 'false';
+    const feeNoticeText = (settings.fee_notice_text as string) ?? '';
     try {
       await Promise.all([
         supabase.from('school_settings').upsert({ key: 'school_name', value: schoolName as unknown as object }, { onConflict: 'key' }),
         supabase.from('school_settings').upsert({ key: 'current_academic_year', value: academicYear as unknown as object }, { onConflict: 'key' }),
         supabase.from('school_settings').upsert({ key: 'terms', value: terms as unknown as object }, { onConflict: 'key' }),
         supabase.from('school_settings').upsert({ key: 'currency', value: currency as unknown as object }, { onConflict: 'key' }),
+        supabase.from('school_settings').upsert({ key: 'fee_notice_enabled', value: feeNoticeEnabled as unknown as object }, { onConflict: 'key' }),
+        supabase.from('school_settings').upsert({ key: 'fee_notice_text', value: feeNoticeText as unknown as object }, { onConflict: 'key' }),
       ]);
       setSettings(s => ({ ...s, school_name: schoolName, current_academic_year: academicYear, terms, currency }));
       invalidateSchoolSettings();
@@ -183,6 +187,54 @@ export default function SettingsSection({ profile: _profile }: Props) {
               placeholder="₦"
             />
           </div>
+        </div>
+      </div>
+
+      {/* ── Fee Notice Banner ── */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-amber-500" />
+            Parent Portal Fee Notice
+          </h3>
+          <p className="text-sm text-gray-500 mt-0.5">
+            When enabled, parents will see this notice at the top of the result portal. Use it to remind them of outstanding fees or payments.
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSettings(s => ({ ...s, fee_notice_enabled: s.fee_notice_enabled === 'true' ? 'false' : 'true' }))}
+              className="flex items-center gap-2 text-sm font-medium"
+            >
+              {settings.fee_notice_enabled === 'true'
+                ? <ToggleRight className="w-8 h-8 text-amber-500" />
+                : <ToggleLeft className="w-8 h-8 text-gray-400" />}
+              <span className={settings.fee_notice_enabled === 'true' ? 'text-amber-700 font-semibold' : 'text-gray-500'}>
+                {settings.fee_notice_enabled === 'true' ? 'Notice is ACTIVE — parents can see it' : 'Notice is OFF'}
+              </span>
+            </button>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Notice message</label>
+            <textarea
+              rows={3}
+              value={(settings.fee_notice_text as string) ?? ''}
+              onChange={e => setSettings(s => ({ ...s, fee_notice_text: e.target.value }))}
+              placeholder="e.g. Please note that all outstanding fees must be cleared before next term resumption. Contact the bursar for payment details."
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+            />
+          </div>
+          {settings.fee_notice_enabled === 'true' && (settings.fee_notice_text as string)?.trim() && (
+            <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+              <Bell className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-800 text-xs mb-0.5">Preview — what parents will see:</p>
+                <p className="text-amber-700 text-xs">{(settings.fee_notice_text as string)}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

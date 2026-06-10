@@ -261,14 +261,14 @@ export default function ResultCardModal({
                     Enter raw scores: Homework &amp; Project out of 10, CAs out of {NURSERY_CA_MAX}, Exam out of {NURSERY_EXAM_MAX}.
                   </p>
                   <div className="overflow-x-auto rounded-xl border border-gray-200">
-                    <table className="w-full text-sm min-w-[580px]">
+                    <table className="w-full text-sm min-w-[520px]">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-1/4">Subject</th>
-                          <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Homework<br /><span className="font-normal text-gray-400">/10</span></th>
+                          <th className="sticky left-0 z-10 bg-gray-50 text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-28 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Subject</th>
+                          <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">HW<br /><span className="font-normal text-gray-400">/10</span></th>
                           <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
                           <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
-                          <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Project<br /><span className="font-normal text-gray-400">/10</span></th>
+                          <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Proj<br /><span className="font-normal text-gray-400">/10</span></th>
                           <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{NURSERY_EXAM_MAX}</span></th>
                           <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
                         </tr>
@@ -284,22 +284,23 @@ export default function ResultCardModal({
                           const total = ca1 + ca2 + project + homework + exam;
                           const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
                           const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                          const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60';
                           return (
-                            <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                              <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
+                            <tr key={subject} className={`border-b border-gray-50 ${rowBg}`}>
+                              <td className={`sticky left-0 z-10 py-2 px-3 font-semibold text-gray-800 text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] ${rowBg}`}>{subject}</td>
                               {(['homework', 'ca1', 'ca2', 'project', 'exam'] as const).map(field => (
                                 <td key={field} className="py-1 px-1 text-center">
                                   <input
-                                    type="number" min={0}
+                                    type="number" inputMode="numeric" min={0}
                                     max={field === 'exam' ? NURSERY_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? NURSERY_CA_MAX : 10}
                                     value={s[field] || ''}
                                     onChange={e => onNurseryScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? NURSERY_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? NURSERY_CA_MAX : 10))}
-                                    className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-green-500"
+                                    className="w-14 border border-gray-200 rounded-lg px-1 py-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                                   />
                                 </td>
                               ))}
                               <td className="py-2 px-1 text-center">
-                                <span className={`font-bold text-xs ${gc}`}>{total > 0 ? `${total} (${grade})` : '—'}</span>
+                                <span className={`font-bold text-sm ${gc}`}>{total > 0 ? `${total}` : '—'}{grade && total > 0 && <span className="text-xs ml-1">({grade})</span>}</span>
                               </td>
                             </tr>
                           );
@@ -318,14 +319,14 @@ export default function ResultCardModal({
                     Enter raw scores: Homework &amp; Project out of 10, CAs out of {BASIC_CA_MAX}, Exam out of {BASIC_EXAM_MAX}.
                   </p>
                   <div className="overflow-x-auto rounded-xl border border-gray-200">
-                    <table className="w-full text-sm min-w-[580px]">
+                    <table className="w-full text-sm min-w-[520px]">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-1/4">Subject</th>
-                          <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Homework<br /><span className="font-normal text-gray-400">/10</span></th>
+                          <th className="sticky left-0 z-10 bg-gray-50 text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-28 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Subject</th>
+                          <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">HW<br /><span className="font-normal text-gray-400">/10</span></th>
                           <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
                           <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
-                          <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Project<br /><span className="font-normal text-gray-400">/10</span></th>
+                          <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Proj<br /><span className="font-normal text-gray-400">/10</span></th>
                           <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{BASIC_EXAM_MAX}</span></th>
                           <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
                         </tr>
@@ -341,22 +342,23 @@ export default function ResultCardModal({
                           const total = ca1 + ca2 + project + homework + exam;
                           const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
                           const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-blue-700' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                          const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60';
                           return (
-                            <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                              <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
+                            <tr key={subject} className={`border-b border-gray-50 ${rowBg}`}>
+                              <td className={`sticky left-0 z-10 py-2 px-3 font-semibold text-gray-800 text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] ${rowBg}`}>{subject}</td>
                               {(['homework', 'ca1', 'ca2', 'project', 'exam'] as const).map(field => (
                                 <td key={field} className="py-1 px-1 text-center">
                                   <input
-                                    type="number" min={0}
+                                    type="number" inputMode="numeric" min={0}
                                     max={field === 'exam' ? BASIC_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? BASIC_CA_MAX : 10}
                                     value={s[field] || ''}
                                     onChange={e => onBasicScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? BASIC_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? BASIC_CA_MAX : 10))}
-                                    className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-green-500"
+                                    className="w-14 border border-gray-200 rounded-lg px-1 py-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                                   />
                                 </td>
                               ))}
                               <td className="py-2 px-1 text-center">
-                                <span className={`font-bold text-xs ${gc}`}>{total > 0 ? `${total} (${grade})` : '—'}</span>
+                                <span className={`font-bold text-sm ${gc}`}>{total > 0 ? `${total}` : '—'}{grade && total > 0 && <span className="text-xs ml-1">({grade})</span>}</span>
                               </td>
                             </tr>
                           );
@@ -594,17 +596,70 @@ export default function ResultCardModal({
                   </>
                 ) : (
                   <>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Class Teacher&apos;s Remark</label>
-                      <textarea rows={3} value={metaForm.teacher_comment} onChange={e => setMetaForm(f => ({ ...f, teacher_comment: e.target.value }))}
+                    <p className="text-xs text-indigo-600 bg-indigo-50 rounded-lg px-3 py-2 border border-indigo-100">
+                      Tap any suggestion to fill, or type your own remark.
+                    </p>
+                    {/* Teacher remark with suggestions */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-600">Class Teacher&apos;s Remark</label>
+                      <textarea rows={2} value={metaForm.teacher_comment} onChange={e => setMetaForm(f => ({ ...f, teacher_comment: e.target.value }))}
                         placeholder="e.g. A diligent student who shows great potential…"
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {[
+                          'An outstanding student — well done!',
+                          'Brilliant performance this term!',
+                          'Excellent work, keep it up!',
+                          'Very impressive results this term!',
+                          'Hard worker with great attitude!',
+                          'Consistent performance, well done!',
+                          'Shows strong academic potential!',
+                          'Good effort, aim higher next term!',
+                          'Improving steadily, keep it up!',
+                          'Needs to work harder next term.',
+                          'Must improve study habits at home.',
+                          'Participates actively in class!',
+                          'Very focused and dedicated student!',
+                          'A pleasure to teach — well done!',
+                        ].map(s => (
+                          <button key={s} type="button"
+                            onClick={() => setMetaForm(f => ({ ...f, teacher_comment: s }))}
+                            className={`px-2.5 py-1 rounded-full border text-xs transition-all ${metaForm.teacher_comment === s ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-600 border-gray-300 hover:border-green-500 hover:text-green-700'}`}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Proprietress&apos; Remark</label>
-                      <textarea rows={3} value={metaForm.principal_comment} onChange={e => setMetaForm(f => ({ ...f, principal_comment: e.target.value }))}
+                    {/* Proprietress remark with suggestions */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-600">Proprietress&apos; Remark</label>
+                      <textarea rows={2} value={metaForm.principal_comment} onChange={e => setMetaForm(f => ({ ...f, principal_comment: e.target.value }))}
                         placeholder="e.g. Excellent performance. We are proud of your achievements!"
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {[
+                          'Excellent performance, we are proud!',
+                          'Keep up the outstanding work!',
+                          'Great achievement this term!',
+                          'Wonderful results — keep shining!',
+                          'A credit to the school, well done!',
+                          'Outstanding effort, keep it up!',
+                          'Very impressive improvement shown!',
+                          'We are proud of your dedication!',
+                          'Good work — aim for the top!',
+                          'Needs more effort next term.',
+                          'Encourage more reading at home.',
+                          'Great potential, keep working hard!',
+                          'Well behaved and focused student!',
+                          'Steady progress, well done!',
+                        ].map(s => (
+                          <button key={s} type="button"
+                            onClick={() => setMetaForm(f => ({ ...f, principal_comment: s }))}
+                            className={`px-2.5 py-1 rounded-full border text-xs transition-all ${metaForm.principal_comment === s ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-600 border-gray-300 hover:border-green-500 hover:text-green-700'}`}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </>
                 )}

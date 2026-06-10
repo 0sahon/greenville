@@ -51,6 +51,7 @@ interface ResultSheetMeta {
   total_school_days: number;
   next_term_begins: string;
   next_term_fees: string;
+  outstanding_fees: string;
   is_published: boolean;
 }
 
@@ -58,7 +59,7 @@ const defaultMeta: ResultSheetMeta = {
   teacher_comment: '', principal_comment: '',
   punctuality: 3, neatness: 3, honesty: 3, cooperation: 3, attentiveness: 3, politeness: 3,
   days_present: 0, days_absent: 0, total_school_days: 0,
-  next_term_begins: '', next_term_fees: '', is_published: false,
+  next_term_begins: '', next_term_fees: '', outstanding_fees: '', is_published: false,
 };
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
@@ -80,6 +81,8 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [selectedTerm, setSelectedTerm] = useState(TERMS[0]);
   const [academicYear, setAcademicYear] = useState(getDefaultAcademicYear());
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [classDefaults, setClassDefaults] = useState({ total_school_days: 0, next_term_begins: '', next_term_fees: '' });
+  const [showClassDefaults, setShowClassDefaults] = useState(false);
 
   // Modal state
   const [activeStudent, setActiveStudent] = useState<StudentInfo | null>(null);
@@ -466,7 +469,14 @@ export default function TeacherResultsSection({ profile }: Props) {
       const position = sorted.indexOf(myTotal) + 1 || sorted.length + 1;
 
       const meta = rs || defaultMeta;
-      setMetaForm({ ...defaultMeta, ...meta });
+      setMetaForm({
+        ...defaultMeta,
+        ...meta,
+        // Pre-fill from class defaults if the field is still at zero/empty
+        total_school_days: (meta as ResultSheetMeta | null)?.total_school_days || classDefaults.total_school_days || 0,
+        next_term_begins: (meta as ResultSheetMeta | null)?.next_term_begins || classDefaults.next_term_begins || '',
+        next_term_fees: (meta as ResultSheetMeta | null)?.next_term_fees || classDefaults.next_term_fees || '',
+      });
 
       const level = student.classes?.level ?? '';
       const isBasicLvl = ['basic1','basic2','basic3','basic4','basic5'].includes(level);
@@ -569,6 +579,7 @@ export default function TeacherResultsSection({ profile }: Props) {
         total_school_days: metaForm.total_school_days,
         next_term_begins: metaForm.next_term_begins || null,
         next_term_fees: metaForm.next_term_fees,
+        outstanding_fees: metaForm.outstanding_fees || '',
         is_published: metaForm.is_published,
         created_by: profile.id,
         updated_at: new Date().toISOString(),
@@ -744,6 +755,48 @@ export default function TeacherResultsSection({ profile }: Props) {
               </div>
             ))}
           </div>
+
+          {/* ── Class Defaults Panel ── */}
+          {students.length > 0 && (
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setShowClassDefaults(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-indigo-100 transition-colors"
+              >
+                <span className="text-sm font-semibold text-indigo-800">
+                  ⚡ Class Defaults — Set once, auto-fills all students
+                </span>
+                <span className="text-xs text-indigo-500">{showClassDefaults ? '▲ Hide' : '▼ Show'}</span>
+              </button>
+              {showClassDefaults && (
+                <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-indigo-700 mb-1">Total School Days</label>
+                    <input type="number" min={0} value={classDefaults.total_school_days || ''}
+                      onChange={e => setClassDefaults(d => ({ ...d, total_school_days: Number(e.target.value) }))}
+                      placeholder="e.g. 65"
+                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-indigo-700 mb-1">Next Term Begins</label>
+                    <input type="date" value={classDefaults.next_term_begins}
+                      onChange={e => setClassDefaults(d => ({ ...d, next_term_begins: e.target.value }))}
+                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-indigo-700 mb-1">Next Term Fees</label>
+                    <input value={classDefaults.next_term_fees}
+                      onChange={e => setClassDefaults(d => ({ ...d, next_term_fees: e.target.value }))}
+                      placeholder="₦150,000"
+                      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                  </div>
+                  <p className="col-span-full text-xs text-indigo-400 mt-1">
+                    These will auto-fill when you open any student card that doesn&apos;t have these fields filled yet.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {students.length > 0 && (
             <div className="flex flex-wrap justify-end gap-2">
@@ -994,17 +1047,17 @@ export default function TeacherResultsSection({ profile }: Props) {
                             Subject Scores — {activeStudent?.classes?.name}
                           </h4>
                           <p className="text-xs text-gray-400 mb-3">
-                            Enter raw scores: Homework &amp; Project out of 10, CAs out of {BASIC_CA_MAX}, Exam out of {BASIC_EXAM_MAX}.
+                            Homework &amp; Project /10 · 1st &amp; 2nd CA /{BASIC_CA_MAX} · Exam /{BASIC_EXAM_MAX}. Subject column is pinned.
                           </p>
                           <div className="overflow-x-auto rounded-xl border border-gray-200">
-                            <table className="w-full text-sm min-w-[580px]">
+                            <table className="w-full text-sm min-w-[520px]">
                               <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
-                                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-1/4">Subject</th>
-                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Homework<br /><span className="font-normal text-gray-400">/10</span></th>
+                                  <th className="sticky left-0 z-10 bg-gray-50 text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-28 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Subject</th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">HW<br /><span className="font-normal text-gray-400">/10</span></th>
                                   <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
                                   <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{BASIC_CA_MAX}</span></th>
-                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Project<br /><span className="font-normal text-gray-400">/10</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Proj<br /><span className="font-normal text-gray-400">/10</span></th>
                                   <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{BASIC_EXAM_MAX}</span></th>
                                   <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
                                 </tr>
@@ -1020,23 +1073,25 @@ export default function TeacherResultsSection({ profile }: Props) {
                                   const total = ca1 + ca2 + project + homework + exam;
                                   const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
                                   const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-indigo-600' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                                  const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60';
                                   return (
-                                    <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                                      <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
+                                    <tr key={subject} className={`border-b border-gray-50 ${rowBg}`}>
+                                      <td className={`sticky left-0 z-10 py-2 px-3 font-semibold text-gray-800 text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] ${rowBg}`}>{subject}</td>
                                       {(['homework', 'ca1', 'ca2', 'project', 'exam'] as const).map(field => (
                                         <td key={field} className="py-1 px-1 text-center">
                                           <input
-                                            type="number" min={0}
+                                            type="number" inputMode="numeric" min={0}
                                             max={field === 'exam' ? BASIC_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? BASIC_CA_MAX : 10}
                                             value={s[field] || ''}
                                             onChange={e => updateBasicScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? BASIC_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? BASIC_CA_MAX : 10))}
-                                            className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            className="w-14 border border-gray-200 rounded-lg px-1 py-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                                           />
                                         </td>
                                       ))}
                                       <td className="py-2 px-1 text-center">
-                                        <span className={`font-bold text-xs ${gc}`}>
-                                          {total > 0 ? `${total} (${grade})` : '—'}
+                                        <span className={`font-bold text-sm ${gc}`}>
+                                          {total > 0 ? `${total}` : '—'}
+                                          {grade && total > 0 && <span className="text-xs ml-1">({grade})</span>}
                                         </span>
                                       </td>
                                     </tr>
@@ -1055,17 +1110,17 @@ export default function TeacherResultsSection({ profile }: Props) {
                             Subject Scores — {activeStudent?.classes?.name}
                           </h4>
                           <p className="text-xs text-gray-400 mb-3">
-                            Enter raw scores: Homework &amp; Project out of 10, CAs out of {NURSERY_CA_MAX}, Exam out of {NURSERY_EXAM_MAX}.
+                            HW &amp; Project /10 · 1st &amp; 2nd CA /{NURSERY_CA_MAX} · Exam /{NURSERY_EXAM_MAX}. Subject column is pinned.
                           </p>
                           <div className="overflow-x-auto rounded-xl border border-gray-200">
-                            <table className="w-full text-sm min-w-[580px]">
+                            <table className="w-full text-sm min-w-[520px]">
                               <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
-                                  <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-1/4">Subject</th>
-                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Homework<br /><span className="font-normal text-gray-400">/10</span></th>
+                                  <th className="sticky left-0 z-10 bg-gray-50 text-left py-2 px-3 text-xs font-semibold text-gray-600 uppercase w-28 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Subject</th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">HW<br /><span className="font-normal text-gray-400">/10</span></th>
                                   <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">1st CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
                                   <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">2nd CA<br /><span className="font-normal text-gray-400">/{NURSERY_CA_MAX}</span></th>
-                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Project<br /><span className="font-normal text-gray-400">/10</span></th>
+                                  <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Proj<br /><span className="font-normal text-gray-400">/10</span></th>
                                   <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Exam<br /><span className="font-normal text-gray-400">/{NURSERY_EXAM_MAX}</span></th>
                                   <th className="py-2 px-1 text-center text-xs font-semibold text-gray-600 uppercase">Total<br /><span className="font-normal text-gray-400">/100</span></th>
                                 </tr>
@@ -1081,23 +1136,25 @@ export default function TeacherResultsSection({ profile }: Props) {
                                   const total = ca1 + ca2 + project + homework + exam;
                                   const { grade } = total > 0 ? getNigerianGrade(total) : { grade: '' };
                                   const gc = grade.startsWith('A') ? 'text-green-700' : grade === 'B' ? 'text-indigo-600' : grade === 'C' ? 'text-yellow-700' : grade ? 'text-red-700' : 'text-gray-300';
+                                  const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60';
                                   return (
-                                    <tr key={subject} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                                      <td className="py-2 px-3 font-medium text-gray-700 text-xs">{subject}</td>
+                                    <tr key={subject} className={`border-b border-gray-50 ${rowBg}`}>
+                                      <td className={`sticky left-0 z-10 py-2 px-3 font-semibold text-gray-800 text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] ${rowBg}`}>{subject}</td>
                                       {(['homework', 'ca1', 'ca2', 'project', 'exam'] as const).map(field => (
                                         <td key={field} className="py-1 px-1 text-center">
                                           <input
-                                            type="number" min={0}
+                                            type="number" inputMode="numeric" min={0}
                                             max={field === 'exam' ? NURSERY_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? NURSERY_CA_MAX : 10}
                                             value={s[field] || ''}
                                             onChange={e => updateNurseryScore(subject, field, Math.min(Number(e.target.value), field === 'exam' ? NURSERY_EXAM_MAX : (field === 'ca1' || field === 'ca2') ? NURSERY_CA_MAX : 10))}
-                                            className="w-12 border border-gray-200 rounded px-1 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                            className="w-14 border border-gray-200 rounded-lg px-1 py-2 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                                           />
                                         </td>
                                       ))}
                                       <td className="py-2 px-1 text-center">
-                                        <span className={`font-bold text-xs ${gc}`}>
-                                          {total > 0 ? `${total} (${grade})` : '—'}
+                                        <span className={`font-bold text-sm ${gc}`}>
+                                          {total > 0 ? `${total}` : '—'}
+                                          {grade && total > 0 && <span className="text-xs ml-1">({grade})</span>}
                                         </span>
                                       </td>
                                     </tr>
@@ -1245,21 +1302,70 @@ export default function TeacherResultsSection({ profile }: Props) {
 
                       {/* Remarks */}
                       <div>
-                        <h4 className="font-semibold text-gray-800 text-sm mb-3">Remarks</h4>
+                        <h4 className="font-semibold text-gray-800 text-sm mb-1">Remarks</h4>
+                        <p className="text-xs text-indigo-600 bg-indigo-50 rounded-lg px-3 py-2 border border-indigo-100 mb-3">
+                          Tap any suggestion to fill, or type your own remark.
+                        </p>
                         <div className="space-y-3">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Class Teacher's Remark</label>
+                          <div className="space-y-1.5">
+                            <label className="block text-xs font-medium text-gray-600">Class Teacher's Remark</label>
                             <textarea rows={2} value={metaForm.teacher_comment}
                               onChange={e => updateMeta({ teacher_comment: e.target.value })}
-                              placeholder="e.g. A diligent student who shows great potential…"
+                              placeholder="Tap a suggestion or type…"
                               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {[
+                                'An outstanding student — well done!',
+                                'Excellent work, keep it up!',
+                                'Brilliant performance this term!',
+                                'Very impressive results this term!',
+                                'Hard worker with great attitude!',
+                                'Consistent performance, well done!',
+                                'Shows strong academic potential!',
+                                'Good effort, aim higher next term!',
+                                'Improving steadily, keep it up!',
+                                'Needs to work harder next term.',
+                                'A pleasure to teach — well done!',
+                                'Very focused and dedicated student!',
+                                'Great effort this term!',
+                                'Needs more focus in class.',
+                              ].map(s => (
+                                <button key={s} type="button"
+                                  onClick={() => updateMeta({ teacher_comment: s })}
+                                  className={`px-2.5 py-1 rounded-full border text-xs transition-all ${metaForm.teacher_comment === s ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-700'}`}>
+                                  {s}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Principal's / Proprietress' Remark</label>
+                          <div className="space-y-1.5">
+                            <label className="block text-xs font-medium text-gray-600">Principal's / Proprietress' Remark</label>
                             <textarea rows={2} value={metaForm.principal_comment}
                               onChange={e => updateMeta({ principal_comment: e.target.value })}
-                              placeholder="e.g. Excellent performance. Keep it up!"
+                              placeholder="Tap a suggestion or type…"
                               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {[
+                                'Excellent performance, we are proud!',
+                                'Keep up the outstanding work!',
+                                'Great achievement this term!',
+                                'Wonderful results — keep shining!',
+                                'A credit to the school, well done!',
+                                'We are proud of your dedication!',
+                                'Very impressive improvement shown!',
+                                'Good work — aim for the top!',
+                                'Needs more effort next term.',
+                                'Encourage more reading at home.',
+                                'Great potential, keep working hard!',
+                                'Steady progress, well done!',
+                              ].map(s => (
+                                <button key={s} type="button"
+                                  onClick={() => updateMeta({ principal_comment: s })}
+                                  className={`px-2.5 py-1 rounded-full border text-xs transition-all ${metaForm.principal_comment === s ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-700'}`}>
+                                  {s}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1267,7 +1373,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                       {/* Next Term */}
                       <div>
                         <h4 className="font-semibold text-gray-800 text-sm mb-3">Next Term Information</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">Next Term Begins</label>
                             <input type="date" value={metaForm.next_term_begins}
@@ -1280,6 +1386,13 @@ export default function TeacherResultsSection({ profile }: Props) {
                               onChange={e => updateMeta({ next_term_fees: e.target.value })}
                               placeholder="₦150,000"
                               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Outstanding Balance (optional)</label>
+                            <input value={metaForm.outstanding_fees}
+                              onChange={e => updateMeta({ outstanding_fees: e.target.value })}
+                              placeholder="e.g. ₦25,000"
+                              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                           </div>
                         </div>
                       </div>
