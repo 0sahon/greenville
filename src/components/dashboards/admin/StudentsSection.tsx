@@ -131,10 +131,15 @@ export default function StudentsSection({ profile: _profile }: Props) {
   const maleStudents = students.filter(s => s.is_active && s.gender === 'male').length;
   const femaleStudents = students.filter(s => s.is_active && s.gender === 'female').length;
 
-  const generateStudentId = () => {
+  const generateUniqueStudentId = async (): Promise<string> => {
     const year = new Date().getFullYear();
-    const num = String(Math.floor(Math.random() * 900) + 100);
-    return `GMS-${year}-${num}`;
+    for (let i = 0; i < 20; i++) {
+      const num = String(Math.floor(Math.random() * 9000) + 1000);
+      const candidate = `GMS-${year}-${num}`;
+      const { count } = await supabase.from('students').select('id', { count: 'exact', head: true }).eq('student_id', candidate);
+      if (!count) return candidate;
+    }
+    return `GMS-${year}-${Date.now().toString(36).toUpperCase().slice(-5)}`;
   };
 
   const generateTempPassword = () => `Greenville${Math.random().toString(36).slice(2, 8)}!`;
@@ -168,7 +173,7 @@ export default function StudentsSection({ profile: _profile }: Props) {
       
       const { error: sErr } = await supabase.from('students').insert({
         profile_id: profile.id,
-        student_id: generateStudentId(),
+        student_id: await generateUniqueStudentId(),
         class_id: form.class_id || null,
         gender: (form.gender || null) as StudentRow['gender'],
         date_of_birth: form.date_of_birth || null,

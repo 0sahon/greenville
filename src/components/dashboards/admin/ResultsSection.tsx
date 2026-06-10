@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 import {
   FileText, Search, ChevronDown, X, Eye, CheckCircle, Clock,
   BarChart3, GraduationCap, Printer, Download, Settings,
-  KeyRound, Copy, RefreshCw, EyeOff, Globe,
+  KeyRound, Copy, RefreshCw, EyeOff, Globe, MessageCircle, Users,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
@@ -18,6 +19,7 @@ import type { ProfileRow, ClassRow, GradeRow } from '../../../lib/supabase';
 import PerformanceChart from '../shared/PerformanceChart';
 import { computeSubjects } from '../../../lib/gradeCompute';
 import ResultCardModal, { defaultMeta, type MetaForm, type StudentInfo } from './ResultCardModal';
+import { SCHOOL_WEBSITE, SCHOOL_WHATSAPP_HREF } from '../../../config/schoolBrand';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
@@ -85,6 +87,25 @@ export default function ResultsSection({ profile }: Props) {
   const [activeCardError, setActiveCardError] = useState<string | null>(null);
   const [pinVisibility, setPinVisibility] = useState<Record<string, boolean>>({});
   const [generatingPin, setGeneratingPin] = useState<string | null>(null);
+  const [bulkGeneratingPins, setBulkGeneratingPins] = useState(false);
+
+  const bulkGeneratePins = async () => {
+    const withoutPins = students.filter(s => !s.report_pin);
+    if (withoutPins.length === 0) { setToast({ msg: 'All students already have PINs', type: 'success' }); return; }
+    setBulkGeneratingPins(true);
+    try {
+      await Promise.all(withoutPins.map(async s => {
+        const pin = String(Math.floor(100000 + Math.random() * 900000));
+        await supabase.from('students').update({ report_pin: pin }).eq('id', s.id);
+        setStudents(prev => prev.map(st => st.id === s.id ? { ...st, report_pin: pin } : st));
+      }));
+      setToast({ msg: `PINs generated for ${withoutPins.length} student${withoutPins.length !== 1 ? 's' : ''}`, type: 'success' });
+    } catch {
+      setToast({ msg: 'Some PINs failed to generate', type: 'error' });
+    } finally {
+      setBulkGeneratingPins(false);
+    }
+  };
 
   const generatePin = async (studentId: string) => {
     const pin = String(Math.floor(100000 + Math.random() * 900000));
@@ -477,11 +498,13 @@ export default function ResultsSection({ profile }: Props) {
     window.open(`https://wa.me/?text=${encodeURIComponent(lines)}`, '_blank', 'noopener,noreferrer');
   };
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setActiveStudent(null); setActiveSubjects([]); setActiveClassStats(null);
     setDeleteConfirm(false); setPreKgRatings({}); setNurseryScores({}); setBasicScores({});
     setActiveCardError(null);
-  };
+  }, []);
+
+  useModalHistory(!!activeStudent, closeModal);
 
   const buildCardData = (): ResultCardData | null => {
     if (!activeStudent || !activeClassStats) return null;
@@ -512,7 +535,7 @@ export default function ResultsSection({ profile }: Props) {
       },
       attendance: { daysPresent: metaForm.days_present, daysAbsent: metaForm.days_absent, totalDays: metaForm.total_school_days },
       comments: { teacher: metaForm.teacher_comment || '', principal: metaForm.principal_comment || '' },
-      nextTerm: { begins: metaForm.next_term_begins || '', fees: metaForm.next_term_fees || '' },
+      nextTerm: { begins: metaForm.next_term_begins || '', fees: metaForm.next_term_fees || '', outstandingFees: metaForm.outstanding_fees || '' },
       schoolName, schoolAddress: (settings.school_address as string) || '',
       visibleSubjects,
       preKgCommentChoices: isToddlerStudent ? preKgCommentChoices : undefined,
@@ -532,6 +555,7 @@ export default function ResultsSection({ profile }: Props) {
         cooperation: metaForm.cooperation, attentiveness: metaForm.attentiveness, politeness: metaForm.politeness,
         days_present: metaForm.days_present, days_absent: metaForm.days_absent, total_school_days: metaForm.total_school_days,
         next_term_begins: metaForm.next_term_begins || null, next_term_fees: metaForm.next_term_fees,
+        outstanding_fees: metaForm.outstanding_fees || '',
         is_published: metaForm.is_published, created_by: profile.id, updated_at: new Date().toISOString(),
       };
       const { error } = await supabase.from('result_sheets').upsert(payload, { onConflict: 'student_id,term,academic_year' });
@@ -842,14 +866,16 @@ export default function ResultsSection({ profile }: Props) {
   const printPinSlips = () => {
     const withPins = students.filter(s => s.report_pin);
     if (withPins.length === 0) { setToast({ msg: 'No students have PINs yet — generate PINs first', type: 'error' }); return; }
-    const portalUrl = `${window.location.origin}${window.location.pathname}?portal=1`;
+    const portalUrl = `${SCHOOL_WEBSITE}?portal=1`;
     const sName = schoolName || 'Greenville Montessori Schools';
+    const qrBase = `https://api.qrserver.com/v1/create-qr-code/?size=72x72&color=1a4731&bgcolor=ffffff&data=`;
 
     const cardHtml = withPins.map(s => {
       const name = `${s.profiles?.first_name ?? ''} ${s.profiles?.last_name ?? ''}`.trim();
       const pin = s.report_pin!;
       const pinFmt = `${pin.slice(0, 3)} ${pin.slice(3)}`;
       const className = s.classes?.name ?? '—';
+      const qrUrl = `${qrBase}${encodeURIComponent(portalUrl)}`;
       return `
         <div class="slip">
           <div class="slip-header">
@@ -860,32 +886,40 @@ export default function ResultsSection({ profile }: Props) {
             </div>
           </div>
           <div class="slip-body">
-            <div class="slip-name-row">
-              <div class="slip-label">STUDENT NAME</div>
-              <div class="slip-name">${name}</div>
-            </div>
-            <div class="slip-row">
-              <div>
-                <div class="slip-label">ADM. NUMBER</div>
-                <div class="slip-id">${s.student_id}</div>
+            <div class="slip-body-inner">
+              <div class="slip-body-left">
+                <div class="slip-name-row">
+                  <div class="slip-label">STUDENT NAME</div>
+                  <div class="slip-name">${name}</div>
+                </div>
+                <div class="slip-row">
+                  <div>
+                    <div class="slip-label">ADM. NUMBER</div>
+                    <div class="slip-id">${s.student_id}</div>
+                  </div>
+                  <div>
+                    <div class="slip-label">CLASS</div>
+                    <div class="slip-id">${className}</div>
+                  </div>
+                  <div>
+                    <div class="slip-label">TERM</div>
+                    <div class="slip-id">${selectedTerm.replace(' Term', '')} ${academicYear}</div>
+                  </div>
+                </div>
+                <div class="slip-pin-wrap">
+                  <div class="slip-pin-label">PORTAL PIN</div>
+                  <div class="slip-pin">${pinFmt}</div>
+                </div>
               </div>
-              <div>
-                <div class="slip-label">CLASS</div>
-                <div class="slip-id">${className}</div>
+              <div class="slip-body-right">
+                <img src="${qrUrl}" class="slip-qr" alt="QR" />
+                <div class="slip-qr-label">Scan to open portal</div>
               </div>
-              <div>
-                <div class="slip-label">TERM</div>
-                <div class="slip-id">${selectedTerm.replace(' Term', '')} ${academicYear}</div>
-              </div>
-            </div>
-            <div class="slip-pin-wrap">
-              <div class="slip-pin-label">PORTAL PIN</div>
-              <div class="slip-pin">${pinFmt}</div>
             </div>
           </div>
           <div class="slip-footer">
             <div class="slip-footer-url">🌐 ${portalUrl}</div>
-            <div class="slip-footer-cta">Visit the link above &rarr; enter Adm. No. + PIN to view your child&apos;s results</div>
+            <div class="slip-footer-cta">Scan QR or visit the link &rarr; enter Adm. No. + PIN to view your child&apos;s results</div>
           </div>
         </div>`;
     }).join('');
@@ -920,8 +954,12 @@ export default function ResultsSection({ profile }: Props) {
   .slip-logo { width: 22px; height: 22px; object-fit: contain; border-radius: 3px; flex-shrink: 0; background: #fff; padding: 1px; }
   .slip-school { font-size: 7.5pt; font-weight: bold; letter-spacing: 0.4px; line-height: 1.3; }
   .slip-tagline { font-size: 5.5pt; opacity: 0.75; letter-spacing: 0.3px; margin-top: 1px; }
-  .slip-body { flex: 1; padding: 2.5mm 4mm 2mm; display: flex; flex-direction: column; gap: 2mm; }
-  .slip-name-row {}
+  .slip-body { flex: 1; padding: 2.5mm 4mm 2mm; }
+  .slip-body-inner { display: flex; gap: 3mm; height: 100%; }
+  .slip-body-left { flex: 1; display: flex; flex-direction: column; gap: 2mm; }
+  .slip-body-right { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1mm; flex-shrink: 0; }
+  .slip-qr { width: 22mm; height: 22mm; border: 1.5px solid #2d7a4f; border-radius: 2mm; display: block; }
+  .slip-qr-label { font-size: 4pt; color: #777; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3px; }
   .slip-label { font-size: 5pt; font-weight: bold; color: #777; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.5mm; }
   .slip-name { font-size: 11pt; font-weight: bold; color: #111; line-height: 1.2; }
   .slip-row { display: flex; gap: 5mm; }
@@ -1243,6 +1281,17 @@ export default function ResultsSection({ profile }: Props) {
                 {isBulkLoading ? 'Loading…' : 'Print All'}
               </button>
             )}
+            {/* Bulk Generate PINs */}
+            {students.some(s => !s.report_pin) && (
+              <button onClick={bulkGeneratePins} disabled={bulkGeneratingPins}
+                className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-60 shadow-sm"
+                title="Generate PINs for all students without one">
+                {bulkGeneratingPins
+                  ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <Users className="w-3.5 h-3.5" />}
+                {bulkGeneratingPins ? 'Generating…' : 'Generate All PINs'}
+              </button>
+            )}
             {/* Print PIN Slips */}
             {students.some(s => s.report_pin) && (
               <button onClick={printPinSlips}
@@ -1478,14 +1527,26 @@ export default function ResultsSection({ profile }: Props) {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    const url = `${window.location.origin}${window.location.pathname}?portal=1`;
-                                    navigator.clipboard.writeText(`Student ID: ${s.student_id}\nPIN: ${s.report_pin}\nPortal: ${url}`);
+                                    navigator.clipboard.writeText(`Student ID: ${s.student_id}\nPIN: ${s.report_pin}\nPortal: ${SCHOOL_WEBSITE}?portal=1`);
                                   }}
                                   className="p-1 text-gray-400 hover:text-indigo-600"
                                   title="Copy portal link + PIN"
                                 >
                                   <Copy className="w-3.5 h-3.5" />
                                 </button>
+                                {isPublished && s.report_pin && (
+                                  <button
+                                    onClick={() => {
+                                      const name = `${s.profiles?.first_name ?? ''} ${s.profiles?.last_name ?? ''}`.trim();
+                                      const msg = `Hello! 👋\n\n🏫 *${schoolName || 'Greenville Montessori Schools'}*\n\nThe result card for *${name}* (${selectedTerm} ${academicYear}) has been published.\n\n📋 *Admission No:* ${s.student_id}\n🔑 *Portal PIN:* ${s.report_pin}\n\n🌐 Check results at:\n${SCHOOL_WEBSITE}?portal=1\n\n_Enter the Admission No. and PIN above to view the result card._`;
+                                      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+                                    }}
+                                    className="p-1 text-gray-400 hover:text-green-600"
+                                    title="Notify parent via WhatsApp"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                               </>
                             ) : (
                               <span className="text-xs text-gray-400">No PIN</span>

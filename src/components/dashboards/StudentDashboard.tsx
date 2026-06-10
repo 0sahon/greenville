@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSectionHistory } from '../../hooks/useSectionHistory';
 import { LayoutDashboard, Star, FileText, ClipboardCheck, Calendar, User, MonitorCheck, Clock, Paperclip } from 'lucide-react';
 import DashboardShell, { NavItem } from './DashboardShell';
 import type { ProfileRow } from '../../lib/supabase';
@@ -27,6 +28,7 @@ const studentNav: NavItem[] = [
 
 export default function StudentDashboard({ profile }: { profile: ProfileRow }) {
   const [section, setSection] = useState('overview');
+  useSectionHistory(section, setSection);
 
   if (!profile) {
     return (

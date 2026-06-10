@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Download, Printer, ChevronDown, ArrowLeft, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { Download, Printer, ChevronDown, ArrowLeft, KeyRound, Eye, EyeOff, Phone } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import ResultCard, {
   printResultCard,
@@ -14,6 +14,8 @@ import {
   SCHOOL_NAME,
   SCHOOL_ADDRESS_SINGLE,
   SCHOOL_LOGO_PATH,
+  SCHOOL_PHONE_DISPLAY,
+  SCHOOL_WHATSAPP_HREF,
 } from '../../config/schoolBrand';
 import { TERMS, getAcademicYearOptions } from '../../lib/academicConfig';
 
@@ -183,6 +185,7 @@ export default function ReportPortal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [portalData, setPortalData] = useState<PortalData | null>(null);
+  const [noResultsName, setNoResultsName] = useState<string | null>(null);
   const [selectedSheetIdx, setSelectedSheetIdx] = useState(0);
   const [visible, setVisible] = useState(false);
 
@@ -191,6 +194,19 @@ export default function ReportPortal() {
 
   // Auto-focus Student ID on mount
   useEffect(() => { idRef.current?.focus(); }, []);
+
+  // Push history when results load so back button returns to PIN form
+  useEffect(() => {
+    if (!portalData && !noResultsName) return;
+    window.history.pushState({ __portalResults: true }, '');
+    const handler = () => {
+      setPortalData(null);
+      setNoResultsName(null);
+      setVisible(false);
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, [!!portalData || !!noResultsName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fade-in when results arrive
   useEffect(() => {
@@ -217,7 +233,7 @@ export default function ReportPortal() {
       }
       const pd = data as PortalData;
       if (!pd.sheets || pd.sheets.length === 0) {
-        setError('No published results found for this student yet. Check back later or contact the school.');
+        setNoResultsName(`${pd.student.first_name} ${pd.student.last_name}`);
         return;
       }
       setVisible(false);
@@ -229,6 +245,31 @@ export default function ReportPortal() {
       setLoading(false);
     }
   };
+
+  /* ── No results yet screen ──────────────────────────────────── */
+  if (noResultsName) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center">
+          <img src={SCHOOL_LOGO_PATH} alt={SCHOOL_NAME} className="w-16 h-16 object-contain mx-auto mb-4 rounded-xl" />
+          <div className="text-4xl mb-3">📋</div>
+          <h2 className="text-lg font-bold text-gray-900 mb-1">Hello, {noResultsName}!</h2>
+          <p className="text-sm text-gray-500 mb-5 leading-relaxed">
+            Your PIN is correct but no results have been published yet for this term. Please check back later or contact the school office.
+          </p>
+          <a href={SCHOOL_WHATSAPP_HREF} target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors mb-3">
+            <Phone className="w-4 h-4" /> Contact School on WhatsApp
+          </a>
+          <p className="text-xs text-gray-400 mb-4">{SCHOOL_PHONE_DISPLAY}</p>
+          <button onClick={() => setNoResultsName(null)}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+            ← Try a different PIN
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   /* ── Entry form ──────────────────────────────────────────────── */
   if (!portalData) {

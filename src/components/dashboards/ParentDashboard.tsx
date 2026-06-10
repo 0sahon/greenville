@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSectionHistory } from '../../hooks/useSectionHistory';
 import { LayoutDashboard, Heart, DollarSign, Bell, Calendar, BarChart3, ClipboardCheck, MessageSquare, User, Paperclip } from 'lucide-react';
 import DashboardShell, { NavItem } from './DashboardShell';
 import type { ProfileRow } from '../../lib/supabase';
@@ -29,6 +30,7 @@ const parentNav: NavItem[] = [
 
 export default function ParentDashboard({ profile }: { profile: ProfileRow }) {
   const [section, setSection] = useState('overview');
+  useSectionHistory(section, setSection);
 
   if (!profile) {
     return (

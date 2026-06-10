@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSectionHistory } from '../../hooks/useSectionHistory';
 import {
   LayoutDashboard, BookOpen, ClipboardCheck, BarChart3,
   Monitor, Bell, Calendar, MonitorCheck, Clock, MessageSquare, User, FileText, Users
@@ -38,6 +39,7 @@ const teacherNav: NavItem[] = [
 
 export default function TeacherDashboard({ profile }: { profile: ProfileRow }) {
   const [section, setSection] = useState('overview');
+  useSectionHistory(section, setSection);
 
   if (!profile) {
     return (

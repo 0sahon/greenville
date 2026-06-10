@@ -14,7 +14,7 @@ export const defaultMeta = {
   teacher_comment: '', principal_comment: '',
   punctuality: 3, neatness: 3, honesty: 3, cooperation: 3, attentiveness: 3, politeness: 3,
   days_present: 0, days_absent: 0, total_school_days: 0,
-  next_term_begins: '', next_term_fees: '', is_published: false,
+  next_term_begins: '', next_term_fees: '', outstanding_fees: '', is_published: false,
 };
 
 /** MetaForm as used in state — behavior fields may come back null from DB */
@@ -32,6 +32,7 @@ export interface MetaForm {
   total_school_days: number;
   next_term_begins: string;
   next_term_fees: string;
+  outstanding_fees: string;
   is_published: boolean;
 }
 
@@ -623,6 +624,12 @@ export default function ResultCardModal({
                     <input value={metaForm.next_term_fees} onChange={e => setMetaForm(f => ({ ...f, next_term_fees: e.target.value }))}
                       placeholder="₦150,000"
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Outstanding Balance (optional)</label>
+                    <input value={metaForm.outstanding_fees} onChange={e => setMetaForm(f => ({ ...f, outstanding_fees: e.target.value }))}
+                      placeholder="e.g. ₦25,000"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
                   </div>
                 </div>
               </div>

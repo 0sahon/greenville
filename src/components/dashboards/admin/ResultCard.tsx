@@ -76,7 +76,7 @@ export interface ResultCardData {
     totalDays: number;
   };
   comments: { teacher: string; principal: string };
-  nextTerm: { begins: string; fees: string };
+  nextTerm: { begins: string; fees: string; outstandingFees?: string };
   schoolName: string;
   schoolAddress: string;
   visibleSubjects?: string[];
@@ -386,15 +386,21 @@ function PrimaryResultCard({ data }: { data: ResultCardData }) {
       </div>
 
       {/* ══ FOOTER BAR ══ */}
-      <div style={{ background: '#1a2433', color: '#fff', padding: '5px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7.5pt' }}>
+      <div style={{ background: '#1a2433', color: '#fff', padding: '5px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7.5pt', flexWrap: 'wrap', gap: '4px' }}>
         <span>
           <span style={{ opacity: 0.65, marginRight: '4px' }}>School Re-opens:</span>
           <span style={{ fontWeight: 'bold' }}>{nextTerm.begins ? fmtDate(nextTerm.begins) : '—'}</span>
         </span>
         {nextTerm.fees && (
           <span>
-            <span style={{ opacity: 0.65, marginRight: '4px' }}>Fees:</span>
+            <span style={{ opacity: 0.65, marginRight: '4px' }}>Next Term Fees:</span>
             <span style={{ fontWeight: 'bold' }}>{nextTerm.fees}</span>
+          </span>
+        )}
+        {nextTerm.outstandingFees && (
+          <span>
+            <span style={{ opacity: 0.65, marginRight: '4px' }}>Outstanding Balance:</span>
+            <span style={{ fontWeight: 'bold', color: '#fbbf24' }}>{nextTerm.outstandingFees}</span>
           </span>
         )}
         <span style={{ opacity: 0.5, fontSize: '6.5pt' }}>{displaySchool}</span>
@@ -695,15 +701,21 @@ function NurseryResultCard({ data }: { data: ResultCardData }) {
       </div>
 
       {/* ══ FOOTER BAR ══ */}
-      <div style={{ background: '#1a2433', color: '#fff', padding: '5px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7.5pt' }}>
+      <div style={{ background: '#1a2433', color: '#fff', padding: '5px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7.5pt', flexWrap: 'wrap', gap: '4px' }}>
         <span>
           <span style={{ opacity: 0.65, marginRight: '4px' }}>School Re-opens:</span>
           <span style={{ fontWeight: 'bold' }}>{nextTerm.begins ? fmtDate(nextTerm.begins) : '—'}</span>
         </span>
         {nextTerm.fees && (
           <span>
-            <span style={{ opacity: 0.65, marginRight: '4px' }}>Fees:</span>
+            <span style={{ opacity: 0.65, marginRight: '4px' }}>Next Term Fees:</span>
             <span style={{ fontWeight: 'bold' }}>{nextTerm.fees}</span>
+          </span>
+        )}
+        {nextTerm.outstandingFees && (
+          <span>
+            <span style={{ opacity: 0.65, marginRight: '4px' }}>Outstanding Balance:</span>
+            <span style={{ fontWeight: 'bold', color: '#fbbf24' }}>{nextTerm.outstandingFees}</span>
           </span>
         )}
         <span style={{ opacity: 0.5, fontSize: '6.5pt' }}>{displaySchool}</span>

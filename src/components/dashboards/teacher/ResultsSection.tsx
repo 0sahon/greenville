@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useModalHistory } from '../../../hooks/useModalHistory';
 import {
   FileText, Search, ChevronDown, Eye, CheckCircle, Clock, X, Save,
   Trash2, AlertTriangle, MessageCircle, Download, EyeOff,
@@ -20,6 +21,7 @@ import {
   SCHOOL_ADDRESS_SINGLE,
   SCHOOL_NAME,
   SCHOOL_PHONE_DISPLAY,
+  SCHOOL_WEBSITE,
 } from '../../../config/schoolBrand';
 
 interface Props { profile: ProfileRow; }
@@ -93,7 +95,19 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [basicScores, setBasicScores] = useState<BasicScores>({});
   const [pinVisibility, setPinVisibility] = useState<Record<string, boolean>>({});
   const [generatingPin, setGeneratingPin] = useState<string | null>(null);
+  const [bulkGeneratingPins, setBulkGeneratingPins] = useState(false);
   const [togglingPublish, setTogglingPublish] = useState<string | null>(null);
+
+  const closeModal = useCallback(() => {
+    setActiveStudent(null);
+    setCardData(null);
+    setSubjects([]);
+    setDeleteConfirm(false);
+    setPreKgRatings({});
+    setNurseryScores({});
+    setBasicScores({});
+  }, []);
+  useModalHistory(!!activeStudent, closeModal);
 
   const togglePublished = async (studentId: string, current: boolean) => {
     setTogglingPublish(studentId);
@@ -113,52 +127,80 @@ export default function TeacherResultsSection({ profile }: Props) {
     }
   };
 
+  const bulkGeneratePins = async () => {
+    const withoutPins = students.filter(s => !s.report_pin);
+    if (withoutPins.length === 0) { setToast({ msg: 'All students already have PINs', type: 'success' }); return; }
+    setBulkGeneratingPins(true);
+    try {
+      await Promise.all(withoutPins.map(async s => {
+        const pin = String(Math.floor(100000 + Math.random() * 900000));
+        await supabase.from('students').update({ report_pin: pin }).eq('id', s.id);
+        setStudents(prev => prev.map(st => st.id === s.id ? { ...st, report_pin: pin } : st));
+      }));
+      setToast({ msg: `PINs generated for ${withoutPins.length} student${withoutPins.length !== 1 ? 's' : ''}`, type: 'success' });
+    } catch {
+      setToast({ msg: 'Some PINs failed to generate', type: 'error' });
+    } finally {
+      setBulkGeneratingPins(false);
+    }
+  };
+
   const printPinSlips = () => {
     const withPins = students.filter(s => s.report_pin);
     if (withPins.length === 0) { setToast({ msg: 'No students have PINs yet — generate PINs first', type: 'error' }); return; }
-    const portalUrl = `${window.location.origin}${window.location.pathname}?portal=1`;
+    const portalUrl = `${SCHOOL_WEBSITE}?portal=1`;
+    const qrBase = `https://api.qrserver.com/v1/create-qr-code/?size=72x72&color=1a4731&bgcolor=ffffff&data=`;
 
     const cardHtml = withPins.map(s => {
       const name = `${s.profiles?.first_name ?? ''} ${s.profiles?.last_name ?? ''}`.trim();
       const pin = s.report_pin!;
       const pinFmt = `${pin.slice(0, 3)} ${pin.slice(3)}`;
       const className = s.classes?.name ?? '—';
+      const qrUrl = `${qrBase}${encodeURIComponent(portalUrl)}`;
       return `
         <div class="slip">
           <div class="slip-header">
             <img src="/gms-logo.jpg" class="slip-logo" alt="" />
             <div>
-              <div class="slip-school">GREENVILLE MONTESSORI SCHOOLS</div>
+              <div class="slip-school">${SCHOOL_NAME.toUpperCase()}</div>
               <div class="slip-tagline">Parent Result Portal Access Card</div>
             </div>
           </div>
           <div class="slip-body">
-            <div class="slip-name-row">
-              <div class="slip-label">STUDENT NAME</div>
-              <div class="slip-name">${name}</div>
-            </div>
-            <div class="slip-row">
-              <div>
-                <div class="slip-label">ADM. NUMBER</div>
-                <div class="slip-id">${s.student_id}</div>
+            <div class="slip-body-inner">
+              <div class="slip-body-left">
+                <div class="slip-name-row">
+                  <div class="slip-label">STUDENT NAME</div>
+                  <div class="slip-name">${name}</div>
+                </div>
+                <div class="slip-row">
+                  <div>
+                    <div class="slip-label">ADM. NUMBER</div>
+                    <div class="slip-id">${s.student_id}</div>
+                  </div>
+                  <div>
+                    <div class="slip-label">CLASS</div>
+                    <div class="slip-id">${className}</div>
+                  </div>
+                  <div>
+                    <div class="slip-label">TERM</div>
+                    <div class="slip-id">${selectedTerm.replace(' Term', '')} ${academicYear}</div>
+                  </div>
+                </div>
+                <div class="slip-pin-wrap">
+                  <div class="slip-pin-label">PORTAL PIN</div>
+                  <div class="slip-pin">${pinFmt}</div>
+                </div>
               </div>
-              <div>
-                <div class="slip-label">CLASS</div>
-                <div class="slip-id">${className}</div>
+              <div class="slip-body-right">
+                <img src="${qrUrl}" class="slip-qr" alt="QR" />
+                <div class="slip-qr-label">Scan to open portal</div>
               </div>
-              <div>
-                <div class="slip-label">TERM</div>
-                <div class="slip-id">${selectedTerm.replace(' Term', '')} ${academicYear}</div>
-              </div>
-            </div>
-            <div class="slip-pin-wrap">
-              <div class="slip-pin-label">PORTAL PIN</div>
-              <div class="slip-pin">${pinFmt}</div>
             </div>
           </div>
           <div class="slip-footer">
             <div class="slip-footer-url">🌐 ${portalUrl}</div>
-            <div class="slip-footer-cta">Visit the link above &rarr; enter Adm. No. + PIN to view your child&apos;s results</div>
+            <div class="slip-footer-cta">Scan QR or visit the link &rarr; enter Adm. No. + PIN to view your child&apos;s results</div>
           </div>
         </div>`;
     }).join('');
@@ -172,12 +214,17 @@ export default function TeacherResultsSection({ profile }: Props) {
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; background: #fff; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
-  .slip { border: 1.5px solid #1a4731; border-radius: 4mm; overflow: hidden; display: flex; flex-direction: column; height: 68mm; page-break-inside: avoid; }
+  .slip { border: 1.5px solid #1a4731; border-radius: 4mm; overflow: hidden; display: flex; flex-direction: column; height: 72mm; page-break-inside: avoid; }
   .slip-header { background: #1a4731; color: #fff; display: flex; align-items: center; gap: 6px; padding: 2.5mm 4mm; flex-shrink: 0; }
   .slip-logo { width: 22px; height: 22px; object-fit: contain; border-radius: 3px; flex-shrink: 0; background: #fff; padding: 1px; }
   .slip-school { font-size: 7.5pt; font-weight: bold; letter-spacing: 0.4px; line-height: 1.3; }
   .slip-tagline { font-size: 5.5pt; opacity: 0.75; letter-spacing: 0.3px; margin-top: 1px; }
-  .slip-body { flex: 1; padding: 2.5mm 4mm 2mm; display: flex; flex-direction: column; gap: 2mm; }
+  .slip-body { flex: 1; padding: 2.5mm 4mm 2mm; }
+  .slip-body-inner { display: flex; gap: 3mm; height: 100%; }
+  .slip-body-left { flex: 1; display: flex; flex-direction: column; gap: 2mm; }
+  .slip-body-right { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1mm; flex-shrink: 0; }
+  .slip-qr { width: 22mm; height: 22mm; border: 1.5px solid #2d7a4f; border-radius: 2mm; display: block; }
+  .slip-qr-label { font-size: 4pt; color: #777; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3px; }
   .slip-label { font-size: 5pt; font-weight: bold; color: #777; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.5mm; }
   .slip-name { font-size: 11pt; font-weight: bold; color: #111; line-height: 1.2; }
   .slip-row { display: flex; gap: 5mm; }
@@ -466,7 +513,7 @@ export default function TeacherResultsSection({ profile }: Props) {
       console.error("Error loading card:", err);
       setToast({ msg: err.message || 'Failed to load report card details', type: 'error' });
       setLoadingCard(false);
-      setActiveStudent(null);
+      closeModal();
     }
   };
 
@@ -621,8 +668,7 @@ export default function TeacherResultsSection({ profile }: Props) {
       if (error) throw error;
       setToast({ msg: 'Report card deleted', type: 'success' });
       setResultSheets(prev => { const n = { ...prev }; delete n[activeStudent.id]; return n; });
-      setActiveStudent(null);
-      setCardData(null);
+      closeModal();
       loadStudents();
     } catch (e: unknown) {
       setToast({ msg: e instanceof Error ? e.message : 'Delete failed', type: 'error' });
@@ -699,13 +745,25 @@ export default function TeacherResultsSection({ profile }: Props) {
             ))}
           </div>
 
-          {students.some(s => s.report_pin) && (
-            <div className="flex justify-end">
-              <button onClick={printPinSlips}
-                className="flex items-center gap-1.5 px-3 py-2 bg-teal-700 text-white rounded-lg text-xs font-semibold hover:bg-teal-800 shadow-sm"
-                title="Print parent portal PIN cards for this class">
-                <KeyRound className="w-3.5 h-3.5" /> Print PINs
-              </button>
+          {students.length > 0 && (
+            <div className="flex flex-wrap justify-end gap-2">
+              {students.some(s => !s.report_pin) && (
+                <button onClick={bulkGeneratePins} disabled={bulkGeneratingPins}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-60 shadow-sm"
+                  title="Generate PINs for all students without one">
+                  {bulkGeneratingPins
+                    ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <KeyRound className="w-3.5 h-3.5" />}
+                  {bulkGeneratingPins ? 'Generating…' : 'Generate All PINs'}
+                </button>
+              )}
+              {students.some(s => s.report_pin) && (
+                <button onClick={printPinSlips}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-teal-700 text-white rounded-lg text-xs font-semibold hover:bg-teal-800 shadow-sm"
+                  title="Print parent portal PIN cards for this class">
+                  <KeyRound className="w-3.5 h-3.5" /> Print PINs
+                </button>
+              )}
             </div>
           )}
 
@@ -860,7 +918,7 @@ export default function TeacherResultsSection({ profile }: Props) {
                     Edit
                   </button>
                 </div>
-                <button onClick={() => { setActiveStudent(null); setCardData(null); setDeleteConfirm(false); setPreKgRatings({}); setNurseryScores({}); setBasicScores({}); }} className="p-1.5 hover:bg-gray-100 rounded-lg flex-shrink-0">
+                <button onClick={closeModal} className="p-1.5 hover:bg-gray-100 rounded-lg flex-shrink-0">
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>

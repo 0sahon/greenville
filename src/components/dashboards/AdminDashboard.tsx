@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSectionHistory } from '../../hooks/useSectionHistory';
 import {
   LayoutDashboard, GraduationCap, Users, BookOpen, ClipboardCheck,
   BarChart3, DollarSign, Monitor, Bell, Calendar, TrendingUp, Settings, UserPlus, Bus, Heart, FileText, MonitorCheck, Clock, Upload, MessageSquare, BookMarked, ClipboardList, History
@@ -58,6 +59,7 @@ const adminNav: NavItem[] = [
 
 export default function AdminDashboard({ profile }: { profile: ProfileRow }) {
   const [section, setSection] = useState('overview');
+  useSectionHistory(section, setSection);
 
   if (!profile) {
     return (
