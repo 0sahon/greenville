@@ -3,6 +3,7 @@ import { X, RefreshCw, TableProperties, Save } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import type { ProfileRow, ClassRow } from '../../../lib/supabase';
+import { AT, normalizeAssessmentType } from '../../../lib/assessmentTypes';
 import { getNigerianGrade } from '../../../lib/grading';
 
 interface StudentOption { id: string; student_id: string; profiles?: { first_name: string; last_name: string } | null; }
@@ -89,12 +90,12 @@ export default function GradeSheetTab({ profile }: { profile: ProfileRow }) {
       (existing || []).forEach((g: { student_id: string; subject: string; assessment_type: string; score: number; max_score: number }) => {
         if (!init[g.student_id]) return;
         if (!init[g.student_id][g.subject]) init[g.student_id][g.subject] = emptySubjectScores();
-        const t = g.assessment_type.toLowerCase();
-        if (t === 'home work' || t === 'homework' || t === 'hw' || t === 'assignment') init[g.student_id][g.subject].hw = String(g.score);
-        else if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment') init[g.student_id][g.subject].ca1 = String(g.score);
-        else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment') init[g.student_id][g.subject].ca2 = String(g.score);
-        else if (t === 'project') init[g.student_id][g.subject].project = String(g.score);
-        else if (t === 'exam' || t === 'examination') init[g.student_id][g.subject].exam = String(g.score);
+        const t = normalizeAssessmentType(g.assessment_type);
+        if (t === AT.HOMEWORK)      init[g.student_id][g.subject].hw      = String(g.score);
+        else if (t === AT.CA1)      init[g.student_id][g.subject].ca1     = String(g.score);
+        else if (t === AT.CA2)      init[g.student_id][g.subject].ca2     = String(g.score);
+        else if (t === AT.PROJECT)  init[g.student_id][g.subject].project = String(g.score);
+        else if (t === AT.EXAM)     init[g.student_id][g.subject].exam    = String(g.score);
       });
     }
     setAllScores(init); setLoaded(true); setLoading(false);
@@ -141,11 +142,11 @@ export default function GradeSheetTab({ profile }: { profile: ProfileRow }) {
       const hw = s.hw !== '' ? parseFloat(s.hw) : null;
       const exam = s.exam !== '' ? parseFloat(s.exam) : null;
       const base = { student_id: currentStudent.id, subject, term, academic_year: year, graded_by: profile.id };
-      if (ca1 !== null && !isNaN(ca1)) toUpsert.push({ ...base, assessment_type: '1st CA', score: ca1, max_score: 15 });
-      if (ca2 !== null && !isNaN(ca2)) toUpsert.push({ ...base, assessment_type: '2nd CA', score: ca2, max_score: 15 });
-      if (project !== null && !isNaN(project)) toUpsert.push({ ...base, assessment_type: 'Project', score: project, max_score: 10 });
-      if (hw !== null && !isNaN(hw)) toUpsert.push({ ...base, assessment_type: 'Home Work', score: hw, max_score: 10 });
-      if (exam !== null && !isNaN(exam)) toUpsert.push({ ...base, assessment_type: 'Exam', score: exam, max_score: 50 });
+      if (ca1 !== null && !isNaN(ca1)) toUpsert.push({ ...base, assessment_type: AT.CA1,      score: ca1,     max_score: 15 });
+      if (ca2 !== null && !isNaN(ca2)) toUpsert.push({ ...base, assessment_type: AT.CA2,      score: ca2,     max_score: 15 });
+      if (project !== null && !isNaN(project)) toUpsert.push({ ...base, assessment_type: AT.PROJECT, score: project, max_score: 10 });
+      if (hw !== null && !isNaN(hw)) toUpsert.push({ ...base, assessment_type: AT.HOMEWORK,  score: hw,      max_score: 10 });
+      if (exam !== null && !isNaN(exam)) toUpsert.push({ ...base, assessment_type: AT.EXAM,   score: exam,    max_score: 50 });
     });
     if (toUpsert.length) {
       const { error: upsertErr } = await supabase.from('grades').upsert(toUpsert, { onConflict: 'student_id,subject,assessment_type,term,academic_year' });

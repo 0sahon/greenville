@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Download, Printer, ChevronDown, ArrowLeft, KeyRound, Eye, EyeOff, Phone, Bell } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { AT, normalizeAssessmentType } from '../../lib/assessmentTypes';
 import ResultCard, {
   printResultCard,
   buildBasicSubjects,
@@ -54,6 +55,7 @@ interface PortalSheet {
   total_school_days: number;
   next_term_begins: string;
   next_term_fees: string;
+  outstanding_fees: string;
   grades: PortalGrade[] | null;
 }
 
@@ -69,28 +71,30 @@ function buildCardData(student: PortalStudent, sheet: PortalSheet): ResultCardDa
 
   let subjects: ReturnType<typeof buildBasicSubjects> = [];
 
-  if (level === 'basic') {
+  if (level.startsWith('basic')) {
     const scores: BasicScores = {};
     grades.filter(g => g.assessment_type !== 'pre_kg').forEach(g => {
       if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0 };
       const s = scores[g.subject]!;
-      if (g.assessment_type === '1st CA')    s.ca1      = g.score;
-      if (g.assessment_type === '2nd CA')    s.ca2      = g.score;
-      if (g.assessment_type === 'Exam')      s.exam     = g.score;
-      if (g.assessment_type === 'Project')   s.project  = g.score;
-      if (g.assessment_type === 'Home Work') s.homework = g.score;
+      const t = normalizeAssessmentType(g.assessment_type || '');
+      if (t === AT.CA1)           s.ca1      = g.score;
+      if (t === AT.CA2)           s.ca2      = g.score;
+      if (t === AT.EXAM)          s.exam     = g.score;
+      if (t === AT.PROJECT)       s.project  = g.score;
+      if (t === AT.HOMEWORK)      s.homework = g.score;
     });
     subjects = buildBasicSubjects(scores);
-  } else if (level === 'nursery' || level === 'kg') {
+  } else if (level === 'creche') {
     const scores: NurseryScores = {};
     grades.filter(g => g.assessment_type !== 'pre_kg').forEach(g => {
       if (!scores[g.subject]) scores[g.subject] = { ca1: 0, ca2: 0, exam: 0 };
       const s = scores[g.subject]!;
-      if (g.assessment_type === '1st CA')    s.ca1      = g.score;
-      if (g.assessment_type === '2nd CA')    s.ca2      = g.score;
-      if (g.assessment_type === 'Exam')      s.exam     = g.score;
-      if (g.assessment_type === 'Project')   s.project  = g.score;
-      if (g.assessment_type === 'Home Work') s.homework = g.score;
+      const t = normalizeAssessmentType(g.assessment_type || '');
+      if (t === AT.CA1)           s.ca1      = g.score;
+      if (t === AT.CA2)           s.ca2      = g.score;
+      if (t === AT.EXAM)          s.exam     = g.score;
+      if (t === AT.PROJECT)       s.project  = g.score;
+      if (t === AT.HOMEWORK)      s.homework = g.score;
     });
     subjects = buildNurserySubjects(scores);
   } else {
@@ -157,8 +161,9 @@ function buildCardData(student: PortalStudent, sheet: PortalSheet): ResultCardDa
       principal: sheet.principal_comment ?? '',
     },
     nextTerm: {
-      begins: sheet.next_term_begins ?? '',
-      fees:   sheet.next_term_fees   ?? '',
+      begins:          sheet.next_term_begins ?? '',
+      fees:            sheet.next_term_fees   ?? '',
+      outstandingFees: sheet.outstanding_fees ?? '',
     },
     schoolName:    SCHOOL_NAME,
     schoolAddress: SCHOOL_ADDRESS_SINGLE,

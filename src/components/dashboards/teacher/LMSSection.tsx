@@ -5,6 +5,7 @@ import {
   Paperclip, ClipboardList, CalendarDays, Sparkles, Tv, Image
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { AT } from '../../../lib/assessmentTypes';
 import { createSubmissionWorkSignedUrl, removeSubmissionWorkObjects } from '../../../lib/submissionWorkStorage';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import type {
@@ -403,7 +404,7 @@ Keep the language visual and exciting! Do not use complex jargon.`;
         const { error: gErr } = await supabase.from('grades').upsert({
           student_id: gradeTarget.student_id,
           subject,
-          assessment_type: 'Home Work',
+          assessment_type: AT.HOMEWORK,
           score,
           max_score: maxScore,
           term,

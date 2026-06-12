@@ -4,11 +4,12 @@ import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import type { ProfileRow, GradeRow, ClassRow } from '../../../lib/supabase';
 import { nigerianGrade } from '../../../lib/grading';
+import { normalizeAssessmentType } from '../../../lib/assessmentTypes';
 
 interface GradeWithStudent extends GradeRow {
   students?: { id: string; student_id: string; profiles?: { first_name: string; last_name: string }; classes?: { id: string; name: string }; } | null;
 }
-interface StudentOption { id: string; student_id: string; profiles?: { first_name: string; last_name: string } | null; }
+interface StudentOption { id: string; student_id: string; class_id?: string; profiles?: { first_name: string; last_name: string } | null; }
 
 const ASSESSMENT_TYPES = ['Home Work', '1st CA', '2nd CA', 'Project', 'Exam', 'Test', 'CA', 'Assignment', 'Quiz'];
 const DEFAULT_MAX: Record<string, number> = { 'Home Work': 10, '1st CA': 15, '2nd CA': 15, 'Project': 10, 'Exam': 50, 'Test': 30 };
@@ -52,10 +53,10 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
       const { data: ownClassIds } = await supabase.from('classes').select('id').eq('teacher_id', profile.id);
       const ids = (ownClassIds || []).map((c: { id: string }) => c.id);
       if (ids.length > 0) {
-        const { data } = await supabase.from('students').select('id, student_id, profiles:profile_id(first_name,last_name)').in('class_id', ids).eq('is_active', true).order('student_id');
+        const { data } = await supabase.from('students').select('id, student_id, class_id, profiles:profile_id(first_name,last_name)').in('class_id', ids).eq('is_active', true).order('student_id');
         setStudents((data || []) as unknown as StudentOption[]);
       } else {
-        const { data } = await supabase.from('students').select('id, student_id, profiles:profile_id(first_name,last_name)').eq('is_active', true).order('student_id');
+        const { data } = await supabase.from('students').select('id, student_id, class_id, profiles:profile_id(first_name,last_name)').eq('is_active', true).order('student_id');
         setStudents((data || []) as unknown as StudentOption[]);
       }
     };
@@ -117,15 +118,20 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
     setShowModal(true);
   };
 
+  const selectedClassId = students.find(s => s.id === form.student_id)?.class_id;
+  const isToddlerModal = myClasses.find(c => c.id === selectedClassId)?.level === 'toddler';
+
   const save = async () => {
     if (!form.student_id || !form.subject.trim() || form.score === '') return setToast({ msg: 'Student, subject and score required', type: 'error' });
     const score = parseFloat(form.score);
-    const max_score = parseFloat(form.max_score) || 100;
+    const max_score = isToddlerModal ? 5 : (parseFloat(form.max_score) || 100);
     if (isNaN(score) || score < 0) return setToast({ msg: 'Enter a valid score', type: 'error' });
-    if (score > max_score) return setToast({ msg: `Score cannot exceed ${max_score}`, type: 'error' });
+    if (isToddlerModal && (score < 1 || score > 5)) return setToast({ msg: 'Rating must be 1–5', type: 'error' });
+    if (!isToddlerModal && score > max_score) return setToast({ msg: `Score cannot exceed ${max_score}`, type: 'error' });
     setSaving(true);
     try {
-      const payload = { student_id: form.student_id, subject: form.subject.trim(), assessment_type: form.assessment_type, score, max_score, term: form.term, academic_year: form.academic_year, graded_by: profile.id };
+      const assessment_type = isToddlerModal ? 'pre_kg' : normalizeAssessmentType(form.assessment_type);
+      const payload = { student_id: form.student_id, subject: form.subject.trim(), assessment_type, score, max_score, term: form.term, academic_year: form.academic_year, graded_by: profile.id };
       if (editing) {
         const { error } = await supabase.from('grades').update(payload).eq('id', editing.id);
         if (error) throw error;
@@ -377,8 +383,16 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Subject *</label>
-                {subjects.length > 0 ? (
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {isToddlerModal ? 'Skill Area *' : 'Subject *'}
+                </label>
+                {isToddlerModal ? (
+                  <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    <option value="">Select skill area…</option>
+                    {PRE_KG_SKILLS_LIST.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                ) : subjects.length > 0 ? (
                   <select value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
                     <option value="">Select subject…</option>
@@ -389,26 +403,47 @@ export default function RecordsViewTab({ profile }: { profile: ProfileRow }) {
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 )}
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Type</label>
-                <select value={form.assessment_type}
-                  onChange={e => { const t = e.target.value; setForm(f => ({ ...f, assessment_type: t, ...(DEFAULT_MAX[t] ? { max_score: String(DEFAULT_MAX[t]) } : {}) })); }}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                  {ASSESSMENT_TYPES.map(t => <option key={t}>{t}{DEFAULT_MAX[t] ? ` (max ${DEFAULT_MAX[t]})` : ''}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+              {!isToddlerModal && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Score *</label>
-                  <input type="number" inputMode="numeric" autoComplete="off" min={0} step={0.5} value={form.score} onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Type</label>
+                  <select value={form.assessment_type}
+                    onChange={e => { const t = e.target.value; setForm(f => ({ ...f, assessment_type: t, ...(DEFAULT_MAX[t] ? { max_score: String(DEFAULT_MAX[t]) } : {}) })); }}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    {ASSESSMENT_TYPES.map(t => <option key={t}>{t}{DEFAULT_MAX[t] ? ` (max ${DEFAULT_MAX[t]})` : ''}</option>)}
+                  </select>
                 </div>
+              )}
+              {isToddlerModal ? (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
-                  <input type="number" inputMode="numeric" autoComplete="off" min={1} value={form.max_score} onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Observation Rating *</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {[5,4,3,2,1].map(r => (
+                      <button key={r} type="button"
+                        onClick={() => setForm(f => ({ ...f, score: f.score === String(r) ? '' : String(r), max_score: '5' }))}
+                        className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${
+                          form.score === String(r)
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
+                        }`}>
+                        {r} — {PRE_KG_RATING_LABELS[r]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Score *</label>
+                    <input type="number" inputMode="numeric" autoComplete="off" min={0} step={0.5} value={form.score} onChange={e => setForm(f => ({ ...f, score: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Max Score</label>
+                    <input type="number" inputMode="numeric" autoComplete="off" min={1} value={form.max_score} onChange={e => setForm(f => ({ ...f, max_score: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Term</label>

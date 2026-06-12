@@ -5,7 +5,33 @@
  */
 
 import { getNigerianGrade } from './grading';
+import { AT, normalizeAssessmentType } from './assessmentTypes';
 import type { SubjectResult } from '../components/dashboards/admin/ResultCard';
+
+export const PRE_KG_SKILLS = [
+  { name: 'Literacy',             col: 'left'   },
+  { name: 'Understanding',        col: 'center' },
+  { name: 'Obedience',            col: 'center' },
+  { name: 'Care of Self',         col: 'right'  },
+  { name: 'Individual Behaviour', col: 'right'  },
+  { name: 'Punctuality',          col: 'left'   },
+  { name: 'Numeracy',             col: 'center' },
+  { name: 'Bible Studies',        col: 'right'  },
+  { name: 'Creative Play',        col: 'right'  },
+  { name: 'Phonics',              col: 'left'   },
+  { name: 'Scribbling',           col: 'right'  },
+  { name: 'Social Habit',         col: 'right'  },
+] as const;
+
+export function buildPreKgSubjects(ratings: Partial<Record<string, number>>): SubjectResult[] {
+  return PRE_KG_SKILLS
+    .filter(s => (ratings[s.name] ?? 0) > 0)
+    .map(s => {
+      const r = ratings[s.name] ?? 0;
+      const ca1 = Math.round((r / 5) * 20);
+      return { subject: s.name, ca1, ca2: 0, exam: 0, total: ca1, grade: '', remark: '' };
+    });
+}
 
 interface GradeRecord {
   subject: string;
@@ -29,23 +55,20 @@ export function computeSubjects(grades: GradeRecord[]): SubjectResult[] {
     const key  = (g.subject || '').trim();
     if (!map.has(key)) map.set(key, { ca1: null, ca2: null, exam: null, hw: null, project: null });
     const entry = map.get(key)!;
-    const type  = (g.assessment_type || '').toLowerCase().trim();
+    const type  = normalizeAssessmentType(g.assessment_type || '');
 
-    if (type === 'home work' || type === 'homework') {
+    if (type === AT.HOMEWORK) {
       entry.hw = { score: g.score, max: g.max_score };
-    } else if (type === '1st ca' || type === 'first ca' || type === '1st continuous assessment') {
+    } else if (type === AT.CA1) {
       entry.ca1 = { score: g.score, max: g.max_score };
-    } else if (type === '2nd ca' || type === 'second ca' || type === '2nd continuous assessment') {
+    } else if (type === AT.CA2) {
       entry.ca2 = { score: g.score, max: g.max_score };
-    } else if (type === 'exam' || type === 'examination' || type === 'final exam') {
+    } else if (type === AT.EXAM) {
       entry.exam = { score: g.score, max: g.max_score };
-    } else if (type === 'project') {
+    } else if (type === AT.PROJECT) {
       entry.project = { score: g.score, max: g.max_score };
-    } else if (type === 'ca' || type === 'test' || type === 'continuous assessment') {
-      if (!entry.ca1) entry.ca1 = { score: g.score, max: g.max_score };
-      else if (!entry.ca2) entry.ca2 = { score: g.score, max: g.max_score };
-    } else {
-      // Unknown type — slot into first available CA bucket
+    } else if (type !== AT.PRE_KG) {
+      // Custom types (Test, Quiz, CA …) — slot into first available CA bucket
       if (!entry.ca1) entry.ca1 = { score: g.score, max: g.max_score };
       else if (!entry.ca2) entry.ca2 = { score: g.score, max: g.max_score };
     }
@@ -54,7 +77,6 @@ export function computeSubjects(grades: GradeRecord[]): SubjectResult[] {
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([subject, s]) => {
-      // Raw direct model: score is already the face-value mark; cap at canonical max.
       const ca1      = s.ca1     ? Math.min(Math.round(s.ca1.score),     15) : 0;
       const ca2      = s.ca2     ? Math.min(Math.round(s.ca2.score),     15) : 0;
       const exam     = s.exam    ? Math.min(Math.round(s.exam.score),    50) : 0;

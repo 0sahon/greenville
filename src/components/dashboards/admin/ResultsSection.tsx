@@ -17,7 +17,8 @@ import { printResultCard, CardPrintContent,
 import type { ResultCardData, SubjectResult, NurseryScores, BasicScores } from './ResultCard';
 import type { ProfileRow, ClassRow, GradeRow } from '../../../lib/supabase';
 import PerformanceChart from '../shared/PerformanceChart';
-import { computeSubjects } from '../../../lib/gradeCompute';
+import { computeSubjects, buildPreKgSubjects } from '../../../lib/gradeCompute';
+import { AT, normalizeAssessmentType } from '../../../lib/assessmentTypes';
 import ResultCardModal, { defaultMeta, type MetaForm, type StudentInfo } from './ResultCardModal';
 import { SCHOOL_WEBSITE, SCHOOL_WHATSAPP_HREF } from '../../../config/schoolBrand';
 
@@ -43,7 +44,7 @@ function getTermDateRange(term: string, academicYear: string): { start: string; 
 }
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
   return (
     <div className={`fixed bottom-6 right-6 z-[200] px-5 py-3 rounded-xl shadow-xl text-white text-sm font-medium flex items-center gap-2 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
       {msg} <button onClick={onClose}><X className="w-4 h-4" /></button>
@@ -125,15 +126,6 @@ export default function ResultsSection({ profile }: Props) {
   const isToddlerStudent = activeStudent?.classes?.level === 'toddler';
   const isNurseryStudent = activeStudent?.classes?.level === 'creche';
   const isBasicStudent   = ['basic1','basic2','basic3','basic4','basic5'].includes(activeStudent?.classes?.level ?? '');
-
-  const buildPreKgSubjects = (ratings: Partial<Record<string, number>>): SubjectResult[] =>
-    PRE_KG_SKILLS
-      .filter(s => (ratings[s.name] ?? 0) > 0)
-      .map(s => {
-        const r = ratings[s.name] ?? 0;
-        const ca1 = Math.round((r / 5) * 20);
-        return { subject: s.name, ca1, ca2: 0, exam: 0, total: ca1, grade: '', remark: '' };
-      });
 
   const updatePreKgRating = (skillName: string, rating: number) => {
     const updated: Partial<Record<string, number>> = { ...preKgRatings, [skillName]: rating === 0 ? undefined : rating };
@@ -373,18 +365,12 @@ export default function ResultsSection({ profile }: Props) {
         for (const g of myGradeRows) {
           const subName = (g.subject || '').trim();
           if (!scores[subName]) scores[subName] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-          const t = (g.assessment_type || '').toLowerCase().trim();
-          // Raw direct system: use score as-is, no proportional scaling
-          if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-            scores[subName]!.ca1 = g.score;
-          else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-            scores[subName]!.ca2 = g.score;
-          else if (t === 'exam' || t === 'examination' || t === 'final exam')
-            scores[subName]!.exam = g.score;
-          else if (t === 'project')
-            scores[subName]!.project = g.score;
-          else if (t === 'homework' || t === 'home work')
-            scores[subName]!.homework = g.score;
+          const t = normalizeAssessmentType(g.assessment_type || '');
+          if (t === AT.CA1)           scores[subName]!.ca1      = g.score;
+          else if (t === AT.CA2)      scores[subName]!.ca2      = g.score;
+          else if (t === AT.EXAM)     scores[subName]!.exam     = g.score;
+          else if (t === AT.PROJECT)  scores[subName]!.project  = g.score;
+          else if (t === AT.HOMEWORK) scores[subName]!.homework = g.score;
         }
         setNurseryScores(scores);
         mySubjects = buildNurserySubjects(scores);
@@ -393,18 +379,12 @@ export default function ResultsSection({ profile }: Props) {
         for (const g of myGradeRows) {
           const subName = (g.subject || '').trim();
           if (!scores[subName]) scores[subName] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-          const t = (g.assessment_type || '').toLowerCase().trim();
-          // Raw direct system: use score as-is, no proportional scaling
-          if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-            scores[subName]!.ca1 = g.score;
-          else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-            scores[subName]!.ca2 = g.score;
-          else if (t === 'exam' || t === 'examination' || t === 'final exam')
-            scores[subName]!.exam = g.score;
-          else if (t === 'project')
-            scores[subName]!.project = g.score;
-          else if (t === 'homework' || t === 'home work')
-            scores[subName]!.homework = g.score;
+          const t = normalizeAssessmentType(g.assessment_type || '');
+          if (t === AT.CA1)           scores[subName]!.ca1      = g.score;
+          else if (t === AT.CA2)      scores[subName]!.ca2      = g.score;
+          else if (t === AT.EXAM)     scores[subName]!.exam     = g.score;
+          else if (t === AT.PROJECT)  scores[subName]!.project  = g.score;
+          else if (t === AT.HOMEWORK) scores[subName]!.homework = g.score;
         }
         setBasicScores(scores);
         mySubjects = buildBasicSubjects(scores);
@@ -599,11 +579,11 @@ export default function ResultsSection({ profile }: Props) {
         for (const subject of BASIC_SUBJECTS) {
           const s = basicScores[subject];
           if (!s) continue;
-          if (s.ca1  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.ca2  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.exam > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: BASIC_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.project && s.project > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'project',  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.homework && s.homework > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'homework', score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca1  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.CA1,      score: s.ca1,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca2  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.CA2,      score: s.ca2,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.exam > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.EXAM,     score: s.exam, max_score: BASIC_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.project && s.project > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.PROJECT,  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.homework && s.homework > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.HOMEWORK, score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
         }
         if (bRows.length > 0) {
           const { error: gErr } = await supabase.from('grades').insert(bRows);
@@ -625,11 +605,11 @@ export default function ResultsSection({ profile }: Props) {
         for (const subject of NURSERY_SUBJECTS) {
           const s = nurseryScores[subject];
           if (!s) continue;
-          if (s.ca1  > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.ca2  > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.exam > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: NURSERY_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.project && s.project > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: 'project',  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.homework && s.homework > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: 'homework', score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca1  > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.CA1,      score: s.ca1,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca2  > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.CA2,      score: s.ca2,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.exam > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.EXAM,     score: s.exam, max_score: NURSERY_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.project && s.project > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.PROJECT,  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.homework && s.homework > 0) gradeRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.HOMEWORK, score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
         }
         if (gradeRows.length > 0) {
           const { error: gErr } = await supabase.from('grades').insert(gradeRows);
@@ -770,7 +750,7 @@ export default function ResultsSection({ profile }: Props) {
           },
           attendance: att,
           comments: { teacher: meta.teacher_comment || '', principal: meta.principal_comment || '' },
-          nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees || '' },
+          nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees || '', outstandingFees: meta.outstanding_fees || '' },
           schoolName, schoolAddress: (settings.school_address as string) || '',
         };
       });
@@ -853,7 +833,7 @@ export default function ResultsSection({ profile }: Props) {
           },
           attendance: att,
           comments: { teacher: meta.teacher_comment || '', principal: meta.principal_comment || '' },
-          nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees || '' },
+          nextTerm: { begins: meta.next_term_begins || '', fees: meta.next_term_fees || '', outstandingFees: meta.outstanding_fees || '' },
           schoolName, schoolAddress: (settings.school_address as string) || '',
           visibleSubjects,
         };

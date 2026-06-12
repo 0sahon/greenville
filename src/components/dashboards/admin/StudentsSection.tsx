@@ -6,6 +6,7 @@ import {
   TrendingUp, TrendingDown, Minus, BarChart3,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { normalizeAssessmentType, ASSESSMENT_MAX } from '../../../lib/assessmentTypes';
 import type { ProfileRow, StudentRow, ClassRow, ClassLevel, StudentGender } from '../../../lib/supabase';
 
 interface StudentWithRelations extends StudentRow {
@@ -111,7 +112,7 @@ export default function StudentsSection({ profile: _profile }: Props) {
   useEffect(() => {
     if (!viewStudent) { setTermHistory([]); setViewTab('info'); return; }
     setHistoryLoading(true);
-    const ASSESS_MAX: Record<string, number> = { homework: 10, '1st ca': 15, '2nd ca': 15, project: 10, exam: 50 };
+    const ASSESS_MAX = ASSESSMENT_MAX;
     Promise.all([
       supabase.from('grades').select('subject,assessment_type,score,max_score,term,academic_year').eq('student_id', viewStudent.id),
       supabase.from('result_sheets').select('term,academic_year,is_published').eq('student_id', viewStudent.id),
@@ -131,7 +132,7 @@ export default function StudentsSection({ profile: _profile }: Props) {
         // Per-student-subject total using standard weight
         const bySubject: Record<string, number> = {};
         rows.filter(r => r.assessment_type !== 'pre_kg').forEach(r => {
-          const maxW = ASSESS_MAX[r.assessment_type.toLowerCase()] ?? 0;
+          const maxW = ASSESS_MAX[normalizeAssessmentType(r.assessment_type)] ?? 0;
           const contrib = r.max_score > 0 ? (r.score / r.max_score) * maxW : 0;
           bySubject[r.subject] = (bySubject[r.subject] ?? 0) + contrib;
         });

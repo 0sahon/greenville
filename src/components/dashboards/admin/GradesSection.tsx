@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { TERMS, getDefaultAcademicYear, getAcademicYearOptions } from '../../../lib/academicConfig';
 import type { ProfileRow, GradeRow, GradeInsert, ClassRow } from '../../../lib/supabase';
 import { nigerianGrade, getNigerianGrade } from '../../../lib/grading';
+import { AT, normalizeAssessmentType, ASSESSMENT_MAX } from '../../../lib/assessmentTypes';
 
 interface Props { profile: ProfileRow; onNavigate?: (s: string) => void; }
 
@@ -27,8 +28,8 @@ const DEFAULT_MAX: Record<string, number> = { 'Home Work': 10, '1st CA': 15, '2n
 const PRE_KG_SKILLS_LIST = ['Literacy','Understanding','Obedience','Care of Self','Individual Behaviour','Punctuality','Numeracy','Bible Studies','Creative Play','Phonics','Scribbling','Social Habit'];
 const PRE_KG_RATING_LABELS: Record<number, string> = { 5: 'Excellent', 4: 'Very Good', 3: 'Good', 2: 'Fair', 1: 'Needs Improvement' };
 
-const TYPE_ORDER = ['Home Work', 'homework', '1st CA', '1st ca', '2nd CA', '2nd ca', 'Project', 'project', 'Exam', 'exam', 'Test', 'CA', 'Assignment', 'Quiz'];
-const typeRank = (t: string) => { const i = TYPE_ORDER.findIndex(x => x.toLowerCase() === t.toLowerCase()); return i === -1 ? 99 : i; };
+const TYPE_ORDER = ['Homework', '1st CA', '2nd CA', 'Project', 'Exam', 'Test', 'CA', 'Assignment', 'Quiz'];
+const typeRank = (t: string) => { const i = TYPE_ORDER.findIndex(x => x === t); return i === -1 ? 99 : i; };
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
@@ -213,7 +214,7 @@ function RecordsTab({
     try {
       const payload: GradeInsert = {
         student_id: form.student_id, subject: effectiveSubject,
-        assessment_type: isPreKg ? 'pre_kg' : form.assessment_type,
+        assessment_type: isPreKg ? 'pre_kg' : normalizeAssessmentType(form.assessment_type),
         score, max_score: isPreKg ? 5 : max_score,
         term: form.term, academic_year: form.academic_year, graded_by: profile.id,
       };
@@ -956,7 +957,7 @@ function BulkEntryTab({ profile, classes, onRefresh, onToast }: {
       const payload = validRows.map(r => ({
         student_id: r.studentId,
         subject: effectiveSubject,
-        assessment_type: isToddlerClass ? 'pre_kg' : assessmentType,
+        assessment_type: isToddlerClass ? AT.PRE_KG : normalizeAssessmentType(assessmentType),
         score: isToddlerClass ? parseInt(r.score) : parseFloat(r.score),
         max_score: isToddlerClass ? 5 : max,
         term, academic_year: academicYear, graded_by: profile.id,

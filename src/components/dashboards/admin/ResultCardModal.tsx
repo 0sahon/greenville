@@ -424,30 +424,43 @@ export default function ResultCardModal({
                         <div className="divide-y divide-gray-100">
                           {(skills as readonly string[]).map(skillName => {
                             const current = preKgRatings[skillName] || 0;
-                            const comment = PRE_KG_COMMENTS[skillName]?.[current]?.[0] ?? '';
+                            const commentOptions = PRE_KG_COMMENTS[skillName]?.[current] ?? [];
+                            const selectedIdx = preKgCommentChoices[skillName] ?? 0;
                             return (
-                              <div key={skillName} className="flex flex-wrap items-center gap-2 px-4 py-3 bg-white">
-                                <span className="text-sm font-medium text-gray-700 flex-1 min-w-[120px]">{skillName}</span>
-                                <div className="flex items-center gap-1">
-                                  {[1,2,3,4,5].map(r => (
-                                    <button
-                                      key={r}
-                                      onClick={() => onPreKgRating(skillName, current === r ? 0 : r)}
-                                      title={PRE_KG_FACE_LABELS[r]}
-                                      className={`text-2xl leading-none rounded-full w-10 h-10 flex items-center justify-center transition-all border-2 ${
-                                        current === r
-                                          ? 'border-green-400 bg-green-50 scale-110 shadow-sm'
-                                          : 'border-transparent opacity-40 hover:opacity-80 hover:scale-105'
-                                      }`}
-                                    >
-                                      {PRE_KG_FACES[r]}
-                                    </button>
-                                  ))}
+                              <div key={skillName} className="flex flex-col px-4 py-3 bg-white gap-1.5">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-700 flex-1 min-w-[120px]">{skillName}</span>
+                                  <div className="flex items-center gap-1">
+                                    {[1,2,3,4,5].map(r => (
+                                      <button
+                                        key={r}
+                                        onClick={() => onPreKgRating(skillName, current === r ? 0 : r)}
+                                        title={PRE_KG_FACE_LABELS[r]}
+                                        className={`text-2xl leading-none rounded-full w-10 h-10 flex items-center justify-center transition-all border-2 ${
+                                          current === r
+                                            ? 'border-green-400 bg-green-50 scale-110 shadow-sm'
+                                            : 'border-transparent opacity-40 hover:opacity-80 hover:scale-105'
+                                        }`}
+                                      >
+                                        {PRE_KG_FACES[r]}
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
-                                {current > 0 && (
-                                  <span className="text-[11px] text-green-700 font-medium italic w-full mt-0.5">
-                                    {PRE_KG_FACE_LABELS[current]}{comment ? ` — ${comment}` : ''}
-                                  </span>
+                                {current > 0 && commentOptions.length > 0 && (
+                                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5">
+                                    {commentOptions.map((opt, i) => (
+                                      <button key={i} type="button"
+                                        onClick={() => onPreKgCommentChoice(skillName, i)}
+                                        className={`w-full sm:w-auto text-xs px-3 py-2 rounded-lg border transition-all text-left ${
+                                          i === selectedIdx
+                                            ? 'bg-green-600 text-white border-green-600'
+                                            : 'bg-white text-gray-500 border-gray-200 hover:border-green-400 hover:text-green-700'
+                                        }`}>
+                                        {opt}
+                                      </button>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
                             );

@@ -16,7 +16,8 @@ import ResultCard, {
 import type { ResultCardData, SubjectResult, NurseryScores, BasicScores } from '../admin/ResultCard';
 import type { ProfileRow, GradeRow } from '../../../lib/supabase';
 import PerformanceChart from '../shared/PerformanceChart';
-import { computeSubjects } from '../../../lib/gradeCompute';
+import { computeSubjects, buildPreKgSubjects } from '../../../lib/gradeCompute';
+import { AT, normalizeAssessmentType, ASSESSMENT_MAX } from '../../../lib/assessmentTypes';
 import {
   SCHOOL_ADDRESS_SINGLE,
   SCHOOL_NAME,
@@ -63,7 +64,7 @@ const defaultMeta: ResultSheetMeta = {
 };
 
 function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error'; onClose: () => void }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
   return (
     <div className={`fixed bottom-6 right-6 z-[200] px-5 py-3 rounded-xl shadow-xl text-white text-sm font-medium flex items-center gap-2 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
       {msg} <button onClick={onClose}><X className="w-4 h-4" /></button>
@@ -81,17 +82,7 @@ const PRE_KG_DOMAINS = [
 ] as const;
 const PRE_KG_FACES  = ['', '😔', '😐', '🙂', '😊', '🌟'] as const;
 const PRE_KG_FACE_LABELS = ['', 'Needs Work', 'Fair', 'Good', 'Very Good', 'Excellent'] as const;
-const ASSESS_MAX_CONTRIB: Record<string, number> = { homework: 10, '1st ca': 15, '2nd ca': 15, project: 10, exam: 50 };
-
-function buildPreKgSubjects(ratings: Partial<Record<string, number>>): SubjectResult[] {
-  return PRE_KG_SKILLS
-    .filter(s => (ratings[s.name] ?? 0) > 0)
-    .map(s => {
-      const r = ratings[s.name] ?? 0;
-      const ca1 = Math.round((r / 5) * 20);
-      return { subject: s.name, ca1, ca2: 0, exam: 0, total: ca1, grade: '', remark: '' };
-    });
-}
+const ASSESS_MAX_CONTRIB = ASSESSMENT_MAX;
 
 export default function TeacherResultsSection({ profile }: Props) {
   const [myClasses, setMyClasses] = useState<{ id: string; name: string; level: string }[]>([]);
@@ -129,6 +120,7 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [preKgRatings, setPreKgRatings] = useState<Partial<Record<string, number>>>({});
+  const [preKgCommentChoices, setPreKgCommentChoices] = useState<Record<string, number>>({});
   const [nurseryScores, setNurseryScores] = useState<NurseryScores>({});
   const [basicScores, setBasicScores] = useState<BasicScores>({});
   const [pinVisibility, setPinVisibility] = useState<Record<string, boolean>>({});
@@ -138,12 +130,27 @@ export default function TeacherResultsSection({ profile }: Props) {
   const [isDirty, setIsDirty] = useState(false);
   const [subjectVisibility, setSubjectVisibility] = useState<Record<string, boolean>>({});
 
+  const handlePreKgCommentChoice = (skillName: string, choiceIdx: number) => {
+    setPreKgCommentChoices(prev => {
+      const updated = { ...prev, [skillName]: choiceIdx };
+      setCardData(curr => {
+        if (!curr) return null;
+        return {
+          ...curr,
+          preKgCommentChoices: updated,
+        };
+      });
+      return updated;
+    });
+  };
+
   const closeModal = useCallback(() => {
     setActiveStudent(null);
     setCardData(null);
     setSubjects([]);
     setDeleteConfirm(false);
     setPreKgRatings({});
+    setPreKgCommentChoices({});
     setNurseryScores({});
     setBasicScores({});
     setIsDirty(false);
@@ -332,12 +339,12 @@ export default function TeacherResultsSection({ profile }: Props) {
         const loaded: Record<string, { ca1: number; ca2: number; exam: number; project: number; homework: number }> = {};
         (data || []).forEach((g: { student_id: string; assessment_type: string; score: number }) => {
           if (!loaded[g.student_id]) loaded[g.student_id] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-          const t = (g.assessment_type || '').toLowerCase();
-          if (t === '1st ca')   loaded[g.student_id].ca1     = g.score;
-          if (t === '2nd ca')   loaded[g.student_id].ca2     = g.score;
-          if (t === 'exam')     loaded[g.student_id].exam    = g.score;
-          if (t === 'project')  loaded[g.student_id].project = g.score;
-          if (t === 'homework') loaded[g.student_id].homework = g.score;
+          const t = normalizeAssessmentType(g.assessment_type || '');
+          if (t === AT.CA1)      loaded[g.student_id].ca1      = g.score;
+          if (t === AT.CA2)      loaded[g.student_id].ca2      = g.score;
+          if (t === AT.EXAM)     loaded[g.student_id].exam     = g.score;
+          if (t === AT.PROJECT)  loaded[g.student_id].project  = g.score;
+          if (t === AT.HOMEWORK) loaded[g.student_id].homework = g.score;
         });
         setBulkScores(loaded);
       });
@@ -360,11 +367,11 @@ export default function TeacherResultsSection({ profile }: Props) {
       for (const s of students) {
         const sc = bulkScores[s.id];
         if (!sc) continue;
-        if (sc.homework > 0) rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: 'homework', score: sc.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-        if (sc.ca1 > 0)      rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: '1st ca',   score: sc.ca1,     max_score: bulkCAMax,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-        if (sc.ca2 > 0)      rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: '2nd ca',   score: sc.ca2,     max_score: bulkCAMax,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-        if (sc.project > 0)  rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: 'project',  score: sc.project, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-        if (sc.exam > 0)     rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: 'exam',     score: sc.exam,    max_score: bulkExamMax, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        if (sc.homework > 0) rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: AT.HOMEWORK, score: sc.homework, max_score: 10,          term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        if (sc.ca1 > 0)      rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: AT.CA1,      score: sc.ca1,      max_score: bulkCAMax,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        if (sc.ca2 > 0)      rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: AT.CA2,      score: sc.ca2,      max_score: bulkCAMax,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        if (sc.project > 0)  rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: AT.PROJECT,  score: sc.project,  max_score: 10,          term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+        if (sc.exam > 0)     rows.push({ student_id: s.id, subject: bulkSubject, assessment_type: AT.EXAM,     score: sc.exam,     max_score: bulkExamMax, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
       }
       if (rows.length > 0) {
         const { error } = await supabase.from('grades').insert(rows);
@@ -393,7 +400,7 @@ export default function TeacherResultsSection({ profile }: Props) {
     for (const row of data as { student_id: string; subject: string; assessment_type: string; score: number; max_score: number }[]) {
       const key = `${row.student_id}|${row.subject}`;
       if (!perStudentSubject[key]) perStudentSubject[key] = {};
-      const maxContrib = ASSESS_MAX_CONTRIB[row.assessment_type] ?? 0;
+      const maxContrib = ASSESS_MAX_CONTRIB[normalizeAssessmentType(row.assessment_type || '')] ?? 0;
       perStudentSubject[key][row.assessment_type] = row.max_score > 0 ? (row.score / row.max_score) * maxContrib : 0;
     }
     const subjectTotals: Record<string, number[]> = {};
@@ -631,18 +638,12 @@ export default function TeacherResultsSection({ profile }: Props) {
         for (const g of allGradeRows) {
           const subName = (g.subject || '').trim();
           if (!scores[subName]) scores[subName] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-          const t = (g.assessment_type || '').toLowerCase().trim();
-          // Raw direct system: use score as-is, no proportional scaling
-          if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-            scores[subName]!.ca1 = g.score;
-          else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-            scores[subName]!.ca2 = g.score;
-          else if (t === 'exam' || t === 'examination' || t === 'final exam')
-            scores[subName]!.exam = g.score;
-          else if (t === 'project')
-            scores[subName]!.project = g.score;
-          else if (t === 'homework' || t === 'home work')
-            scores[subName]!.homework = g.score;
+          const t = normalizeAssessmentType(g.assessment_type || '');
+          if (t === AT.CA1)      scores[subName]!.ca1      = g.score;
+          else if (t === AT.CA2)      scores[subName]!.ca2      = g.score;
+          else if (t === AT.EXAM)     scores[subName]!.exam     = g.score;
+          else if (t === AT.PROJECT)  scores[subName]!.project  = g.score;
+          else if (t === AT.HOMEWORK) scores[subName]!.homework = g.score;
         }
         setNurseryScores(scores);
         subs = buildNurserySubjects(scores);
@@ -651,18 +652,12 @@ export default function TeacherResultsSection({ profile }: Props) {
         for (const g of allGradeRows) {
           const subName = (g.subject || '').trim();
           if (!scores[subName]) scores[subName] = { ca1: 0, ca2: 0, exam: 0, project: 0, homework: 0 };
-          const t = (g.assessment_type || '').toLowerCase().trim();
-          // Raw direct system: use score as-is, no proportional scaling
-          if (t === '1st ca' || t === 'first ca' || t === '1st continuous assessment')
-            scores[subName]!.ca1 = g.score;
-          else if (t === '2nd ca' || t === 'second ca' || t === '2nd continuous assessment')
-            scores[subName]!.ca2 = g.score;
-          else if (t === 'exam' || t === 'examination' || t === 'final exam')
-            scores[subName]!.exam = g.score;
-          else if (t === 'project')
-            scores[subName]!.project = g.score;
-          else if (t === 'homework' || t === 'home work')
-            scores[subName]!.homework = g.score;
+          const t = normalizeAssessmentType(g.assessment_type || '');
+          if (t === AT.CA1)      scores[subName]!.ca1      = g.score;
+          else if (t === AT.CA2)      scores[subName]!.ca2      = g.score;
+          else if (t === AT.EXAM)     scores[subName]!.exam     = g.score;
+          else if (t === AT.PROJECT)  scores[subName]!.project  = g.score;
+          else if (t === AT.HOMEWORK) scores[subName]!.homework = g.score;
         }
         setBasicScores(scores);
         subs = buildBasicSubjects(scores);
@@ -700,6 +695,7 @@ export default function TeacherResultsSection({ profile }: Props) {
         ? getVisibleSubjects('nursery', NURSERY_SUBJECTS)
         : undefined;
 
+      setPreKgCommentChoices({});
       setCardData({
         student: {
           name: `${student.profiles?.first_name ?? ''} ${student.profiles?.last_name ?? ''}`.trim(),
@@ -731,6 +727,7 @@ export default function TeacherResultsSection({ profile }: Props) {
         schoolName: SCHOOL_NAME,
         schoolAddress: `${SCHOOL_ADDRESS_SINGLE} · TEL: ${SCHOOL_PHONE_DISPLAY}`,
         visibleSubjects,
+        preKgCommentChoices: {},
       });
       setLoadingCard(false);
     } catch (err: any) {
@@ -820,11 +817,11 @@ export default function TeacherResultsSection({ profile }: Props) {
         for (const subject of BASIC_SUBJECTS) {
           const s = basicScores[subject];
           if (!s) continue;
-          if (s.ca1  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.ca2  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.exam > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: BASIC_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.project && s.project > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'project',  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.homework && s.homework > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: 'homework', score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca1  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.CA1,      score: s.ca1,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca2  > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.CA2,      score: s.ca2,  max_score: BASIC_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.exam > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.EXAM,     score: s.exam, max_score: BASIC_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.project && s.project > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.PROJECT,  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.homework && s.homework > 0) bRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.HOMEWORK, score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
         }
         if (bRows.length > 0) {
           const { error: gErr } = await supabase.from('grades').insert(bRows);
@@ -843,11 +840,11 @@ export default function TeacherResultsSection({ profile }: Props) {
         for (const subject of NURSERY_SUBJECTS) {
           const s = nurseryScores[subject];
           if (!s) continue;
-          if (s.ca1  > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: '1st ca',  score: s.ca1,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.ca2  > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: '2nd ca',  score: s.ca2,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.exam > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: 'exam',    score: s.exam, max_score: NURSERY_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.project && s.project > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: 'project',  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
-          if (s.homework && s.homework > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: 'homework', score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca1  > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.CA1,      score: s.ca1,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.ca2  > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.CA2,      score: s.ca2,  max_score: NURSERY_CA_MAX,   term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.exam > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.EXAM,     score: s.exam, max_score: NURSERY_EXAM_MAX, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.project && s.project > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.PROJECT,  score: s.project,  max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
+          if (s.homework && s.homework > 0) nRows.push({ student_id: activeStudent.id, subject, assessment_type: AT.HOMEWORK, score: s.homework, max_score: 10, term: selectedTerm, academic_year: academicYear, graded_by: profile.id });
         }
         if (nRows.length > 0) {
           const { error: gErr } = await supabase.from('grades').insert(nRows);
@@ -1648,6 +1645,39 @@ export default function TeacherResultsSection({ profile }: Props) {
                               />
                             </div>
                           </div>
+
+                          {/* Toddler: comment picker — teacher selects from 5 options per rated skill */}
+                          {isToddlerStudent && cardData && (
+                            <div className="border border-indigo-200 rounded-xl p-4 bg-indigo-50">
+                              <h4 className="font-semibold text-indigo-800 text-sm mb-1">Balloon Comments</h4>
+                              <p className="text-xs text-indigo-500 mb-3">Click a comment to use it inside each balloon. The highlighted option is currently shown on the card.</p>
+                              <div className="space-y-3">
+                                {PRE_KG_SKILLS
+                                  .filter(skill => (cardData.subjects.find(s => s.subject === skill.name)?.total ?? 0) > 0)
+                                  .map(skill => {
+                                    const subj = cardData.subjects.find(s => s.subject === skill.name);
+                                    const rating = subj ? (subj.total >= 18 ? 5 : subj.total >= 14 ? 4 : subj.total >= 10 ? 3 : subj.total >= 6 ? 2 : 1) : 0;
+                                    const options = PRE_KG_COMMENTS[skill.name]?.[rating] ?? [];
+                                    if (!options.length) return null;
+                                    const nameHash = cardData.student.name.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0);
+                                    const currentIdx = preKgCommentChoices[skill.name] ?? (nameHash % options.length);
+                                    return (
+                                      <div key={skill.name}>
+                                        <div className="text-xs font-semibold text-indigo-700 mb-1">{skill.name} <span className="font-normal text-indigo-400">— {['','Needs Improvement','Fair','Good','Very Good','Excellent'][rating]}</span></div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {options.map((opt, i) => (
+                                            <button key={i} onClick={() => handlePreKgCommentChoice(skill.name, i)}
+                                              className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${i === currentIdx ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-400'}`}>
+                                              {opt}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                              </div>
+                            </div>
+                          )}
                           {/* Share / Export actions */}
                           <div className="flex flex-wrap gap-2">
                             <button
@@ -1837,30 +1867,43 @@ export default function TeacherResultsSection({ profile }: Props) {
                                 <div className="divide-y divide-gray-100">
                                   {(skills as readonly string[]).map(skillName => {
                                     const current = preKgRatings[skillName] || 0;
-                                    const comment = PRE_KG_COMMENTS[skillName]?.[current]?.[0] ?? '';
+                                    const commentOptions = PRE_KG_COMMENTS[skillName]?.[current] ?? [];
+                                    const selectedIdx = preKgCommentChoices[skillName] ?? 0;
                                     return (
-                                      <div key={skillName} className="flex flex-wrap items-center gap-2 px-4 py-3 bg-white">
-                                        <span className="text-sm font-medium text-gray-700 flex-1 min-w-[120px]">{skillName}</span>
-                                        <div className="flex items-center gap-1">
-                                          {[1,2,3,4,5].map(r => (
-                                            <button
-                                              key={r}
-                                              onClick={() => updatePreKgRating(skillName, current === r ? 0 : r)}
-                                              title={PRE_KG_FACE_LABELS[r]}
-                                              className={`text-2xl leading-none rounded-full w-10 h-10 flex items-center justify-center transition-all border-2 ${
-                                                current === r
-                                                  ? 'border-indigo-400 bg-indigo-50 scale-110 shadow-sm'
-                                                  : 'border-transparent opacity-40 hover:opacity-80 hover:scale-105'
-                                              }`}
-                                            >
-                                              {PRE_KG_FACES[r]}
-                                            </button>
-                                          ))}
+                                      <div key={skillName} className="flex flex-col px-4 py-3 bg-white gap-1.5">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="text-sm font-medium text-gray-700 flex-1 min-w-[120px]">{skillName}</span>
+                                          <div className="flex items-center gap-1">
+                                            {[1,2,3,4,5].map(r => (
+                                              <button
+                                                key={r}
+                                                onClick={() => updatePreKgRating(skillName, current === r ? 0 : r)}
+                                                title={PRE_KG_FACE_LABELS[r]}
+                                                className={`text-2xl leading-none rounded-full w-10 h-10 flex items-center justify-center transition-all border-2 ${
+                                                  current === r
+                                                    ? 'border-indigo-400 bg-indigo-50 scale-110 shadow-sm'
+                                                    : 'border-transparent opacity-40 hover:opacity-80 hover:scale-105'
+                                                }`}
+                                              >
+                                                {PRE_KG_FACES[r]}
+                                              </button>
+                                            ))}
+                                          </div>
                                         </div>
-                                        {current > 0 && (
-                                          <span className="text-[11px] text-indigo-600 font-medium italic w-full mt-0.5">
-                                            {PRE_KG_FACE_LABELS[current]}{comment ? ` — ${comment}` : ''}
-                                          </span>
+                                        {current > 0 && commentOptions.length > 0 && (
+                                          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5">
+                                            {commentOptions.map((opt, i) => (
+                                              <button key={i} type="button"
+                                                onClick={() => handlePreKgCommentChoice(skillName, i)}
+                                                className={`w-full sm:w-auto text-xs px-3 py-2 rounded-lg border transition-all text-left ${
+                                                  i === selectedIdx
+                                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                                    : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-400 hover:text-indigo-700'
+                                                }`}>
+                                                {opt}
+                                              </button>
+                                            ))}
+                                          </div>
                                         )}
                                       </div>
                                     );
